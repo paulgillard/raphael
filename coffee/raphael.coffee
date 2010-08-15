@@ -729,19 +729,7 @@ if Raphael.type == "SVG"
     $(o.pattern, { patternTransform: R.format("translate({0},{1})", bbox.x, bbox.y) })
 
   Raphael::setFillAndStroke = (o, params) ->
-    dasharray =
-      "": [0]
-      "none": [0]
-      "-": [3, 1]
-      ".": [1, 1]
-      "-.": [3, 1, 1, 1]
-      "-..": [3, 1, 1, 1, 1, 1]
-      ". ": [1, 3]
-      "- ": [4, 3]
-      "--": [8, 3]
-      "- .": [4, 3, 1, 3]
-      "--.": [8, 3, 1, 3]
-      "--..": [8, 3, 1, 3, 1, 3]
+    dasharray = "": [0], "none": [0], "-": [3, 1], ".": [1, 1], "-.": [3, 1, 1, 1], "-..": [3, 1, 1, 1, 1, 1], ". ": [1, 3], "- ": [4, 3], "--": [8, 3], "- .": [4, 3, 1, 3],  "--.": [8, 3, 1, 3], "--..": [8, 3, 1, 3, 1, 3]
     node = o.node
     attrs = o.attrs
     rot = o.rotate()
@@ -756,7 +744,7 @@ if Raphael.type == "SVG"
           dashes[i] = value[i] * width + (if i % 2 then 1 else -1) * butt
         $(node, { "stroke-dasharray": dashes.join(",") })
     rot = params.rotation if params.hasOwnProperty("rotation")
-    var rotxy = String(rot).split(separator);
+    rotxy = String(rot).split(separator);
     if !(rotxy.length - 1)
       rotxy = null
     else
@@ -784,7 +772,7 @@ if Raphael.type == "SVG"
             pn.setAttributeNS(o.paper.xlink, att, value)
           when "cursor"
             node.style.cursor = value
-          when "clip-rect":
+          when "clip-rect"
             rect = String(value).split(separator)
             if rect.length == 4
               o.clip && o.clip.parentNode.parentNode.removeChild(o.clip.parentNode)
@@ -807,7 +795,7 @@ if Raphael.type == "SVG"
               $(node, "clip-path": E)
               delete o.clip
           when "path"
-            if (o.type == "path") {
+            if (o.type == "path")
               $(node, { d: if value then attrs.path = pathToAbsolute(value) else "M0,0" })
           when "width", "x"
             if att == "width"
@@ -832,135 +820,266 @@ if Raphael.type == "SVG"
             if att == "y"
               if attrs.fy
                 value = -attrs.y - (attrs.height || 0)
-          case "ry":
-              if (att == "ry" && o.type == "rect") {
-                  break;
-              }
-          case "cy":
-              rotxy && (att == "y" || att == "cy") && (rotxy[2] += value - attrs[att]);
-              node[setAttribute](att, value);
-              o.pattern && updatePosition(o);
-              break;
-          case "r":
-              if (o.type == "rect") {
-                  $(node, {rx: value, ry: value});
-              } else {
-                  node[setAttribute](att, value);
-              }
-              break;
-          case "src":
-              if (o.type == "image") {
-                  node.setAttributeNS(o.paper.xlink, "href", value);
-              }
-              break;
-          case "stroke-width":
-              node.style.strokeWidth = value;
-              // Need following line for Firefox
-              node[setAttribute](att, value);
-              if (attrs["stroke-dasharray"]) {
-                  addDashes(o, attrs["stroke-dasharray"]);
-              }
-              break;
-          case "stroke-dasharray":
-              addDashes(o, value);
-              break;
-          case "translation":
-              var xy = String(value).split(separator);
-              xy[0] = +xy[0] || 0;
-              xy[1] = +xy[1] || 0;
-              if (rotxy) {
-                  rotxy[1] += xy[0];
-                  rotxy[2] += xy[1];
-              }
-              translate.call(o, xy[0], xy[1]);
-              break;
-          case "scale":
-              xy = String(value).split(separator);
-              o.scale(+xy[0] || 1, +xy[1] || +xy[0] || 1, isNaN(parseFloat(xy[2])) ? null : +xy[2], isNaN(parseFloat(xy[3])) ? null : +xy[3]);
-              break;
-          case "fill":
-              var isURL = String(value).match(ISURL);
-              if (isURL) {
-                  el = $("pattern");
-                  var ig = $("image");
-                  el.id = "r" + (R._id++).toString(36);
-                  $(el, {x: 0, y: 0, patternUnits: "userSpaceOnUse", height: 1, width: 1});
-                  $(ig, {x: 0, y: 0});
-                  ig.setAttributeNS(o.paper.xlink, "href", isURL[1]);
-                  el.appendChild(ig);
-        
-                  var img = document.createElement("img");
-                  img.style.cssText = "position:absolute;left:-9999em;top-9999em";
-                  img.onload = function () {
-                      $(el, {width: this.offsetWidth, height: this.offsetHeight});
-                      $(ig, {width: this.offsetWidth, height: this.offsetHeight});
-                      document.body.removeChild(this);
-                      o.paper.safari();
-                  };
-                  document.body.appendChild(img);
-                  img.src = isURL[1];
-                  o.paper.defs.appendChild(el);
-                  node.style.fill = "url(#" + el.id + ")";
-                  $(node, {fill: "url(#" + el.id + ")"});
-                  o.pattern = el;
-                  o.pattern && updatePosition(o);
-                  break;
-              }
-              var clr = R.getRGB(value);
-              if (!clr.error) {
-                  delete params.gradient;
-                  delete attrs.gradient;
-                  !R.is(attrs.opacity, "undefined") &&
-                      R.is(params.opacity, "undefined") &&
-                      $(node, {opacity: attrs.opacity});
-                  !R.is(attrs["fill-opacity"], "undefined") &&
-                      R.is(params["fill-opacity"], "undefined") &&
-                      $(node, {"fill-opacity": attrs["fill-opacity"]});
-              } else if ((({circle: 1, ellipse: 1}).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper)) {
-                  attrs.gradient = value;
-                  attrs.fill = "none";
-                  break;
-              }
-              clr.hasOwnProperty("o") && $(node, {"fill-opacity": clr.o > 1 ? clr.o / 100 : clr.o});
-          case "stroke":
-              clr = R.getRGB(value);
-              node[setAttribute](att, clr.hex);
-              att == "stroke" && clr.hasOwnProperty("o") && $(node, {"stroke-opacity": clr.o > 1 ? clr.o / 100 : clr.o});
-              break;
-          case "gradient":
-              (({circle: 1, ellipse: 1}).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper);
-              break;
-          case "opacity":
-          case "fill-opacity":
-              if (attrs.gradient) {
-                  var gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, E));
-                  if (gradient) {
-                      var stops = gradient.getElementsByTagName("stop");
-                      stops[stops.length - 1][setAttribute]("stop-opacity", value);
-                  }
-                  break;
-              }
-          default:
-              att == "font-size" && (value = parseInt(value, 10) + "px");
-              var cssrule = att.replace(/(\-.)/g, function (w) {
-                  return String.prototype.toUpperCase.call(w.substring(1));
-              });
-              node.style[cssrule] = value;
-              // Need following line for Firefox
-              node[setAttribute](att, value);
-              break;
-        }
-      }
-    }
-    
-    tuneText(o, params);
-    if (rotxy) {
-        o.rotate(rotxy.join(S));
-    } else {
-        parseFloat(rot) && o.rotate(rot, true);
-    }
-};
+          when "cy", "ry"
+            if att == "cy" or o.type != "rect"
+              rotxy[2] += value - attrs[att] if att == "cy" and rotxy
+              node.setAttribute(att, value)
+              updatePosition(o) if o.pattern
+          when "r"
+            if o.type == "rect"
+                $(node, { rx: value, ry: value })
+            else
+                node.setAttribute(att, value)
+          when "src"
+            if o.type == "image"
+              node.setAttributeNS(o.paper.xlink, "href", value)
+          when "stroke-width"
+            node.style.strokeWidth = value
+            # Need following line for Firefox
+            node.setAttribute(att, value)
+            if attrs["stroke-dasharray"]
+              addDashes(o, attrs["stroke-dasharray"])
+          when "stroke-dasharray"
+            addDashes(o, value)
+          when "translation"
+            xy = String(value).split(separator)
+            xy[0] = +xy[0] || 0
+            xy[1] = +xy[1] || 0
+            if rotxy
+              rotxy[1] += xy[0]
+              rotxy[2] += xy[1]
+            translate.call(o, xy[0], xy[1])
+          when "scale"
+            xy = String(value).split(separator)
+            o.scale(+xy[0] || 1, +xy[1] || +xy[0] || 1, (if isNaN(parseFloat(xy[2])) then null else +xy[2]), (if isNaN(parseFloat(xy[3])) then null else +xy[3]))
+          when "fill"
+            isURL = String(value).match(ISURL)
+            if isURL
+              el = $("pattern")
+              ig = $("image")
+              el.id = "r" + (R._id++).toString(36)
+              $(el, { x: 0, y: 0, patternUnits: "userSpaceOnUse", height: 1, width: 1 })
+              $(ig, { x: 0, y: 0 })
+              ig.setAttributeNS(o.paper.xlink, "href", isURL[1])
+              el.appendChild(ig)
+              
+              img = document.createElement("img")
+              img.style.cssText = "position:absolute;left:-9999em;top-9999em"
+              img.onload = ->
+                $(el, { width: this.offsetWidth, height: this.offsetHeight })
+                $(ig, { width: this.offsetWidth, height: this.offsetHeight })
+                document.body.removeChild(this)
+                o.paper.safari()
+              document.body.appendChild(img)
+              img.src = isURL[1]
+              o.paper.defs.appendChild(el)
+              node.style.fill = "url(#" + el.id + ")"
+              $(node, { fill: "url(#" + el.id + ")" })
+              o.pattern = el
+              updatePosition(o) if o.pattern
+            else
+              clr = R.getRGB(value)
+              if !clr.error
+                delete params.gradient
+                delete attrs.gradient
+                if !R.is(attrs.opacity, "undefined") and R.is(params.opacity, "undefined")
+                  $(node, { opacity: attrs.opacity })
+                if !R.is(attrs["fill-opacity"], "undefined") and R.is(params["fill-opacity"], "undefined")
+                  $(node, { "fill-opacity": attrs["fill-opacity"] })
+                $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
+                node.setAttribute(att, clr.hex)
+                $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
+              else if (({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper)
+                attrs.gradient = value
+                attrs.fill = "none"
+              else
+                $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
+                node.setAttribute(att, clr.hex)
+                $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
+          when "stroke"
+            clr = R.getRGB(value)
+            node.setAttribute(att, clr.hex)
+            $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
+          when "gradient"
+            if ({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r"
+              addGradientFill(node, value, o.paper)
+          when "opacity", "fill-opacity"
+            if attrs.gradient
+              gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, E))
+              if gradient
+                stops = gradient.getElementsByTagName("stop")
+                stops[stops.length - 1][setAttribute]("stop-opacity", value)
+          else
+            value = parseInt(value, 10) + "px" if att == "font-size"
+            cssrule = att.replace(/(\-.)/g, (w) ->
+              String.prototype.toUpperCase.call(w.substring(1))
+            )
+            node.style[cssrule] = value
+            # Need following line for Firefox
+            node.setAttribute(att, value)
+    tuneText(o, params)
+    if rotxy
+      o.rotate(rotxy.join(S))
+    else
+      o.rotate(rot, true) if parseFloat(rot)
 
+  Raphael::tuneText = (el, params) ->
+    leading = 1.2
+    if el.type != "text" || !(params.hasOwnProperty("text") || params.hasOwnProperty("font") || params.hasOwnProperty("font-size") || params.hasOwnProperty("x") || params.hasOwnProperty("y"))
+      return
+    a = el.attrs
+    node = el.node
+    fontSize = if node.firstChild then parseInt(document.defaultView.getComputedStyle(node.firstChild, E).getPropertyValue("font-size"), 10) else 10
+    if params.hasOwnProperty("text")
+      a.text = params.text
+      while node.firstChild
+        node.removeChild(node.firstChild)
+      texts = String(params.text).split("\n")
+      for i in [0..texts.length]
+        if texts[i]
+          tspan = $("tspan")
+          $(tspan, { dy: fontSize * leading, x: a.x }) if i
+          tspan.appendChild(document.createTextNode(texts[i]))
+          node.appendChild(tspan)
+    else
+      texts = node.getElementsByTagName("tspan")
+      for i in [o..texts.length]
+        $(texts[i], { dy: fontSize * leading, x: a.x }) if i
+    $(node, { y: a.y })
+    bb = el.getBBox()
+    dif = a.y - (bb.y + bb.height / 2)
+    $(node, { y: a.y + dif }) if dif and isFinite(dif)
+
+  class Element
+    constructor: (node, svg) ->
+      X = 0
+      Y = 0
+      this[0] = node
+      @id = R._oid++
+      @node = node
+      node.raphael = this
+      @paper = svg
+      @attrs = this.attrs || {}
+      @transformations = [] # rotate, translate, scale
+      @_ = 
+        tx: 0
+        ty: 0
+        rt: { deg: 0, cx: 0, cy: 0 }
+        sx: 1
+        sy: 1
+      svg.bottom = this if !svg.bottom
+      @prev = svg.top
+      svg.top.next = this if svg.top
+      svg.top = this
+      @next = null
+
+    rotate: (deg, cx, cy) ->
+      if @removed
+        return this
+      if deg == null
+        if @_.rt.cx
+          return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(S)
+        return @_.rt.deg
+      bbox = this.getBBox()
+      deg = String(deg).split(separator)
+      if deg.length - 1
+        cx = parseFloat(deg[1])
+        cy = parseFloat(deg[2])
+      deg = parseFloat(deg[0])
+      if cx != null
+        @_.rt.deg = deg
+      else
+        @_.rt.deg += deg
+      cx = null if !cy?
+      @_.rt.cx = cx
+      @_.rt.cy = cy
+      cx = if !cx? then bbox.x + bbox.width / 2 else cx
+      cy = if !cy? then bbox.y + bbox.height / 2 else cy
+      if !_.rt.deg
+        @transformations[0] = R.format("rotate({0} {1} {2})", @_.rt.deg, cx, cy)
+        $(this.clip, { transform: R.format("rotate({0} {1} {2})", -@_.rt.deg, cx, cy) }) if @clip
+      else
+        @transformations[0] = E
+        $(this.clip, { transform: E }) if @clip
+      $(this.node, { transform: @transformations.join(S) })
+      this
+
+    hide: ->
+      this.node.style.display = "none" if !@removed
+      this
+
+    show: ->
+      this.node.style.display = "" if !@removed
+      this
+
+    remove: ->
+      if @removed
+        return
+      tear(this, @paper)
+      @node.parentNode.removeChild(@node)
+      for i in this
+        delete this[i]
+      @removed = true
+
+    getBBox: ->
+      return this if @removed
+      if @type == "path"
+        return pathDimensions(@attrs.path)
+      if @node.style.display == "none"
+        this.show()
+        hide = true
+      bbox = {}
+      try
+        bbox = @node.getBBox()
+      catch error
+        # Firefox 3.0.x plays badly here
+      finally
+        bbox = bbox || {}
+      if @type == "text"
+        bbox = { x: bbox.x, y: Infinity, width: 0, height: 0 }
+        for i in [0..@node.getNumberOfChars()]
+          bb = @node.getExtentOfChar(i)
+          bbox.y = bb.y if bb.y < bbox.y
+          bbox.height = bb.y + bb.height - bbox.y if bb.y + bb.height - bbox.y > bbox.height
+          bbox.width = bb.x + bb.width - bbox.x if bb.x + bb.width - bbox.x > bbox.width
+      this.hide() if hide
+      bbox
+
+    attr: (name, value) ->
+      return this if @removed
+      if !name?
+        res = {}
+        for i in @attrs
+          if @attrs.hasOwnProperty(i)
+            res[i] = @attrs[i]
+        res.rotation = this.rotate() if @_.rt.deg
+        res.scale = this.scale() if @_.sx != 1 || @_.sy != 1
+        if res.gradient and res.fill == "none"
+          res.fill = res.gradient
+          delete res.gradient
+        return res
+      if !value? and R.is(name, "string")
+        if name == "translation"
+          return translate.call(this)
+        if name == "rotation"
+          return this.rotate()
+        if name == "scale"
+          return this.scale()
+        if name == "fill" and @attrs.fill == "none" and @attrs.gradient
+          return @attrs.gradient
+        return @attrs[name]
+      if !value? and R.is(name, "array")
+        values = {}
+        for j in [0..name.length]
+          values[name[j]] = @attr(name[j])
+        return values
+      if value?
+        params = {}
+        params[name] = value
+        setFillAndStroke(this, params)
+      else if name? and R.is(name, "object")
+        setFillAndStroke(this, name)
+      this
 
 
 functionCacher(Raphael.toHex, Raphael)

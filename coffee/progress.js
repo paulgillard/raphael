@@ -1107,457 +1107,457 @@
 /**/            s.fillOpacity = 1;
 /**/            return 1;
 /**/        };
-            var updatePosition = function (o) {
-                var bbox = o.getBBox();
-                $(o.pattern, {patternTransform: R.format("translate({0},{1})", bbox.x, bbox.y)});
-            };
-            var setFillAndStroke = function (o, params) {
-                var dasharray = {
-                        "": [0],
-                        "none": [0],
-                        "-": [3, 1],
-                        ".": [1, 1],
-                        "-.": [3, 1, 1, 1],
-                        "-..": [3, 1, 1, 1, 1, 1],
-                        ". ": [1, 3],
-                        "- ": [4, 3],
-                        "--": [8, 3],
-                        "- .": [4, 3, 1, 3],
-                        "--.": [8, 3, 1, 3],
-                        "--..": [8, 3, 1, 3, 1, 3]
-                    },
-                    node = o.node,
-                    attrs = o.attrs,
-                    rot = o.rotate(),
-                    addDashes = function (o, value) {
-                        value = dasharray[String.prototype.toLowerCase.call(value)];
-                        if (value) {
-                            var width = o.attrs["stroke-width"] || "1",
-                                butt = {round: width, square: width, butt: 0}[o.attrs["stroke-linecap"] || params["stroke-linecap"]] || 0,
-                                dashes = [];
-                            var i = value.length;
-                            while (i--) {
-                                dashes[i] = value[i] * width + ((i % 2) ? 1 : -1) * butt;
-                            }
-                            $(node, {"stroke-dasharray": dashes.join(",")});
-                        }
-                    };
-                params.hasOwnProperty("rotation") && (rot = params.rotation);
-                var rotxy = String(rot).split(separator);
-                if (!(rotxy.length - 1)) {
-                    rotxy = null;
-                } else {
-                    rotxy[1] = +rotxy[1];
-                    rotxy[2] = +rotxy[2];
-                }
-                parseFloat(rot) && o.rotate(0, true);
-                for (var att in params) {
-                    if (params.hasOwnProperty(att)) {
-                        if (!availableAttrs.hasOwnProperty(att)) {
-                            continue;
-                        }
-                        var value = params[att];
-                        attrs[att] = value;
-                        switch (att) {
-                            case "blur":
-                                o.blur(value);
-                                break;
-                            case "rotation":
-                                o.rotate(value, true);
-                                break;
-                            case "href":
-                            case "title":
-                            case "target":
-                                var pn = node.parentNode;
-                                if (String.prototype.toLowerCase.call(pn.tagName) != "a") {
-                                    var hl = $("a");
-                                    pn.insertBefore(hl, node);
-                                    hl.appendChild(node);
-                                    pn = hl;
-                                }
-                                pn.setAttributeNS(o.paper.xlink, att, value);
-                                break;
-                            case "cursor":
-                                node.style.cursor = value;
-                                break;
-                            case "clip-rect":
-                                var rect = String(value).split(separator);
-                                if (rect.length == 4) {
-                                    o.clip && o.clip.parentNode.parentNode.removeChild(o.clip.parentNode);
-                                    var el = $("clipPath"),
-                                        rc = $("rect");
-                                    el.id = "r" + (R._id++).toString(36);
-                                    $(rc, {
-                                        x: rect[0],
-                                        y: rect[1],
-                                        width: rect[2],
-                                        height: rect[3]
-                                    });
-                                    el.appendChild(rc);
-                                    o.paper.defs.appendChild(el);
-                                    $(node, {"clip-path": "url(#" + el.id + ")"});
-                                    o.clip = rc;
-                                }
-                                if (!value) {
-                                    var clip = document.getElementById(node.getAttribute("clip-path").replace(/(^url\(#|\)$)/g, E));
-                                    clip && clip.parentNode.removeChild(clip);
-                                    $(node, {"clip-path": E});
-                                    delete o.clip;
-                                }
-                            break;
-                            case "path":
-                                if (o.type == "path") {
-                                    $(node, {d: value ? attrs.path = pathToAbsolute(value) : "M0,0"});
-                                }
-                                break;
-                            case "width":
-                                node[setAttribute](att, value);
-                                if (attrs.fx) {
-                                    att = "x";
-                                    value = attrs.x;
-                                } else {
-                                    break;
-                                }
-                            case "x":
-                                if (attrs.fx) {
-                                    value = -attrs.x - (attrs.width || 0);
-                                }
-                            case "rx":
-                                if (att == "rx" && o.type == "rect") {
-                                    break;
-                                }
-                            case "cx":
-                                rotxy && (att == "x" || att == "cx") && (rotxy[1] += value - attrs[att]);
-                                node[setAttribute](att, value);
-                                o.pattern && updatePosition(o);
-                                break;
-                            case "height":
-                                node[setAttribute](att, value);
-                                if (attrs.fy) {
-                                    att = "y";
-                                    value = attrs.y;
-                                } else {
-                                    break;
-                                }
-                            case "y":
-                                if (attrs.fy) {
-                                    value = -attrs.y - (attrs.height || 0);
-                                }
-                            case "ry":
-                                if (att == "ry" && o.type == "rect") {
-                                    break;
-                                }
-                            case "cy":
-                                rotxy && (att == "y" || att == "cy") && (rotxy[2] += value - attrs[att]);
-                                node[setAttribute](att, value);
-                                o.pattern && updatePosition(o);
-                                break;
-                            case "r":
-                                if (o.type == "rect") {
-                                    $(node, {rx: value, ry: value});
-                                } else {
-                                    node[setAttribute](att, value);
-                                }
-                                break;
-                            case "src":
-                                if (o.type == "image") {
-                                    node.setAttributeNS(o.paper.xlink, "href", value);
-                                }
-                                break;
-                            case "stroke-width":
-                                node.style.strokeWidth = value;
-                                // Need following line for Firefox
-                                node[setAttribute](att, value);
-                                if (attrs["stroke-dasharray"]) {
-                                    addDashes(o, attrs["stroke-dasharray"]);
-                                }
-                                break;
-                            case "stroke-dasharray":
-                                addDashes(o, value);
-                                break;
-                            case "translation":
-                                var xy = String(value).split(separator);
-                                xy[0] = +xy[0] || 0;
-                                xy[1] = +xy[1] || 0;
-                                if (rotxy) {
-                                    rotxy[1] += xy[0];
-                                    rotxy[2] += xy[1];
-                                }
-                                translate.call(o, xy[0], xy[1]);
-                                break;
-                            case "scale":
-                                xy = String(value).split(separator);
-                                o.scale(+xy[0] || 1, +xy[1] || +xy[0] || 1, isNaN(parseFloat(xy[2])) ? null : +xy[2], isNaN(parseFloat(xy[3])) ? null : +xy[3]);
-                                break;
-                            case "fill":
-                                var isURL = String(value).match(ISURL);
-                                if (isURL) {
-                                    el = $("pattern");
-                                    var ig = $("image");
-                                    el.id = "r" + (R._id++).toString(36);
-                                    $(el, {x: 0, y: 0, patternUnits: "userSpaceOnUse", height: 1, width: 1});
-                                    $(ig, {x: 0, y: 0});
-                                    ig.setAttributeNS(o.paper.xlink, "href", isURL[1]);
-                                    el.appendChild(ig);
-     
-                                    var img = document.createElement("img");
-                                    img.style.cssText = "position:absolute;left:-9999em;top-9999em";
-                                    img.onload = function () {
-                                        $(el, {width: this.offsetWidth, height: this.offsetHeight});
-                                        $(ig, {width: this.offsetWidth, height: this.offsetHeight});
-                                        document.body.removeChild(this);
-                                        o.paper.safari();
-                                    };
-                                    document.body.appendChild(img);
-                                    img.src = isURL[1];
-                                    o.paper.defs.appendChild(el);
-                                    node.style.fill = "url(#" + el.id + ")";
-                                    $(node, {fill: "url(#" + el.id + ")"});
-                                    o.pattern = el;
-                                    o.pattern && updatePosition(o);
-                                    break;
-                                }
-                                var clr = R.getRGB(value);
-                                if (!clr.error) {
-                                    delete params.gradient;
-                                    delete attrs.gradient;
-                                    !R.is(attrs.opacity, "undefined") &&
-                                        R.is(params.opacity, "undefined") &&
-                                        $(node, {opacity: attrs.opacity});
-                                    !R.is(attrs["fill-opacity"], "undefined") &&
-                                        R.is(params["fill-opacity"], "undefined") &&
-                                        $(node, {"fill-opacity": attrs["fill-opacity"]});
-                                } else if ((({circle: 1, ellipse: 1}).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper)) {
-                                    attrs.gradient = value;
-                                    attrs.fill = "none";
-                                    break;
-                                }
-                                clr.hasOwnProperty("o") && $(node, {"fill-opacity": clr.o > 1 ? clr.o / 100 : clr.o});
-                            case "stroke":
-                                clr = R.getRGB(value);
-                                node[setAttribute](att, clr.hex);
-                                att == "stroke" && clr.hasOwnProperty("o") && $(node, {"stroke-opacity": clr.o > 1 ? clr.o / 100 : clr.o});
-                                break;
-                            case "gradient":
-                                (({circle: 1, ellipse: 1}).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper);
-                                break;
-                            case "opacity":
-                            case "fill-opacity":
-                                if (attrs.gradient) {
-                                    var gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, E));
-                                    if (gradient) {
-                                        var stops = gradient.getElementsByTagName("stop");
-                                        stops[stops.length - 1][setAttribute]("stop-opacity", value);
-                                    }
-                                    break;
-                                }
-                            default:
-                                att == "font-size" && (value = parseInt(value, 10) + "px");
-                                var cssrule = att.replace(/(\-.)/g, function (w) {
-                                    return String.prototype.toUpperCase.call(w.substring(1));
-                                });
-                                node.style[cssrule] = value;
-                                // Need following line for Firefox
-                                node[setAttribute](att, value);
-                                break;
-                        }
-                    }
-                }
-                
-                tuneText(o, params);
-                if (rotxy) {
-                    o.rotate(rotxy.join(S));
-                } else {
-                    parseFloat(rot) && o.rotate(rot, true);
-                }
-            };
-            var leading = 1.2,
-            tuneText = function (el, params) {
-                if (el.type != "text" || !(params.hasOwnProperty("text") || params.hasOwnProperty("font") || params.hasOwnProperty("font-size") || params.hasOwnProperty("x") || params.hasOwnProperty("y"))) {
-                    return;
-                }
-                var a = el.attrs,
-                    node = el.node,
-                    fontSize = node.firstChild ? parseInt(document.defaultView.getComputedStyle(node.firstChild, E).getPropertyValue("font-size"), 10) : 10;
-     
-                if (params.hasOwnProperty("text")) {
-                    a.text = params.text;
-                    while (node.firstChild) {
-                        node.removeChild(node.firstChild);
-                    }
-                    var texts = String(params.text).split("\n");
-                    for (var i = 0, ii = texts.length; i < ii; i++) if (texts[i]) {
-                        var tspan = $("tspan");
-                        i && $(tspan, {dy: fontSize * leading, x: a.x});
-                        tspan.appendChild(document.createTextNode(texts[i]));
-                        node.appendChild(tspan);
-                    }
-                } else {
-                    texts = node.getElementsByTagName("tspan");
-                    for (i = 0, ii = texts.length; i < ii; i++) {
-                        i && $(texts[i], {dy: fontSize * leading, x: a.x});
-                    }
-                }
-                $(node, {y: a.y});
-                var bb = el.getBBox(),
-                    dif = a.y - (bb.y + bb.height / 2);
-                dif && isFinite(dif) && $(node, {y: a.y + dif});
-            },
-            Element = function (node, svg) {
-                var X = 0,
-                    Y = 0;
-                this[0] = node;
-                this.id = R._oid++;
-                this.node = node;
-                node.raphael = this;
-                this.paper = svg;
-                this.attrs = this.attrs || {};
-                this.transformations = []; // rotate, translate, scale
-                this._ = {
-                    tx: 0,
-                    ty: 0,
-                    rt: {deg: 0, cx: 0, cy: 0},
-                    sx: 1,
-                    sy: 1
-                };
-                !svg.bottom && (svg.bottom = this);
-                this.prev = svg.top;
-                svg.top && (svg.top.next = this);
-                svg.top = this;
-                this.next = null;
-            };
-            Element.prototype.rotate = function (deg, cx, cy) {
-                if (this.removed) {
-                    return this;
-                }
-                if (deg == null) {
-                    if (this._.rt.cx) {
-                        return [this._.rt.deg, this._.rt.cx, this._.rt.cy].join(S);
-                    }
-                    return this._.rt.deg;
-                }
-                var bbox = this.getBBox();
-                deg = String(deg).split(separator);
-                if (deg.length - 1) {
-                    cx = parseFloat(deg[1]);
-                    cy = parseFloat(deg[2]);
-                }
-                deg = parseFloat(deg[0]);
-                if (cx != null) {
-                    this._.rt.deg = deg;
-                } else {
-                    this._.rt.deg += deg;
-                }
-                (cy == null) && (cx = null);
-                this._.rt.cx = cx;
-                this._.rt.cy = cy;
-                cx = cx == null ? bbox.x + bbox.width / 2 : cx;
-                cy = cy == null ? bbox.y + bbox.height / 2 : cy;
-                if (this._.rt.deg) {
-                    this.transformations[0] = R.format("rotate({0} {1} {2})", this._.rt.deg, cx, cy);
-                    this.clip && $(this.clip, {transform: R.format("rotate({0} {1} {2})", -this._.rt.deg, cx, cy)});
-                } else {
-                    this.transformations[0] = E;
-                    this.clip && $(this.clip, {transform: E});
-                }
-                $(this.node, {transform: this.transformations.join(S)});
-                return this;
-            };
-            Element.prototype.hide = function () {
-                !this.removed && (this.node.style.display = "none");
-                return this;
-            };
-            Element.prototype.show = function () {
-                !this.removed && (this.node.style.display = "");
-                return this;
-            };
-            Element.prototype.remove = function () {
-                if (this.removed) {
-                    return;
-                }
-                tear(this, this.paper);
-                this.node.parentNode.removeChild(this.node);
-                for (var i in this) {
-                    delete this[i];
-                }
-                this.removed = true;
-            };
-            Element.prototype.getBBox = function () {
-                if (this.removed) {
-                    return this;
-                }
-                if (this.type == "path") {
-                    return pathDimensions(this.attrs.path);
-                }
-                if (this.node.style.display == "none") {
-                    this.show();
-                    var hide = true;
-                }
-                var bbox = {};
-                try {
-                    bbox = this.node.getBBox();
-                } catch(e) {
-                    // Firefox 3.0.x plays badly here
-                } finally {
-                    bbox = bbox || {};
-                }
-                if (this.type == "text") {
-                    bbox = {x: bbox.x, y: Infinity, width: 0, height: 0};
-                    for (var i = 0, ii = this.node.getNumberOfChars(); i < ii; i++) {
-                        var bb = this.node.getExtentOfChar(i);
-                        (bb.y < bbox.y) && (bbox.y = bb.y);
-                        (bb.y + bb.height - bbox.y > bbox.height) && (bbox.height = bb.y + bb.height - bbox.y);
-                        (bb.x + bb.width - bbox.x > bbox.width) && (bbox.width = bb.x + bb.width - bbox.x);
-                    }
-                }
-                hide && this.hide();
-                return bbox;
-            };
-            Element.prototype.attr = function (name, value) {
-                if (this.removed) {
-                    return this;
-                }
-                if (name == null) {
-                    var res = {};
-                    for (var i in this.attrs) if (this.attrs.hasOwnProperty(i)) {
-                        res[i] = this.attrs[i];
-                    }
-                    this._.rt.deg && (res.rotation = this.rotate());
-                    (this._.sx != 1 || this._.sy != 1) && (res.scale = this.scale());
-                    res.gradient && res.fill == "none" && (res.fill = res.gradient) && delete res.gradient;
-                    return res;
-                }
-                if (value == null && R.is(name, "string")) {
-                    if (name == "translation") {
-                        return translate.call(this);
-                    }
-                    if (name == "rotation") {
-                        return this.rotate();
-                    }
-                    if (name == "scale") {
-                        return this.scale();
-                    }
-                    if (name == "fill" && this.attrs.fill == "none" && this.attrs.gradient) {
-                        return this.attrs.gradient;
-                    }
-                    return this.attrs[name];
-                }
-                if (value == null && R.is(name, "array")) {
-                    var values = {};
-                    for (var j = 0, jj = name.length; j < jj; j++) {
-                        values[name[j]] = this.attr(name[j]);
-                    }
-                    return values;
-                }
-                if (value != null) {
-                    var params = {};
-                    params[name] = value;
-                    setFillAndStroke(this, params);
-                } else if (name != null && R.is(name, "object")) {
-                    setFillAndStroke(this, name);
-                }
-                return this;
-            };
+/**/        var updatePosition = function (o) {
+/**/            var bbox = o.getBBox();
+/**/            $(o.pattern, {patternTransform: R.format("translate({0},{1})", bbox.x, bbox.y)});
+/**/        };
+/**/        var setFillAndStroke = function (o, params) {
+/**/            var dasharray = {
+/**/                    "": [0],
+/**/                    "none": [0],
+/**/                    "-": [3, 1],
+/**/                    ".": [1, 1],
+/**/                    "-.": [3, 1, 1, 1],
+/**/                    "-..": [3, 1, 1, 1, 1, 1],
+/**/                    ". ": [1, 3],
+/**/                    "- ": [4, 3],
+/**/                    "--": [8, 3],
+/**/                    "- .": [4, 3, 1, 3],
+/**/                    "--.": [8, 3, 1, 3],
+/**/                    "--..": [8, 3, 1, 3, 1, 3]
+/**/                },
+/**/                node = o.node,
+/**/                attrs = o.attrs,
+/**/                rot = o.rotate(),
+/**/                addDashes = function (o, value) {
+/**/                    value = dasharray[String.prototype.toLowerCase.call(value)];
+/**/                    if (value) {
+/**/                        var width = o.attrs["stroke-width"] || "1",
+/**/                            butt = {round: width, square: width, butt: 0}[o.attrs["stroke-linecap"] || params["stroke-linecap"]] || 0,
+/**/                            dashes = [];
+/**/                        var i = value.length;
+/**/                        while (i--) {
+/**/                            dashes[i] = value[i] * width + ((i % 2) ? 1 : -1) * butt;
+/**/                        }
+/**/                        $(node, {"stroke-dasharray": dashes.join(",")});
+/**/                    }
+/**/                };
+/**/            params.hasOwnProperty("rotation") && (rot = params.rotation);
+/**/            var rotxy = String(rot).split(separator);
+/**/            if (!(rotxy.length - 1)) {
+/**/                rotxy = null;
+/**/            } else {
+/**/                rotxy[1] = +rotxy[1];
+/**/                rotxy[2] = +rotxy[2];
+/**/            }
+/**/            parseFloat(rot) && o.rotate(0, true);
+/**/            for (var att in params) {
+/**/                if (params.hasOwnProperty(att)) {
+/**/                    if (!availableAttrs.hasOwnProperty(att)) {
+/**/                        continue;
+/**/                    }
+/**/                    var value = params[att];
+/**/                    attrs[att] = value;
+/**/                    switch (att) {
+/**/                        case "blur":
+/**/                            o.blur(value);
+/**/                            break;
+/**/                        case "rotation":
+/**/                            o.rotate(value, true);
+/**/                            break;
+/**/                        case "href":
+/**/                        case "title":
+/**/                        case "target":
+/**/                            var pn = node.parentNode;
+/**/                            if (String.prototype.toLowerCase.call(pn.tagName) != "a") {
+/**/                                var hl = $("a");
+/**/                                pn.insertBefore(hl, node);
+/**/                                hl.appendChild(node);
+/**/                                pn = hl;
+/**/                            }
+/**/                            pn.setAttributeNS(o.paper.xlink, att, value);
+/**/                            break;
+/**/                        case "cursor":
+/**/                            node.style.cursor = value;
+/**/                            break;
+/**/                        case "clip-rect":
+/**/                            var rect = String(value).split(separator);
+/**/                            if (rect.length == 4) {
+/**/                                o.clip && o.clip.parentNode.parentNode.removeChild(o.clip.parentNode);
+/**/                                var el = $("clipPath"),
+/**/                                    rc = $("rect");
+/**/                                el.id = "r" + (R._id++).toString(36);
+/**/                                $(rc, {
+/**/                                    x: rect[0],
+/**/                                    y: rect[1],
+/**/                                    width: rect[2],
+/**/                                    height: rect[3]
+/**/                                });
+/**/                                el.appendChild(rc);
+/**/                                o.paper.defs.appendChild(el);
+/**/                                $(node, {"clip-path": "url(#" + el.id + ")"});
+/**/                                o.clip = rc;
+/**/                            }
+/**/                            if (!value) {
+/**/                                var clip = document.getElementById(node.getAttribute("clip-path").replace(/(^url\(#|\)$)/g, E));
+/**/                                clip && clip.parentNode.removeChild(clip);
+/**/                                $(node, {"clip-path": E});
+/**/                                delete o.clip;
+/**/                            }
+/**/                        break;
+/**/                        case "path":
+/**/                            if (o.type == "path") {
+/**/                                $(node, {d: value ? attrs.path = pathToAbsolute(value) : "M0,0"});
+/**/                            }
+/**/                            break;
+/**/                        case "width":
+/**/                            node[setAttribute](att, value);
+/**/                            if (attrs.fx) {
+/**/                                att = "x";
+/**/                                value = attrs.x;
+/**/                            } else {
+/**/                                break;
+/**/                            }
+/**/                        case "x":
+/**/                            if (attrs.fx) {
+/**/                                value = -attrs.x - (attrs.width || 0);
+/**/                            }
+/**/                        case "rx":
+/**/                            if (att == "rx" && o.type == "rect") {
+/**/                                break;
+/**/                            }
+/**/                        case "cx":
+/**/                            rotxy && (att == "x" || att == "cx") && (rotxy[1] += value - attrs[att]);
+/**/                            node[setAttribute](att, value);
+/**/                            o.pattern && updatePosition(o);
+/**/                            break;
+/**/                        case "height":
+/**/                            node[setAttribute](att, value);
+/**/                            if (attrs.fy) {
+/**/                                att = "y";
+/**/                                value = attrs.y;
+/**/                            } else {
+/**/                                break;
+/**/                            }
+/**/                        case "y":
+/**/                            if (attrs.fy) {
+/**/                                value = -attrs.y - (attrs.height || 0);
+/**/                            }
+/**/                        case "ry":
+/**/                            if (att == "ry" && o.type == "rect") {
+/**/                                break;
+/**/                            }
+/**/                        case "cy":
+/**/                            rotxy && (att == "y" || att == "cy") && (rotxy[2] += value - attrs[att]);
+/**/                            node[setAttribute](att, value);
+/**/                            o.pattern && updatePosition(o);
+/**/                            break;
+/**/                        case "r":
+/**/                            if (o.type == "rect") {
+/**/                                $(node, {rx: value, ry: value});
+/**/                            } else {
+/**/                                node[setAttribute](att, value);
+/**/                            }
+/**/                            break;
+/**/                        case "src":
+/**/                            if (o.type == "image") {
+/**/                                node.setAttributeNS(o.paper.xlink, "href", value);
+/**/                            }
+/**/                            break;
+/**/                        case "stroke-width":
+/**/                            node.style.strokeWidth = value;
+/**/                            // Need following line for Firefox
+/**/                            node[setAttribute](att, value);
+/**/                            if (attrs["stroke-dasharray"]) {
+/**/                                addDashes(o, attrs["stroke-dasharray"]);
+/**/                            }
+/**/                            break;
+/**/                        case "stroke-dasharray":
+/**/                            addDashes(o, value);
+/**/                            break;
+/**/                        case "translation":
+/**/                            var xy = String(value).split(separator);
+/**/                            xy[0] = +xy[0] || 0;
+/**/                            xy[1] = +xy[1] || 0;
+/**/                            if (rotxy) {
+/**/                                rotxy[1] += xy[0];
+/**/                                rotxy[2] += xy[1];
+/**/                            }
+/**/                            translate.call(o, xy[0], xy[1]);
+/**/                            break;
+/**/                        case "scale":
+/**/                            xy = String(value).split(separator);
+/**/                            o.scale(+xy[0] || 1, +xy[1] || +xy[0] || 1, isNaN(parseFloat(xy[2])) ? null : +xy[2], isNaN(parseFloat(xy[3])) ? null : +xy[3]);
+/**/                            break;
+/**/                        case "fill":
+/**/                            var isURL = String(value).match(ISURL);
+/**/                            if (isURL) {
+/**/                                el = $("pattern");
+/**/                                var ig = $("image");
+/**/                                el.id = "r" + (R._id++).toString(36);
+/**/                                $(el, {x: 0, y: 0, patternUnits: "userSpaceOnUse", height: 1, width: 1});
+/**/                                $(ig, {x: 0, y: 0});
+/**/                                ig.setAttributeNS(o.paper.xlink, "href", isURL[1]);
+/**/                                el.appendChild(ig);
+/**/ 
+/**/                                var img = document.createElement("img");
+/**/                                img.style.cssText = "position:absolute;left:-9999em;top-9999em";
+/**/                                img.onload = function () {
+/**/                                    $(el, {width: this.offsetWidth, height: this.offsetHeight});
+/**/                                    $(ig, {width: this.offsetWidth, height: this.offsetHeight});
+/**/                                    document.body.removeChild(this);
+/**/                                    o.paper.safari();
+/**/                                };
+/**/                                document.body.appendChild(img);
+/**/                                img.src = isURL[1];
+/**/                                o.paper.defs.appendChild(el);
+/**/                                node.style.fill = "url(#" + el.id + ")";
+/**/                                $(node, {fill: "url(#" + el.id + ")"});
+/**/                                o.pattern = el;
+/**/                                o.pattern && updatePosition(o);
+/**/                                break;
+/**/                            }
+/**/                            var clr = R.getRGB(value);
+/**/                            if (!clr.error) {
+/**/                                delete params.gradient;
+/**/                                delete attrs.gradient;
+/**/                                !R.is(attrs.opacity, "undefined") &&
+/**/                                    R.is(params.opacity, "undefined") &&
+/**/                                    $(node, {opacity: attrs.opacity});
+/**/                                !R.is(attrs["fill-opacity"], "undefined") &&
+/**/                                    R.is(params["fill-opacity"], "undefined") &&
+/**/                                    $(node, {"fill-opacity": attrs["fill-opacity"]});
+/**/                            } else if ((({circle: 1, ellipse: 1}).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper)) {
+/**/                                attrs.gradient = value;
+/**/                                attrs.fill = "none";
+/**/                                break;
+/**/                            }
+/**/                            clr.hasOwnProperty("o") && $(node, {"fill-opacity": clr.o > 1 ? clr.o / 100 : clr.o});
+/**/                        case "stroke":
+/**/                            clr = R.getRGB(value);
+/**/                            node[setAttribute](att, clr.hex);
+/**/                            att == "stroke" && clr.hasOwnProperty("o") && $(node, {"stroke-opacity": clr.o > 1 ? clr.o / 100 : clr.o});
+/**/                            break;
+/**/                        case "gradient":
+/**/                            (({circle: 1, ellipse: 1}).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper);
+/**/                            break;
+/**/                        case "opacity":
+/**/                        case "fill-opacity":
+/**/                            if (attrs.gradient) {
+/**/                                var gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, E));
+/**/                                if (gradient) {
+/**/                                    var stops = gradient.getElementsByTagName("stop");
+/**/                                    stops[stops.length - 1][setAttribute]("stop-opacity", value);
+/**/                                }
+/**/                                break;
+/**/                            }
+/**/                        default:
+/**/                            att == "font-size" && (value = parseInt(value, 10) + "px");
+/**/                            var cssrule = att.replace(/(\-.)/g, function (w) {
+/**/                                return String.prototype.toUpperCase.call(w.substring(1));
+/**/                            });
+/**/                            node.style[cssrule] = value;
+/**/                            // Need following line for Firefox
+/**/                            node[setAttribute](att, value);
+/**/                            break;
+/**/                    }
+/**/                }
+/**/            }
+/**/            
+/**/            tuneText(o, params);
+/**/            if (rotxy) {
+/**/                o.rotate(rotxy.join(S));
+/**/            } else {
+/**/                parseFloat(rot) && o.rotate(rot, true);
+/**/            }
+/**/        };
+/**/        var leading = 1.2,
+/**/        tuneText = function (el, params) {
+/**/            if (el.type != "text" || !(params.hasOwnProperty("text") || params.hasOwnProperty("font") || params.hasOwnProperty("font-size") || params.hasOwnProperty("x") || params.hasOwnProperty("y"))) {
+/**/                return;
+/**/            }
+/**/            var a = el.attrs,
+/**/                node = el.node,
+/**/                fontSize = node.firstChild ? parseInt(document.defaultView.getComputedStyle(node.firstChild, E).getPropertyValue("font-size"), 10) : 10;
+/**/ 
+/**/            if (params.hasOwnProperty("text")) {
+/**/                a.text = params.text;
+/**/                while (node.firstChild) {
+/**/                    node.removeChild(node.firstChild);
+/**/                }
+/**/                var texts = String(params.text).split("\n");
+/**/                for (var i = 0, ii = texts.length; i < ii; i++) if (texts[i]) {
+/**/                    var tspan = $("tspan");
+/**/                    i && $(tspan, {dy: fontSize * leading, x: a.x});
+/**/                    tspan.appendChild(document.createTextNode(texts[i]));
+/**/                    node.appendChild(tspan);
+/**/                }
+/**/            } else {
+/**/                texts = node.getElementsByTagName("tspan");
+/**/                for (i = 0, ii = texts.length; i < ii; i++) {
+/**/                    i && $(texts[i], {dy: fontSize * leading, x: a.x});
+/**/                }
+/**/            }
+/**/            $(node, {y: a.y});
+/**/            var bb = el.getBBox(),
+/**/                dif = a.y - (bb.y + bb.height / 2);
+/**/            dif && isFinite(dif) && $(node, {y: a.y + dif});
+/**/        },
+/**/        Element = function (node, svg) {
+/**/            var X = 0,
+/**/                Y = 0;
+/**/            this[0] = node;
+/**/            this.id = R._oid++;
+/**/            this.node = node;
+/**/            node.raphael = this;
+/**/            this.paper = svg;
+/**/            this.attrs = this.attrs || {};
+/**/            this.transformations = []; // rotate, translate, scale
+/**/            this._ = {
+/**/                tx: 0,
+/**/                ty: 0,
+/**/                rt: {deg: 0, cx: 0, cy: 0},
+/**/                sx: 1,
+/**/                sy: 1
+/**/            };
+/**/            !svg.bottom && (svg.bottom = this);
+/**/            this.prev = svg.top;
+/**/            svg.top && (svg.top.next = this);
+/**/            svg.top = this;
+/**/            this.next = null;
+/**/        };
+/**/        Element.prototype.rotate = function (deg, cx, cy) {
+/**/            if (this.removed) {
+/**/                return this;
+/**/            }
+/**/            if (deg == null) {
+/**/                if (this._.rt.cx) {
+/**/                    return [this._.rt.deg, this._.rt.cx, this._.rt.cy].join(S);
+/**/                }
+/**/                return this._.rt.deg;
+/**/            }
+/**/            var bbox = this.getBBox();
+/**/            deg = String(deg).split(separator);
+/**/            if (deg.length - 1) {
+/**/                cx = parseFloat(deg[1]);
+/**/                cy = parseFloat(deg[2]);
+/**/            }
+/**/            deg = parseFloat(deg[0]);
+/**/            if (cx != null) {
+/**/                this._.rt.deg = deg;
+/**/            } else {
+/**/                this._.rt.deg += deg;
+/**/            }
+/**/            (cy == null) && (cx = null);
+/**/            this._.rt.cx = cx;
+/**/            this._.rt.cy = cy;
+/**/            cx = cx == null ? bbox.x + bbox.width / 2 : cx;
+/**/            cy = cy == null ? bbox.y + bbox.height / 2 : cy;
+/**/            if (this._.rt.deg) {
+/**/                this.transformations[0] = R.format("rotate({0} {1} {2})", this._.rt.deg, cx, cy);
+/**/                this.clip && $(this.clip, {transform: R.format("rotate({0} {1} {2})", -this._.rt.deg, cx, cy)});
+/**/            } else {
+/**/                this.transformations[0] = E;
+/**/                this.clip && $(this.clip, {transform: E});
+/**/            }
+/**/            $(this.node, {transform: this.transformations.join(S)});
+/**/            return this;
+/**/        };
+/**/        Element.prototype.hide = function () {
+/**/            !this.removed && (this.node.style.display = "none");
+/**/            return this;
+/**/        };
+/**/        Element.prototype.show = function () {
+/**/            !this.removed && (this.node.style.display = "");
+/**/            return this;
+/**/        };
+/**/        Element.prototype.remove = function () {
+/**/            if (this.removed) {
+/**/                return;
+/**/            }
+/**/            tear(this, this.paper);
+/**/            this.node.parentNode.removeChild(this.node);
+/**/            for (var i in this) {
+/**/                delete this[i];
+/**/            }
+/**/            this.removed = true;
+/**/        };
+/**/        Element.prototype.getBBox = function () {
+/**/            if (this.removed) {
+/**/                return this;
+/**/            }
+/**/            if (this.type == "path") {
+/**/                return pathDimensions(this.attrs.path);
+/**/            }
+/**/            if (this.node.style.display == "none") {
+/**/                this.show();
+/**/                var hide = true;
+/**/            }
+/**/            var bbox = {};
+/**/            try {
+/**/                bbox = this.node.getBBox();
+/**/            } catch(e) {
+/**/                // Firefox 3.0.x plays badly here
+/**/            } finally {
+/**/                bbox = bbox || {};
+/**/            }
+/**/            if (this.type == "text") {
+/**/                bbox = {x: bbox.x, y: Infinity, width: 0, height: 0};
+/**/                for (var i = 0, ii = this.node.getNumberOfChars(); i < ii; i++) {
+/**/                    var bb = this.node.getExtentOfChar(i);
+/**/                    (bb.y < bbox.y) && (bbox.y = bb.y);
+/**/                    (bb.y + bb.height - bbox.y > bbox.height) && (bbox.height = bb.y + bb.height - bbox.y);
+/**/                    (bb.x + bb.width - bbox.x > bbox.width) && (bbox.width = bb.x + bb.width - bbox.x);
+/**/                }
+/**/            }
+/**/            hide && this.hide();
+/**/            return bbox;
+/**/        };
+/**/        Element.prototype.attr = function (name, value) {
+/**/            if (this.removed) {
+/**/                return this;
+/**/            }
+/**/            if (name == null) {
+/**/                var res = {};
+/**/                for (var i in this.attrs) if (this.attrs.hasOwnProperty(i)) {
+/**/                    res[i] = this.attrs[i];
+/**/                }
+/**/                this._.rt.deg && (res.rotation = this.rotate());
+/**/                (this._.sx != 1 || this._.sy != 1) && (res.scale = this.scale());
+/**/                res.gradient && res.fill == "none" && (res.fill = res.gradient) && delete res.gradient;
+/**/                return res;
+/**/            }
+/**/            if (value == null && R.is(name, "string")) {
+/**/                if (name == "translation") {
+/**/                    return translate.call(this);
+/**/                }
+/**/                if (name == "rotation") {
+/**/                    return this.rotate();
+/**/                }
+/**/                if (name == "scale") {
+/**/                    return this.scale();
+/**/                }
+/**/                if (name == "fill" && this.attrs.fill == "none" && this.attrs.gradient) {
+/**/                    return this.attrs.gradient;
+/**/                }
+/**/                return this.attrs[name];
+/**/            }
+/**/            if (value == null && R.is(name, "array")) {
+/**/                var values = {};
+/**/                for (var j = 0, jj = name.length; j < jj; j++) {
+/**/                    values[name[j]] = this.attr(name[j]);
+/**/                }
+/**/                return values;
+/**/            }
+/**/            if (value != null) {
+/**/                var params = {};
+/**/                params[name] = value;
+/**/                setFillAndStroke(this, params);
+/**/            } else if (name != null && R.is(name, "object")) {
+/**/                setFillAndStroke(this, name);
+/**/            }
+/**/            return this;
+/**/        };
             Element.prototype.toFront = function () {
                 if (this.removed) {
                     return this;
