@@ -1,0 +1,15 @@
+needed
+
+leftAngle = "<"
+ampersand = "&"
+leftAngleRE = /#{leftAngle}/g
+ampersandRE = /#{ampersand}/g
+br = "br"
+brtag = "<#{br}>"
+res.paper.span.innerHTML = String(res.node.string).replace(leftAngleRE, "&#60;").replace(ampersandRE, "&#38;").replace(/\n/g, brtag) if res.node.string
+
+instead of 
+
+res.paper.span.innerHTML = String(res.node.string).replace(/</g, "&#60;").replace(/&/g, "&#38;").replace(/\n/g, "<br>") if res.node.string
+
+-----------------------------
