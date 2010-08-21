@@ -1151,7 +1151,7 @@ Raphael = (->
             delete @attrs.blur
           @node.removeAttribute("filter")
 
-    R::theCircle = (svg, x, y, r) ->
+    theCircle = (svg, x, y, r) ->
       el = $("circle")
       svg.canvas.appendChild(el) if svg.canvas
       res = new Element(el, svg)
@@ -1160,7 +1160,7 @@ Raphael = (->
       $(el, res.attrs)
       res
 
-    R::theRect = (svg, x, y, w, h, r) ->
+    theRect = (svg, x, y, w, h, r) ->
       el = $("rect")
       svg.canvas.appendChild(el) if svg.canvas
       res = new Element(el, svg)
@@ -1169,7 +1169,7 @@ Raphael = (->
       $(el, res.attrs)
       res
 
-    R::theEllipse = (svg, x, y, rx, ry) ->
+    theEllipse = (svg, x, y, rx, ry) ->
       el = $("ellipse")
       svg.canvas.appendChild(el) if svg.canvas
       res = new Element(el, svg)
@@ -1178,7 +1178,7 @@ Raphael = (->
       $(el, res.attrs)
       res
 
-    R::theImage = (svg, src, x, y, w, h) ->
+    theImage = (svg, src, x, y, w, h) ->
       el = $("image")
       $(el, { x: x, y: y, width: w, height: h, preserveAspectRatio: "none" })
       el.setAttributeNS(svg.xlink, "href", src)
@@ -1188,7 +1188,7 @@ Raphael = (->
       res.type = "image"
       res
 
-    R::theText = (svg, x, y, text) ->
+    theText = (svg, x, y, text) ->
       el = $("text")
       $(el, { x: x, y: y, "text-anchor": "middle" })
       svg.canvas.appendChild(el) if svg.canvas
@@ -1198,7 +1198,7 @@ Raphael = (->
       setFillAndStroke(res, res.attrs)
       res
 
-    R::setSize = (width, height) ->
+    setSize = (width, height) ->
       @width = width || @width
       @height = height || @height
       @canvas.setAttribute("width", @width)
