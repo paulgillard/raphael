@@ -669,7 +669,7 @@ Raphael = (->
     @xLinkNamespace: "http://www.w3.org/1999/xlink"
 
   if R.type == "SVG"
-    R::$ = (el, attr) ->
+    $ = (el, attr) ->
       if attr
         for key in attr
           if attr.hasOwnProperty key
@@ -682,7 +682,7 @@ Raphael = (->
     R::toString = ->
       "Your browser supports SVG.\nYou are running Rapha\xebl " + this.version
 
-    R::thePath = (pathString, SVG) ->
+    thePath = (pathString, SVG) ->
       el = $("path")
       SVG.canvas.appendChild(el) if SVG.canvas
       p = new Element(el, SVG)
@@ -690,7 +690,7 @@ Raphael = (->
       setFillAndStroke(p, { fill: "none", stroke: "#000", path: pathString })
       p
 
-    R::addGradientFill = (o, gradient, SVG) ->
+    addGradientFill = (o, gradient, SVG) ->
       type = "linear"
       fx = fy = 0.5
       s = o.style
@@ -744,11 +744,11 @@ Raphael = (->
       s.fillOpacity = 1
       1
 
-    R::updatePosition = (o) ->
+    updatePosition = (o) ->
       bbox = o.getBBox()
       $(o.pattern, { patternTransform: R.format("translate({0},{1})", bbox.x, bbox.y) })
 
-    R::setFillAndStroke = (o, params) ->
+    setFillAndStroke = (o, params) ->
       dasharray = "": [0], "none": [0], "-": [3, 1], ".": [1, 1], "-.": [3, 1, 1, 1], "-..": [3, 1, 1, 1, 1, 1], ". ": [1, 3], "- ": [4, 3], "--": [8, 3], "- .": [4, 3, 1, 3],  "--.": [8, 3, 1, 3], "--..": [8, 3, 1, 3, 1, 3]
       node = o.node
       attrs = o.attrs
@@ -943,7 +943,7 @@ Raphael = (->
       else
         o.rotate(rot, true) if parseFloat(rot)
 
-    R::tuneText = (el, params) ->
+    tuneText = (el, params) ->
       leading = 1.2
       if el.type != "text" || !(params.hasOwnProperty("text") || params.hasOwnProperty("font") || params.hasOwnProperty("font-size") || params.hasOwnProperty("x") || params.hasOwnProperty("y"))
         return
@@ -1215,7 +1215,7 @@ Raphael = (->
       height = con.height
       if !container
         throw new Error("SVG container not found.")
-      cnvs = R::$("svg")
+      cnvs = $("svg")
       x = x || 0
       y = y || 0
       width = width || 512
@@ -1247,9 +1247,9 @@ Raphael = (->
       while c.firstChild
         c.removeChild(c.firstChild)
       @bottom = @top = null
-      (@desc = R::$("desc")).appendChild(document.createTextNode("Created with Rapha\xebl"))
+      (@desc = $("desc")).appendChild(document.createTextNode("Created with Rapha\xebl"))
       c.appendChild(@desc)
-      c.appendChild(@defs = R::$("defs"))
+      c.appendChild(@defs = $("defs"))
 
     Paper::remove = ->
       @canvas.parentNode.removeChild(@canvas) if @canvas.parentNode
@@ -1257,7 +1257,7 @@ Raphael = (->
         this[i] = removed(i)
 
   if R.type == "VML"
-    R::path2vml = (path) ->
+    path2vml = (path) ->
       total = /[ahqstv]/ig
       command = pathToAbsolute
       command = pathToCurve if String(path).match(total)
@@ -1290,7 +1290,7 @@ Raphael = (->
     R::toString = ->
       "Your browser doesn\u2019t support SVG. Falling down to VML.\nYou are running Rapha\xebl " + @version
 
-    R::thePath = (pathString, vml) ->
+    thePath = (pathString, vml) ->
       g = createNode("group")
       g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
       g.coordsize = vml.coordsize
@@ -1313,7 +1313,7 @@ Raphael = (->
       vml.canvas.appendChild(g)
       p
 
-    R::setFillAndStroke = (o, params) ->
+    setFillAndStroke = (o, params) ->
       o.attrs = o.attrs || {}
       node = o.node
       a = o.attrs
@@ -1458,7 +1458,7 @@ Raphael = (->
             res.bbx = -Math.round(res.W / 2)
           else
             res.node.style["v-text-align"] = "center"
-    R::addGradientFill = (o, gradient) ->
+    addGradientFill = (o, gradient) ->
         o.attrs ?= {}
         attrs = o.attrs
         type = "linear"
