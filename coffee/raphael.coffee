@@ -1017,7 +1017,7 @@ Raphael = (->
         @_.rt.cy = cy
         cx = if !cx? then bbox.x + bbox.width / 2 else cx
         cy = if !cy? then bbox.y + bbox.height / 2 else cy
-        if !_.rt.deg
+        if !@_.rt.deg
           @transformations[0] = R.format("rotate({0} {1} {2})", @_.rt.deg, cx, cy)
           $(this.clip, { transform: R.format("rotate({0} {1} {2})", -@_.rt.deg, cx, cy) }) if @clip
         else
