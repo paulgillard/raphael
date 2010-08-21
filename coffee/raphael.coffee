@@ -741,7 +741,7 @@ Raphael = (->
         )
         el.appendChild(stop)
       $(o, { fill: "url(#" + el.id + ")", opacity: 1, "fill-opacity": 1 })
-      s.fill = E
+      s.fill = ""
       s.opacity = 1
       s.fillOpacity = 1
       1
@@ -941,7 +941,7 @@ Raphael = (->
               node.setAttribute(att, value)
       tuneText(o, params)
       if rotxy
-        o.rotate(rotxy.join(S))
+        o.rotate(rotxy.join(" "))
       else
         o.rotate(rot, true) if parseFloat(rot)
 
@@ -1000,7 +1000,7 @@ Raphael = (->
           return this
         if deg == null
           if @_.rt.cx
-            return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(S)
+            return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(" ")
           return @_.rt.deg
         bbox = this.getBBox()
         deg = String(deg).split(separator)
@@ -1021,9 +1021,9 @@ Raphael = (->
           @transformations[0] = R.format("rotate({0} {1} {2})", @_.rt.deg, cx, cy)
           $(this.clip, { transform: R.format("rotate({0} {1} {2})", -@_.rt.deg, cx, cy) }) if @clip
         else
-          @transformations[0] = E
+          @transformations[0] = ""
           $(this.clip, { transform: E }) if @clip
-        $(this.node, { transform: @transformations.join(S) })
+        $(this.node, { transform: @transformations.join(" ") })
         this
 
       hide: ->
@@ -1287,7 +1287,7 @@ Raphael = (->
         for j in [1..p.length - 1]
           r += Math.round(p[j] * zoom) + (if j != p.length - 1 then "," else E)
         res.push(r)
-      res.join(S)
+      res.join(" ")
 
     R::toString = ->
       "Your browser doesn\u2019t support SVG. Falling down to VML.\nYou are running Rapha\xebl " + @version
@@ -1310,7 +1310,7 @@ Raphael = (->
       p.isAbsolute = true
       p.type = "path"
       p.path = []
-      p.Path = E
+      p.Path = ""
       setFillAndStroke(p, attr)
       vml.canvas.appendChild(g)
       p
@@ -1370,7 +1370,7 @@ Raphael = (->
             div.appendChild(group)
             node.clipRect = div
         if !params["clip-rect"]
-          node.clipRect.style.clip = E if node.clipRect
+          node.clipRect.style.clip = "" if node.clipRect
       if o.type == "image" and params.src
         node.src = params.src
       if o.type == "image" and params.opacity
@@ -1401,7 +1401,7 @@ Raphael = (->
             fill.type = "tile"
           else
             fill.color = R.getRGB(params.fill).hex
-            fill.src = E
+            fill.src = ""
             fill.type = "solid"
             if R.getRGB(params.fill).error and (res.type in { circle: 1, ellipse: 1 } or String(params.fill).charAt() != "r") and addGradientFill(res, params.fill)
               a.fill = "none"
@@ -1542,7 +1542,7 @@ Raphael = (->
         return this if this.removed
         if deg == null
           if @_.rt.cx
-            return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(S)
+            return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(" ")
           return @_.rt.deg
         deg = String(deg).split(separator)
         if deg.length - 1
@@ -1592,7 +1592,7 @@ Raphael = (->
             w = attr.width || 0
             h = attr.height || 0
           when "text"
-            @textpath.v = ["m", Math.round(attr.x), ", ", Math.round(attr.y - 2), "l", Math.round(attr.x) + 1, ", ", Math.round(attr.y - 2)].join(E)
+            @textpath.v = ["m", Math.round(attr.x), ", ", Math.round(attr.y - 2), "l", Math.round(attr.x) + 1, ", ", Math.round(attr.y - 2)].join("")
             x = attr.x - Math.round(this.W / 2)
             y = attr.y - this.H / 2
             w = @W
@@ -1917,7 +1917,7 @@ Raphael = (->
       res
 
     Paper::clear = ->
-      @canvas.innerHTML = E
+      @canvas.innerHTML = ""
       @span = document.createElement("span")
       @span.style.cssText = "position:absolute;left:-9999em;top:-9999em;padding:0;margin:0;line-height:1;display:inline;"
       @canvas.appendChild(@span)
@@ -2067,7 +2067,7 @@ Raphael = (->
     theEllipse(this, x || 0, y || 0, rx || 0, ry || 0)
 
   Paper::path = (pathString) ->
-    pathString += E if pathString and !R.is(pathString, "string") and !R.is(pathString[0], "array")
+    pathString += "" if pathString and !R.is(pathString, "string") and !R.is(pathString[0], "array")
     thePath(R.format.apply(R, arguments), this)
 
   Paper::image = (src, x, y, w, h) -> 
@@ -2173,7 +2173,7 @@ Raphael = (->
       if @type in { text: 1, image: 1 } and (dirx != 1 or diry != 1)
           if @transformations
             @transformations[2] = "scale(".concat(dirx, ",", diry, ")")
-            @node[setAttribute]("transform", this.transformations.join(S))
+            @node[setAttribute]("transform", this.transformations.join(" "))
             dx = if dirx == -1 then -a.x - (neww || 0) else a.x
             dy = if diry == -1 then -a.y - (newh || 0) else a.y
             @attr { x: dx, y: dy }
@@ -2184,14 +2184,14 @@ Raphael = (->
             s.filter = (this.node.filterMatrix || E) + (this.node.filterOpacity || E)
       else
           if @transformations
-            @transformations[2] = E
-            @node[setAttribute]("transform", this.transformations.join(S))
+            @transformations[2] = ""
+            @node[setAttribute]("transform", this.transformations.join(" "))
             a.fx = 0
             a.fy = 0
           else
-            @node.filterMatrix = E
+            @node.filterMatrix = ""
             s.filter = (@node.filterMatrix || E) + (@node.filterOpacity || E)
-      a.scale = [x, y, cx, cy].join(S)
+      a.scale = [x, y, cx, cy].join(" ")
       @_.sx = x
       @_.sy = y
     this
@@ -2384,8 +2384,8 @@ Raphael = (->
                     now[i] = [from[attr][i][0]]
                     for j in [1..from[attr][i].length - 1]
                       now[i][j] = +from[attr][i][j] + pos * ms * diff[attr][i][j]
-                    now[i] = now[i].join(S)
-                  now = now.join(S)
+                    now[i] = now[i].join(" ")
+                  now = now.join(" ")
                 when "csv"
                   switch attr
                     when "translation"
@@ -2398,7 +2398,7 @@ Raphael = (->
                       now = +from[attr][0] + pos * ms * diff[attr][0]
                       now += "," + from[attr][1] + "," + from[attr][2] if from[attr][1]
                     when "scale"
-                      now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if 2 in to[attr] then to[attr][2] else E), (if 3 in to[attr] then to[attr][3] else E)].join(S)
+                      now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if 2 in to[attr] then to[attr][2] else E), (if 3 in to[attr] then to[attr][3] else E)].join(" ")
                     when "clip-rect"
                       now = []
                       i = 4
@@ -2413,7 +2413,7 @@ Raphael = (->
             that.translate(diff.sx - (diff.x || 0) + point.x - diff.sx, diff.sy - (diff.y || 0) + point.y - diff.sy)
             that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
           (t.x or t.y) and that.translate(-t.x, -t.y)
-          to.scale += E if to.scale
+          to.scale += "" if to.scale
           that.attr(to)
           delete animationElements[l]
           animationElements.length--
@@ -2693,9 +2693,9 @@ Raphael = (->
   Paper::print = (x, y, string, font, size, origin) ->
     origin ?= "middle"; # baseline|middle
     out = @set()
-    letters = String(string).split(E)
+    letters = String(string).split("")
     shift = 0
-    path = E
+    path = ""
     font = @getFont(font) if R.is(font, string)
     if font
       scale = (size or 16) / font.face["units-per-em"]
