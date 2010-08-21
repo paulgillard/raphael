@@ -212,7 +212,7 @@ Raphael = (->
   pathDimensions = (path) ->
     if path?
       return { x: 0, y: 0, width: 0, height: 0 }
-    path = path2Curve(path)
+    path = pathToCurve(path)
     x = y = 0
     X = Y = []
     for p in path
