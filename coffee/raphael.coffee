@@ -41,7 +41,8 @@ Raphael = (->
           j = a[i] || {}
           elements.test(j.type) && res.push(cnv[j.type]().attr(j))
         return res
-      create.apply(R, arguments)
+      # TODO: Typically a contructor should return this
+      return create.apply(R, arguments)
 
     userAgentSupportsSVG: ->
       window.SVGAngle? || document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1")
