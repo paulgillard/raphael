@@ -209,462 +209,462 @@ Raphael = (->
       alpha = (90 - Math.atan((mx - nx) / (my - ny)) * 180 / Math.PI)
       { x: x, y: y, m: { x: mx, y: my }, n: { x: nx, y: ny }, start: { x: ax, y: ay }, end: { x: cx, y: cy }, alpha: alpha }
 
-    pathDimensions: (path) ->
-      if path?
-        return { x: 0, y: 0, width: 0, height: 0 }
-      path = path2Curve(path)
-      x = y = 0
-      X = Y = []
-      for p in path
-        if p[0] == "M"
-          x = p[1]
-          y = p[2]
-          X.push x
-          Y.push y
-        else
-          dim = curveDimensions(x, y, p[1], p[2], p[3], p[4], p[5], p[6])
-          X = X.concat(dim.min.x, dim.max.x)
-          Y = Y.concat(dim.min.y, dim.max.y)
-          x = p[5]
-          y = p[6]
-      xmin = Math.min.apply(0, X)
-      ymin = Math.min.apply(0, Y)
-      { x: xmin, y: ymin, width: Math.max.apply(0, X) - xmin, height: Math.max.apply(0, Y) - ymin }
-
-    pathClone: (pathArray) ->
-      res = []
-      if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
-        pathArray = R.parsePathString(pathArray)
-      i = -1
-      for path in pathArray
-        res[++i] = []
-        j = -1
-        for pathItem in path
-          res[i][++j] = pathItem
-      res.toString = this._path2string
-      res
-
-    pathToRelative: (pathArray) ->
-      if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
-        pathArray = R.parsePathString(pathArray)
-      res = []
-      x = y = mx = my = start = 0
-      if pathArray[0][0] == "M"
-        mx = x = pathArray[0][1]
-        my = y = pathArray[0][2]
-        start++
-        res.push ["M", x, y]
-      for i in [start..pathArray.length - 1]
-        r = res[i] = []
-        path = pathArray[i]
-        if path[0] != String.prototype.toLowerCase.call(path[0])
-          r[0] = String.prototype.toLowerCase.call(path[0])
-          switch r[0]
-            when "a"
-              r[1] = path[1]
-              r[2] = path[2]
-              r[3] = path[3]
-              r[4] = path[4]
-              r[5] = path[5]
-              r[6] = +(path[6] - x).toFixed(3)
-              r[7] = +(path[7] - y).toFixed(3)
-            when "v"
-              r[1] = +(path[1] - y).toFixed(3)
-            when "m"
-              mx = path[1]
-              my = path[2]
-            else
-              for j in [1..path.length - 1]
-                r[j] = +(path[j] - (if j % 2 then x else y)).toFixed(3)
-        else
-          if path[0] == "m"
-            mx = path[1] + x
-            my = path[2] + y
-          for k in [0..path.length - 1]
-            res[i][k] = path[k]
-        len = res[i].length
-        switch res[i][0]
-          when "z"
-            x = mx
-            y = my
-          when "h"
-            x += +res[i][len - 1]
-          when "v"
-            y += +res[i][len - 1]
-          else
-            x += +res[i][len - 2]
-            y += +res[i][len - 1]
-      res.toString = this._path2string
-      res
-
-    pathToAbsolute: (pathArray) ->
-      if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
-        pathArray = R.parsePathString(pathArray)
-      res = []
-      x = y = mx = my = start = 0
-      if pathArray[0][0] == "M"
-        mx = x = +pathArray[0][1]
-        my = y = +pathArray[0][2]
-        start++
-        res[0] = ["M", x, y]
-      for i in [start..pathArray.length - 1]
-        r = res[i] = []
-        path = pathArray[i]
-        if path[0] != String.prototype.toUpperCase.call(path[0])
-          r[0] = String.prototype.toUpperCase.call(path[0])
-          switch r[0]
-            when "A"
-              r[1] = path[1]
-              r[2] = path[2]
-              r[3] = path[3]
-              r[4] = path[4]
-              r[5] = path[5]
-              r[6] = +(path[6] + x)
-              r[7] = +(path[7] + y)
-            when "V"
-              r[1] = +(path[1] + y)
-            when "H"
-              r[1] = +(path[1] + x)
-            when "M"
-              mx = +path[1] + x
-              my = +path[2] + y
-            else
-              for j in [1..path.length - 1]
-                r[j] = +path[j] + (if j % 2 then x else y)
-        else
-          for k in [0..path.length - 1]
-            res[i][k] = path[k]
-        len = res[i].length
+  pathDimensions: (path) ->
+    if path?
+      return { x: 0, y: 0, width: 0, height: 0 }
+    path = path2Curve(path)
+    x = y = 0
+    X = Y = []
+    for p in path
+      if p[0] == "M"
+        x = p[1]
+        y = p[2]
+        X.push x
+        Y.push y
+      else
+        dim = curveDimensions(x, y, p[1], p[2], p[3], p[4], p[5], p[6])
+        X = X.concat(dim.min.x, dim.max.x)
+        Y = Y.concat(dim.min.y, dim.max.y)
+        x = p[5]
+        y = p[6]
+    xmin = Math.min.apply(0, X)
+    ymin = Math.min.apply(0, Y)
+    { x: xmin, y: ymin, width: Math.max.apply(0, X) - xmin, height: Math.max.apply(0, Y) - ymin }
+  
+  pathClone: (pathArray) ->
+    res = []
+    if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
+      pathArray = R.parsePathString(pathArray)
+    i = -1
+    for path in pathArray
+      res[++i] = []
+      j = -1
+      for pathItem in path
+        res[i][++j] = pathItem
+    res.toString = this._path2string
+    res
+  
+  pathToRelative: (pathArray) ->
+    if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
+      pathArray = R.parsePathString(pathArray)
+    res = []
+    x = y = mx = my = start = 0
+    if pathArray[0][0] == "M"
+      mx = x = pathArray[0][1]
+      my = y = pathArray[0][2]
+      start++
+      res.push ["M", x, y]
+    for i in [start..pathArray.length - 1]
+      r = res[i] = []
+      path = pathArray[i]
+      if path[0] != String.prototype.toLowerCase.call(path[0])
+        r[0] = String.prototype.toLowerCase.call(path[0])
         switch r[0]
-          when "Z"
-            x = mx
-            y = my
-          when "H"
-            x = r[1]
-          when "V"
-            y = r[1]
-          when "M"
-            mx = res[i][len - 2]
-            my = res[i][len - 1]
+          when "a"
+            r[1] = path[1]
+            r[2] = path[2]
+            r[3] = path[3]
+            r[4] = path[4]
+            r[5] = path[5]
+            r[6] = +(path[6] - x).toFixed(3)
+            r[7] = +(path[7] - y).toFixed(3)
+          when "v"
+            r[1] = +(path[1] - y).toFixed(3)
+          when "m"
+            mx = path[1]
+            my = path[2]
           else
-            x = res[i][len - 2]
-            y = res[i][len - 1]
-      res.toString = this._path2string
-      res
-
-    lineToCurve: (x1, y1, x2, y2) ->
-      [x1, y1, x2, y2, x2, y2]
-
-    quadraticToCurve: (x1, y1, ax, ay, x2, y2) ->
-      [ 1 / 3 * x1 + 2 / 3 * ax,
-        1 / 3 * y1 + 2 / 3 * ay,
-        1 / 3 * x2 + 2 / 3 * ax,
-        1 / 3 * y2 + 2 / 3 * ay,
-        x2,
-        y2 ]
-
-    arcToCurve: (x1, y1, rx, ry, angle, large_arc_flag, sweep_flag, x2, y2, recursive) ->
-      # for more information of where this math came from visit:
-      # http://www.w3.org/TR/SVG11/implnote.html#ArcImplementationNotes
-      PI = Math.PI
-      _120 = PI * 120 / 180
-      rad = PI / 180 * (+angle || 0)
-      res = []
-      # TODO: rotate was originally cached
-      rotate: (x, y, rad) ->
-        X = x * Math.cos(rad) - y * Math.sin(rad)
-        Y = x * Math.sin(rad) + y * Math.cos(rad)
-        { x: X, y: Y }
-      if !recursive
-        xy = rotate(x1, y1, -rad)
-        x1 = xy.x
-        y1 = xy.y
-        xy = rotate(x2, y2, -rad)
-        x2 = xy.x
-        y2 = xy.y
-        cos = Math.cos(PI / 180 * angle)
-        sin = Math.sin(PI / 180 * angle)
-        x = (x1 - x2) / 2
-        y = (y1 - y2) / 2
-        h = (x * x) / (rx * rx) + (y * y) / (ry * ry)
-        if h > 1
-          h = Math.sqrt(h)
-          rx = h * rx
-          ry = h * ry
-        rx2 = rx * rx
-        ry2 = ry * ry
-        k = (if large_arc_flag == sweep_flag then -1 else 1) *
-                Math.sqrt(Math.abs((rx2 * ry2 - rx2 * y * y - ry2 * x * x) / (rx2 * y * y + ry2 * x * x)))
-        cx = k * rx * y / ry + (x1 + x2) / 2
-        cy = k * -ry * x / rx + (y1 + y2) / 2
-        f1 = Math.asin(((y1 - cy) / ry).toFixed(7))
-        f2 = Math.asin(((y2 - cy) / ry).toFixed(7))
-        f1 = if x1 < cx then PI - f1 else f1
-        f2 = if x2 < cx then PI - f2 else f2
-        if f1 < 0
-          f1 = PI * 2 + f1
-        if f2 < 0
-          f2 = PI * 2 + f2
-        if sweep_flag and f1 > f2
-          f1 = f1 - PI * 2
-        if !sweep_flag and f2 > f1
-          f2 = f2 - PI * 2
+            for j in [1..path.length - 1]
+              r[j] = +(path[j] - (if j % 2 then x else y)).toFixed(3)
       else
-        f1 = recursive[0]
-        f2 = recursive[1]
-        cx = recursive[2]
-        cy = recursive[3]
-      df = f2 - f1
-      if Math.abs(df) > _120
-        f2old = f2
-        x2old = x2
-        y2old = y2
-        f2 = f1 + _120 * (if sweep_flag && f2 > f1 then 1 else -1)
-        x2 = cx + rx * Math.cos(f2)
-        y2 = cy + ry * Math.sin(f2)
-        res = arcToCurve(x2, y2, rx, ry, angle, 0, sweep_flag, x2old, y2old, [f2, f2old, cx, cy])
-      df = f2 - f1
-      c1 = Math.cos(f1)
-      s1 = Math.sin(f1)
-      c2 = Math.cos(f2)
-      s2 = Math.sin(f2)
-      t = Math.tan(df / 4)
-      hx = 4 / 3 * rx * t
-      hy = 4 / 3 * ry * t
-      m1 = [x1, y1]
-      m2 = [x1 + hx * s1, y1 - hy * c1]
-      m3 = [x2 + hx * s2, y2 - hy * c2]
-      m4 = [x2, y2]
-      m2[0] = 2 * m1[0] - m2[0]
-      m2[1] = 2 * m1[1] - m2[1]
-      if recursive
-        [m2, m3, m4].concat(res)
-      else
-        res = [m2, m3, m4].concat(res).join().split(",")
-        newres = []
-        for i in [0..res.length - 1]
-          newres[i] = if i % 2 then rotate(res[i - 1], res[i], rad).y else rotate(res[i], res[i + 1], rad).x
-        newres
-
-    findDotAtSegment: (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
-      t1 = 1 - t
-      X = Math.pow(t1, 3) * p1x + Math.pow(t1, 2) * 3 * t * c1x + t1 * 3 * t * t * c2x + Math.pow(t, 3) * p2x
-      Y = Math.pow(t1, 3) * p1y + Math.pow(t1, 2) * 3 * t * c1y + t1 * 3 * t * t * c2y + Math.pow(t, 3) * p2y
-      { x: X, y: Y }
-
-    # TODO: curveDimensions was originally cached
-    curveDimensions: (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y) ->
-      a = (c2x - 2 * c1x + p1x) - (p2x - 2 * c2x + c1x)
-      b = 2 * (c1x - p1x) - 2 * (c2x - c1x)
-      c = p1x - c1x
-      t1 = (-b + Math.sqrt(b * b - 4 * a * c)) / 2 / a
-      t2 = (-b - Math.sqrt(b * b - 4 * a * c)) / 2 / a
-      y = [p1y, p2y]
-      x = [p1x, p2x]
-      t1 = 0.5 if Math.abs(t1) > 1e12
-      t2 = 0.5 if Math.abs(t2) > 1e12
-      if t1 > 0 and t1 < 1
-        dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1)
-        x.push(dot.x)
-        y.push(dot.y)
-      if t2 > 0 and t2 < 1
-        dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t2)
-        x.push(dot.x)
-        y.push(dot.y)
-      a = (c2y - 2 * c1y + p1y) - (p2y - 2 * c2y + c1y)
-      b = 2 * (c1y - p1y) - 2 * (c2y - c1y)
-      c = p1y - c1y
-      t1 = (-b + Math.sqrt(b * b - 4 * a * c)) / 2 / a
-      t2 = (-b - Math.sqrt(b * b - 4 * a * c)) / 2 / a
-      t1 = 0.5 if Math.abs(t1) > 1e12
-      t2 = 0.5 if Math.abs(t2) > 1e12
-      if t1 > 0 and t1 < 1
-        dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1)
-        x.push(dot.x)
-        y.push(dot.y)
-      if t2 > 0 and t2 < 1
-        dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t2)
-        x.push(dot.x)
-        y.push(dot.y)
-      min: { x: Math.min.apply(0, x), y: Math.min.apply(0, y) }
-      max: { x: Math.max.apply(0, x), y: Math.max.apply(0, y) }
-
-    # TODO: pathToCurve was originally cached
-    pathToCurve: (path, path2) ->
-      p = pathToAbsolute(path)
-      p2 = pathToAbsolute(path2) if path2?
-      attrs = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
-      attrs2 = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
-      processPath = (path, d) ->
-        return ["C", d.x, d.y, d.x, d.y, d.x, d.y] if !path
-        d.qx = d.qy = null if !(path[0] in { T: 1, Q: 1 })
-        switch path[0]
-          when "M"
-            d.X = path[1]
-            d.Y = path[2]
-            path
+        if path[0] == "m"
+          mx = path[1] + x
+          my = path[2] + y
+        for k in [0..path.length - 1]
+          res[i][k] = path[k]
+      len = res[i].length
+      switch res[i][0]
+        when "z"
+          x = mx
+          y = my
+        when "h"
+          x += +res[i][len - 1]
+        when "v"
+          y += +res[i][len - 1]
+        else
+          x += +res[i][len - 2]
+          y += +res[i][len - 1]
+    res.toString = this._path2string
+    res
+  
+  pathToAbsolute: (pathArray) ->
+    if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
+      pathArray = R.parsePathString(pathArray)
+    res = []
+    x = y = mx = my = start = 0
+    if pathArray[0][0] == "M"
+      mx = x = +pathArray[0][1]
+      my = y = +pathArray[0][2]
+      start++
+      res[0] = ["M", x, y]
+    for i in [start..pathArray.length - 1]
+      r = res[i] = []
+      path = pathArray[i]
+      if path[0] != String.prototype.toUpperCase.call(path[0])
+        r[0] = String.prototype.toUpperCase.call(path[0])
+        switch r[0]
           when "A"
-            ["C"].concat(arcToCurve.apply(0, [d.x, d.y].concat(path.slice(1))))
-          when "S"
-            nx = d.x + (d.x - (d.bx || d.x))
-            ny = d.y + (d.y - (d.by || d.y))
-            ["C", nx, ny].concat(path.slice(1))
-          when "T"
-            d.qx = d.x + (d.x - (d.qx || d.x))
-            d.qy = d.y + (d.y - (d.qy || d.y))
-            ["C"].concat(quadraticToCurve(d.x, d.y, d.qx, d.qy, path[1], path[2]))
-          when "Q"
-            d.qx = path[1]
-            d.qy = path[2]
-            ["C"].concat(quadraticToCurve(d.x, d.y, path[1], path[2], path[3], path[4]))
-          when "L"
-            ["C"].concat(lineToCurve(d.x, d.y, path[1], path[2]))
-          when "H"
-            ["C"].concat(lineToCurve(d.x, d.y, path[1], d.y))
+            r[1] = path[1]
+            r[2] = path[2]
+            r[3] = path[3]
+            r[4] = path[4]
+            r[5] = path[5]
+            r[6] = +(path[6] + x)
+            r[7] = +(path[7] + y)
           when "V"
-            ["C"].concat(lineToCurve(d.x, d.y, d.x, path[1]))
-          when "Z"
-            ["C"].concat(lineToCurve(d.x, d.y, d.X, d.Y))
-      fixArc = (pp, i) ->
-        if pp[i].length > 7
-          pp[i].shift()
-          pi = pp[i]
-          while pi.length
-            pp.splice(i++, 0, ["C"].concat(pi.splice(0, 6)))
-          pp.splice(i, 1)
-          ii = Math.max(p.length, if p2? then p2.length else 0)
-      fixM = (path1, path2, a1, a2, i) ->
-        if path1? and path2? and path1[i][0] == "M" and path2[i][0] != "M"
-          path2.splice(i, 0, ["M", a2.x, a2.y])
-          a1.bx = 0
-          a1.by = 0
-          a1.x = path1[i][1]
-          a1.y = path1[i][2]
-          ii = Math.max(p.length, if p2? then p2.length else 0)
-      for i in [0..Math.max(p.length, if p2? then p2.length else 0)]
-        p[i] = processPath(p[i], attrs)
-        fixArc(p, i)
-        p2[i] = processPath(p2[i], attrs2) if p2?
-        fixArc(p2, i) if p2?
-        fixM(p, p2, attrs, attrs2, i)
-        fixM(p2, p, attrs2, attrs, i)
-        seg = p[i]
-        seg2 = p2[i] if p2?
-        seglen = seg.length
-        seg2len = seg2.length if p2?
-        attrs.x = seg[seglen - 2]
-        attrs.y = seg[seglen - 1]
-        attrs.bx = parseFloat(seg[seglen - 4]) || attrs.x
-        attrs.by = parseFloat(seg[seglen - 3]) || attrs.y
-        attrs2.bx = parseFloat(seg2[seg2len - 4]) || attrs2.x if p2?
-        attrs2.by = parseFloat(seg2[seg2len - 3]) || attrs2.y if p2?
-        attrs2.x = seg2[seg2len - 2] if p2?
-        attrs2.y = seg2[seg2len - 1] if p2?
-      if p2? then [p, p2] else p
-
-    # TODO: parseDots was originally cached
-    parseDots: (gradient) ->
-      dots = []
-      for i in [0..gradient.length]
-        dot = {}
-        par = gradient[i].match(/^([^:]*):?([\d\.]*)/)
-        dot.color = R.getRGB(par[1])
-        return null if (dot.color.error)
-        dot.color = dot.color.hex
-        dot.offset = par[2] + "%" if par[2]?
-        dots.push(dot)
-      for i in [1..dots.length - 1]
-        if !dots[i].offset
-          start = parseFloat(dots[i - 1].offset || 0)
-          end = 0
-          for j in [i + 1..dots.length - 1]
-            if dots[j].offset
-              end = dots[j].offset
-              break
-          if !end
-            end = 100
-            j = dots.length - 1
-          end = parseFloat(end)
-          d = (end - start) / (j - i + 1)
-          for k in [i..j - 1]
-            start += d
-            dots[k].offset = start + "%"
-      dots
-
-    getContainer: (x, y, w, h) ->
-      if R.is(x, "string") || R.is(x, "object")
-        container = if R.is(x, "string") then document.getElementById(x) else x
-        if container.tagName
-          if y == null
-            container: container
-            width: container.style.pixelWidth || container.offsetWidth
-            height: container.style.pixelHeight || container.offsetHeight
+            r[1] = +(path[1] + y)
+          when "H"
+            r[1] = +(path[1] + x)
+          when "M"
+            mx = +path[1] + x
+            my = +path[2] + y
           else
-            { container: container, width: y, height: w }
+            for j in [1..path.length - 1]
+              r[j] = +path[j] + (if j % 2 then x else y)
       else
-        { container: 1, x: x, y: y, width: w, height: h }
-
-    plugins: (con, add) ->
-      that = this
-      for prop in add
-        if add.hasOwnProperty(prop) and !(prop in con)
-          switch typeof add[prop]
-            when "function"
-              ((f) ->
-                con[prop] = if con == that then f else (-> f.apply(that, arguments))
-              )(add[prop])
-            when "object"
-              con[prop] = con[prop] || {}
-              plugins.call(this, con[prop], add[prop])
-            else
-              con[prop] = add[prop]
-
-    tear: (el, paper) ->
-      paper.top = el.prev if el == paper.top
-      paper.bottom = el.next if el == paper.bottom
-      el.next.prev = el.prev if el.next
-      el.prev.next = el.next if el.prev
-
-    tofront: (el, paper) ->
-      if paper.top == el
-        null
-      else
-        tear(el, paper)
-        el.next = null
-        el.prev = paper.top
-        paper.top.next = el
-        paper.top = el
-
-    toback: (el, paper) ->
-      if paper.bottom == el
-        null
-      else
-        tear(el, paper)
-        el.next = paper.bottom
-        el.prev = null
-        paper.bottom.prev = el
-        paper.bottom = el
-
-    insertafter: (el, el2, paper) ->
+        for k in [0..path.length - 1]
+          res[i][k] = path[k]
+      len = res[i].length
+      switch r[0]
+        when "Z"
+          x = mx
+          y = my
+        when "H"
+          x = r[1]
+        when "V"
+          y = r[1]
+        when "M"
+          mx = res[i][len - 2]
+          my = res[i][len - 1]
+        else
+          x = res[i][len - 2]
+          y = res[i][len - 1]
+    res.toString = this._path2string
+    res
+  
+  lineToCurve: (x1, y1, x2, y2) ->
+    [x1, y1, x2, y2, x2, y2]
+  
+  quadraticToCurve: (x1, y1, ax, ay, x2, y2) ->
+    [ 1 / 3 * x1 + 2 / 3 * ax,
+      1 / 3 * y1 + 2 / 3 * ay,
+      1 / 3 * x2 + 2 / 3 * ax,
+      1 / 3 * y2 + 2 / 3 * ay,
+      x2,
+      y2 ]
+  
+  arcToCurve: (x1, y1, rx, ry, angle, large_arc_flag, sweep_flag, x2, y2, recursive) ->
+    # for more information of where this math came from visit:
+    # http://www.w3.org/TR/SVG11/implnote.html#ArcImplementationNotes
+    PI = Math.PI
+    _120 = PI * 120 / 180
+    rad = PI / 180 * (+angle || 0)
+    res = []
+    # TODO: rotate was originally cached
+    rotate: (x, y, rad) ->
+      X = x * Math.cos(rad) - y * Math.sin(rad)
+      Y = x * Math.sin(rad) + y * Math.cos(rad)
+      { x: X, y: Y }
+    if !recursive
+      xy = rotate(x1, y1, -rad)
+      x1 = xy.x
+      y1 = xy.y
+      xy = rotate(x2, y2, -rad)
+      x2 = xy.x
+      y2 = xy.y
+      cos = Math.cos(PI / 180 * angle)
+      sin = Math.sin(PI / 180 * angle)
+      x = (x1 - x2) / 2
+      y = (y1 - y2) / 2
+      h = (x * x) / (rx * rx) + (y * y) / (ry * ry)
+      if h > 1
+        h = Math.sqrt(h)
+        rx = h * rx
+        ry = h * ry
+      rx2 = rx * rx
+      ry2 = ry * ry
+      k = (if large_arc_flag == sweep_flag then -1 else 1) *
+              Math.sqrt(Math.abs((rx2 * ry2 - rx2 * y * y - ry2 * x * x) / (rx2 * y * y + ry2 * x * x)))
+      cx = k * rx * y / ry + (x1 + x2) / 2
+      cy = k * -ry * x / rx + (y1 + y2) / 2
+      f1 = Math.asin(((y1 - cy) / ry).toFixed(7))
+      f2 = Math.asin(((y2 - cy) / ry).toFixed(7))
+      f1 = if x1 < cx then PI - f1 else f1
+      f2 = if x2 < cx then PI - f2 else f2
+      if f1 < 0
+        f1 = PI * 2 + f1
+      if f2 < 0
+        f2 = PI * 2 + f2
+      if sweep_flag and f1 > f2
+        f1 = f1 - PI * 2
+      if !sweep_flag and f2 > f1
+        f2 = f2 - PI * 2
+    else
+      f1 = recursive[0]
+      f2 = recursive[1]
+      cx = recursive[2]
+      cy = recursive[3]
+    df = f2 - f1
+    if Math.abs(df) > _120
+      f2old = f2
+      x2old = x2
+      y2old = y2
+      f2 = f1 + _120 * (if sweep_flag && f2 > f1 then 1 else -1)
+      x2 = cx + rx * Math.cos(f2)
+      y2 = cy + ry * Math.sin(f2)
+      res = arcToCurve(x2, y2, rx, ry, angle, 0, sweep_flag, x2old, y2old, [f2, f2old, cx, cy])
+    df = f2 - f1
+    c1 = Math.cos(f1)
+    s1 = Math.sin(f1)
+    c2 = Math.cos(f2)
+    s2 = Math.sin(f2)
+    t = Math.tan(df / 4)
+    hx = 4 / 3 * rx * t
+    hy = 4 / 3 * ry * t
+    m1 = [x1, y1]
+    m2 = [x1 + hx * s1, y1 - hy * c1]
+    m3 = [x2 + hx * s2, y2 - hy * c2]
+    m4 = [x2, y2]
+    m2[0] = 2 * m1[0] - m2[0]
+    m2[1] = 2 * m1[1] - m2[1]
+    if recursive
+      [m2, m3, m4].concat(res)
+    else
+      res = [m2, m3, m4].concat(res).join().split(",")
+      newres = []
+      for i in [0..res.length - 1]
+        newres[i] = if i % 2 then rotate(res[i - 1], res[i], rad).y else rotate(res[i], res[i + 1], rad).x
+      newres
+  
+  findDotAtSegment: (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
+    t1 = 1 - t
+    X = Math.pow(t1, 3) * p1x + Math.pow(t1, 2) * 3 * t * c1x + t1 * 3 * t * t * c2x + Math.pow(t, 3) * p2x
+    Y = Math.pow(t1, 3) * p1y + Math.pow(t1, 2) * 3 * t * c1y + t1 * 3 * t * t * c2y + Math.pow(t, 3) * p2y
+    { x: X, y: Y }
+  
+  # TODO: curveDimensions was originally cached
+  curveDimensions: (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y) ->
+    a = (c2x - 2 * c1x + p1x) - (p2x - 2 * c2x + c1x)
+    b = 2 * (c1x - p1x) - 2 * (c2x - c1x)
+    c = p1x - c1x
+    t1 = (-b + Math.sqrt(b * b - 4 * a * c)) / 2 / a
+    t2 = (-b - Math.sqrt(b * b - 4 * a * c)) / 2 / a
+    y = [p1y, p2y]
+    x = [p1x, p2x]
+    t1 = 0.5 if Math.abs(t1) > 1e12
+    t2 = 0.5 if Math.abs(t2) > 1e12
+    if t1 > 0 and t1 < 1
+      dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1)
+      x.push(dot.x)
+      y.push(dot.y)
+    if t2 > 0 and t2 < 1
+      dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t2)
+      x.push(dot.x)
+      y.push(dot.y)
+    a = (c2y - 2 * c1y + p1y) - (p2y - 2 * c2y + c1y)
+    b = 2 * (c1y - p1y) - 2 * (c2y - c1y)
+    c = p1y - c1y
+    t1 = (-b + Math.sqrt(b * b - 4 * a * c)) / 2 / a
+    t2 = (-b - Math.sqrt(b * b - 4 * a * c)) / 2 / a
+    t1 = 0.5 if Math.abs(t1) > 1e12
+    t2 = 0.5 if Math.abs(t2) > 1e12
+    if t1 > 0 and t1 < 1
+      dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1)
+      x.push(dot.x)
+      y.push(dot.y)
+    if t2 > 0 and t2 < 1
+      dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t2)
+      x.push(dot.x)
+      y.push(dot.y)
+    min: { x: Math.min.apply(0, x), y: Math.min.apply(0, y) }
+    max: { x: Math.max.apply(0, x), y: Math.max.apply(0, y) }
+  
+  # TODO: pathToCurve was originally cached
+  pathToCurve: (path, path2) ->
+    p = pathToAbsolute(path)
+    p2 = pathToAbsolute(path2) if path2?
+    attrs = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
+    attrs2 = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
+    processPath = (path, d) ->
+      return ["C", d.x, d.y, d.x, d.y, d.x, d.y] if !path
+      d.qx = d.qy = null if !(path[0] in { T: 1, Q: 1 })
+      switch path[0]
+        when "M"
+          d.X = path[1]
+          d.Y = path[2]
+          path
+        when "A"
+          ["C"].concat(arcToCurve.apply(0, [d.x, d.y].concat(path.slice(1))))
+        when "S"
+          nx = d.x + (d.x - (d.bx || d.x))
+          ny = d.y + (d.y - (d.by || d.y))
+          ["C", nx, ny].concat(path.slice(1))
+        when "T"
+          d.qx = d.x + (d.x - (d.qx || d.x))
+          d.qy = d.y + (d.y - (d.qy || d.y))
+          ["C"].concat(quadraticToCurve(d.x, d.y, d.qx, d.qy, path[1], path[2]))
+        when "Q"
+          d.qx = path[1]
+          d.qy = path[2]
+          ["C"].concat(quadraticToCurve(d.x, d.y, path[1], path[2], path[3], path[4]))
+        when "L"
+          ["C"].concat(lineToCurve(d.x, d.y, path[1], path[2]))
+        when "H"
+          ["C"].concat(lineToCurve(d.x, d.y, path[1], d.y))
+        when "V"
+          ["C"].concat(lineToCurve(d.x, d.y, d.x, path[1]))
+        when "Z"
+          ["C"].concat(lineToCurve(d.x, d.y, d.X, d.Y))
+    fixArc = (pp, i) ->
+      if pp[i].length > 7
+        pp[i].shift()
+        pi = pp[i]
+        while pi.length
+          pp.splice(i++, 0, ["C"].concat(pi.splice(0, 6)))
+        pp.splice(i, 1)
+        ii = Math.max(p.length, if p2? then p2.length else 0)
+    fixM = (path1, path2, a1, a2, i) ->
+      if path1? and path2? and path1[i][0] == "M" and path2[i][0] != "M"
+        path2.splice(i, 0, ["M", a2.x, a2.y])
+        a1.bx = 0
+        a1.by = 0
+        a1.x = path1[i][1]
+        a1.y = path1[i][2]
+        ii = Math.max(p.length, if p2? then p2.length else 0)
+    for i in [0..Math.max(p.length, if p2? then p2.length else 0)]
+      p[i] = processPath(p[i], attrs)
+      fixArc(p, i)
+      p2[i] = processPath(p2[i], attrs2) if p2?
+      fixArc(p2, i) if p2?
+      fixM(p, p2, attrs, attrs2, i)
+      fixM(p2, p, attrs2, attrs, i)
+      seg = p[i]
+      seg2 = p2[i] if p2?
+      seglen = seg.length
+      seg2len = seg2.length if p2?
+      attrs.x = seg[seglen - 2]
+      attrs.y = seg[seglen - 1]
+      attrs.bx = parseFloat(seg[seglen - 4]) || attrs.x
+      attrs.by = parseFloat(seg[seglen - 3]) || attrs.y
+      attrs2.bx = parseFloat(seg2[seg2len - 4]) || attrs2.x if p2?
+      attrs2.by = parseFloat(seg2[seg2len - 3]) || attrs2.y if p2?
+      attrs2.x = seg2[seg2len - 2] if p2?
+      attrs2.y = seg2[seg2len - 1] if p2?
+    if p2? then [p, p2] else p
+  
+  # TODO: parseDots was originally cached
+  parseDots: (gradient) ->
+    dots = []
+    for i in [0..gradient.length]
+      dot = {}
+      par = gradient[i].match(/^([^:]*):?([\d\.]*)/)
+      dot.color = R.getRGB(par[1])
+      return null if (dot.color.error)
+      dot.color = dot.color.hex
+      dot.offset = par[2] + "%" if par[2]?
+      dots.push(dot)
+    for i in [1..dots.length - 1]
+      if !dots[i].offset
+        start = parseFloat(dots[i - 1].offset || 0)
+        end = 0
+        for j in [i + 1..dots.length - 1]
+          if dots[j].offset
+            end = dots[j].offset
+            break
+        if !end
+          end = 100
+          j = dots.length - 1
+        end = parseFloat(end)
+        d = (end - start) / (j - i + 1)
+        for k in [i..j - 1]
+          start += d
+          dots[k].offset = start + "%"
+    dots
+  
+  getContainer: (x, y, w, h) ->
+    if R.is(x, "string") || R.is(x, "object")
+      container = if R.is(x, "string") then document.getElementById(x) else x
+      if container.tagName
+        if y == null
+          container: container
+          width: container.style.pixelWidth || container.offsetWidth
+          height: container.style.pixelHeight || container.offsetHeight
+        else
+          { container: container, width: y, height: w }
+    else
+      { container: 1, x: x, y: y, width: w, height: h }
+  
+  plugins: (con, add) ->
+    that = this
+    for prop in add
+      if add.hasOwnProperty(prop) and !(prop in con)
+        switch typeof add[prop]
+          when "function"
+            ((f) ->
+              con[prop] = if con == that then f else (-> f.apply(that, arguments))
+            )(add[prop])
+          when "object"
+            con[prop] = con[prop] || {}
+            plugins.call(this, con[prop], add[prop])
+          else
+            con[prop] = add[prop]
+  
+  tear: (el, paper) ->
+    paper.top = el.prev if el == paper.top
+    paper.bottom = el.next if el == paper.bottom
+    el.next.prev = el.prev if el.next
+    el.prev.next = el.next if el.prev
+  
+  tofront: (el, paper) ->
+    if paper.top == el
+      null
+    else
       tear(el, paper)
-      paper.top = el if el2 == paper.top
-      el2.next.prev = el if el2.next
-      el.next = el2.next
-      el.prev = el2
-      el2.next = el
-
-    insertbefore: (el, el2, paper) ->
+      el.next = null
+      el.prev = paper.top
+      paper.top.next = el
+      paper.top = el
+  
+  toback: (el, paper) ->
+    if paper.bottom == el
+      null
+    else
       tear(el, paper)
-      paper.bottom = el if el2 == paper.bottom
-      el2.prev.next = el if el2.prev
-      el.prev = el2.prev
-      el2.prev = el
-      el.next = el2
-
-    removed: (methodname) ->
-      ->
-        throw new Error("Rapha\xebl: you are calling to method \u201c" + methodname + "\u201d of removed object")
-
+      el.next = paper.bottom
+      el.prev = null
+      paper.bottom.prev = el
+      paper.bottom = el
+  
+  insertafter: (el, el2, paper) ->
+    tear(el, paper)
+    paper.top = el if el2 == paper.top
+    el2.next.prev = el if el2.next
+    el.next = el2.next
+    el.prev = el2
+    el2.next = el
+  
+  insertbefore: (el, el2, paper) ->
+    tear(el, paper)
+    paper.bottom = el if el2 == paper.bottom
+    el2.prev.next = el if el2.prev
+    el.prev = el2.prev
+    el2.prev = el
+    el.next = el2
+  
+  removed: (methodname) ->
+    ->
+      throw new Error("Rapha\xebl: you are calling to method \u201c" + methodname + "\u201d of removed object")
+  
   # Extends R?
   class Paper
     @svgNamespace: "http://www.w3.org/2000/svg"
