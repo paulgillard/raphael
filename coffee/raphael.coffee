@@ -21,6 +21,8 @@ functionCacher = (expensiveFunction, scope, postprocessor) ->
   return cachedFunction
 
 Raphael = (->
+  separator = /[, ]+/
+
   class R
     @version: '1.4.7'
     @hsrg: { hs: 1, rg: 1 }
