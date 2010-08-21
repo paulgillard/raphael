@@ -161,55 +161,55 @@ Raphael = (->
           return new HSL(red, parseFloat(rgb[1]) * 2.55, parseFloat(rgb[2]) * 2.55).toRGB()
       new RGB(-1, -1, -1).error()
 
-    _path2string: ->
-      this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
-
-    @pathCommand: /([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig
-    @pathValues: /(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig
-
-    # TODO: Looks like this should be a Path class
-    parsePathString: (pathString) ->
-      if !pathString?
-        return null
-      paramCounts = { a: 7, c: 6, h: 1, l: 2, m: 2, q: 4, s: 4, t: 2, v: 1, z: 0 }
-      data = []
-      if this.is(pathString, "array") and this.is(pathString[0], "array")
-        data = this.pathClone(pathString)
-      if !data.length
-        String(pathString).replace(R.pathCommand, ((a, b, c) ->
-          params = []
-          name = String.prototype.toLowerCase.call(b)
-          c.replace(R.pathValues, ((a, b) ->
-            b and params.push(+b)
-          ))
-          if name == "m" and params.length > 2
-            data.push([b].concat(params.splice(0, 2)))
-            name = "1"
-            b = if b == "m" then "l" else "L"
-          while params.length >= paramCounts[name]
-            data.push([b].concat(params.splice(0, paramCounts[name])))
-            if !paramCounts[name]
-              break
+  R._path2string = ->
+    this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
+  
+  pathCommand = /([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig
+  pathValues = /(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig
+  
+  # TODO: Looks like this should be a Path class
+  R.parsePathString = (pathString) ->
+    if !pathString?
+      return null
+    paramCounts = { a: 7, c: 6, h: 1, l: 2, m: 2, q: 4, s: 4, t: 2, v: 1, z: 0 }
+    data = []
+    if this.is(pathString, "array") and this.is(pathString[0], "array")
+      data = this.pathClone(pathString)
+    if !data.length
+      String(pathString).replace(R.pathCommand, ((a, b, c) ->
+        params = []
+        name = String.prototype.toLowerCase.call(b)
+        c.replace(R.pathValues, ((a, b) ->
+          b and params.push(+b)
         ))
-      data.toString = this._path2string
-      data
-
-    findDotsAtSegment: (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
-      t1 = 1 - t
-      x = Math.pow(t1, 3) * p1x + Math.pow(t1, 2) * 3 * t * c1x + t1 * 3 * t * t * c2x + Math.pow(t, 3) * p2x
-      y = Math.pow(t1, 3) * p1y + Math.pow(t1, 2) * 3 * t * c1y + t1 * 3 * t * t * c2y + Math.pow(t, 3) * p2y
-      mx = p1x + 2 * t * (c1x - p1x) + t * t * (c2x - 2 * c1x + p1x)
-      my = p1y + 2 * t * (c1y - p1y) + t * t * (c2y - 2 * c1y + p1y)
-      nx = c1x + 2 * t * (c2x - c1x) + t * t * (p2x - 2 * c2x + c1x)
-      ny = c1y + 2 * t * (c2y - c1y) + t * t * (p2y - 2 * c2y + c1y)
-      ax = (1 - t) * p1x + t * c1x
-      ay = (1 - t) * p1y + t * c1y
-      cx = (1 - t) * c2x + t * p2x
-      cy = (1 - t) * c2y + t * p2y
-      alpha = (90 - Math.atan((mx - nx) / (my - ny)) * 180 / Math.PI)
-      { x: x, y: y, m: { x: mx, y: my }, n: { x: nx, y: ny }, start: { x: ax, y: ay }, end: { x: cx, y: cy }, alpha: alpha }
-
-  pathDimensions: (path) ->
+        if name == "m" and params.length > 2
+          data.push([b].concat(params.splice(0, 2)))
+          name = "1"
+          b = if b == "m" then "l" else "L"
+        while params.length >= paramCounts[name]
+          data.push([b].concat(params.splice(0, paramCounts[name])))
+          if !paramCounts[name]
+            break
+      ))
+    data.toString = this._path2string
+    data
+  
+  R.findDotsAtSegment = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
+    t1 = 1 - t
+    x = Math.pow(t1, 3) * p1x + Math.pow(t1, 2) * 3 * t * c1x + t1 * 3 * t * t * c2x + Math.pow(t, 3) * p2x
+    y = Math.pow(t1, 3) * p1y + Math.pow(t1, 2) * 3 * t * c1y + t1 * 3 * t * t * c2y + Math.pow(t, 3) * p2y
+    mx = p1x + 2 * t * (c1x - p1x) + t * t * (c2x - 2 * c1x + p1x)
+    my = p1y + 2 * t * (c1y - p1y) + t * t * (c2y - 2 * c1y + p1y)
+    nx = c1x + 2 * t * (c2x - c1x) + t * t * (p2x - 2 * c2x + c1x)
+    ny = c1y + 2 * t * (c2y - c1y) + t * t * (p2y - 2 * c2y + c1y)
+    ax = (1 - t) * p1x + t * c1x
+    ay = (1 - t) * p1y + t * c1y
+    cx = (1 - t) * c2x + t * p2x
+    cy = (1 - t) * c2y + t * p2y
+    alpha = (90 - Math.atan((mx - nx) / (my - ny)) * 180 / Math.PI)
+    { x: x, y: y, m: { x: mx, y: my }, n: { x: nx, y: ny }, start: { x: ax, y: ay }, end: { x: cx, y: cy }, alpha: alpha }
+  
+  pathDimensions = (path) ->
     if path?
       return { x: 0, y: 0, width: 0, height: 0 }
     path = path2Curve(path)
@@ -231,7 +231,7 @@ Raphael = (->
     ymin = Math.min.apply(0, Y)
     { x: xmin, y: ymin, width: Math.max.apply(0, X) - xmin, height: Math.max.apply(0, Y) - ymin }
   
-  pathClone: (pathArray) ->
+  pathClone = (pathArray) ->
     res = []
     if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
       pathArray = R.parsePathString(pathArray)
@@ -244,7 +244,7 @@ Raphael = (->
     res.toString = this._path2string
     res
   
-  pathToRelative: (pathArray) ->
+  pathToRelative = (pathArray) ->
     if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
       pathArray = R.parsePathString(pathArray)
     res = []
@@ -297,7 +297,7 @@ Raphael = (->
     res.toString = this._path2string
     res
   
-  pathToAbsolute: (pathArray) ->
+  pathToAbsolute = (pathArray) ->
     if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
       pathArray = R.parsePathString(pathArray)
     res = []
@@ -352,10 +352,10 @@ Raphael = (->
     res.toString = this._path2string
     res
   
-  lineToCurve: (x1, y1, x2, y2) ->
+  lineToCurve = (x1, y1, x2, y2) ->
     [x1, y1, x2, y2, x2, y2]
   
-  quadraticToCurve: (x1, y1, ax, ay, x2, y2) ->
+  quadraticToCurve = (x1, y1, ax, ay, x2, y2) ->
     [ 1 / 3 * x1 + 2 / 3 * ax,
       1 / 3 * y1 + 2 / 3 * ay,
       1 / 3 * x2 + 2 / 3 * ax,
@@ -363,7 +363,7 @@ Raphael = (->
       x2,
       y2 ]
   
-  arcToCurve: (x1, y1, rx, ry, angle, large_arc_flag, sweep_flag, x2, y2, recursive) ->
+  arcToCurve = (x1, y1, rx, ry, angle, large_arc_flag, sweep_flag, x2, y2, recursive) ->
     # for more information of where this math came from visit:
     # http://www.w3.org/TR/SVG11/implnote.html#ArcImplementationNotes
     PI = Math.PI
@@ -446,14 +446,14 @@ Raphael = (->
         newres[i] = if i % 2 then rotate(res[i - 1], res[i], rad).y else rotate(res[i], res[i + 1], rad).x
       newres
   
-  findDotAtSegment: (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
+  findDotAtSegment = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
     t1 = 1 - t
     X = Math.pow(t1, 3) * p1x + Math.pow(t1, 2) * 3 * t * c1x + t1 * 3 * t * t * c2x + Math.pow(t, 3) * p2x
     Y = Math.pow(t1, 3) * p1y + Math.pow(t1, 2) * 3 * t * c1y + t1 * 3 * t * t * c2y + Math.pow(t, 3) * p2y
     { x: X, y: Y }
   
   # TODO: curveDimensions was originally cached
-  curveDimensions: (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y) ->
+  curveDimensions = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y) ->
     a = (c2x - 2 * c1x + p1x) - (p2x - 2 * c2x + c1x)
     b = 2 * (c1x - p1x) - 2 * (c2x - c1x)
     c = p1x - c1x
@@ -490,7 +490,7 @@ Raphael = (->
     max: { x: Math.max.apply(0, x), y: Math.max.apply(0, y) }
   
   # TODO: pathToCurve was originally cached
-  pathToCurve: (path, path2) ->
+  pathToCurve = (path, path2) ->
     p = pathToAbsolute(path)
     p2 = pathToAbsolute(path2) if path2?
     attrs = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
@@ -563,7 +563,7 @@ Raphael = (->
     if p2? then [p, p2] else p
   
   # TODO: parseDots was originally cached
-  parseDots: (gradient) ->
+  parseDots = (gradient) ->
     dots = []
     for i in [0..gradient.length]
       dot = {}
@@ -591,7 +591,7 @@ Raphael = (->
           dots[k].offset = start + "%"
     dots
   
-  getContainer: (x, y, w, h) ->
+  getContainer = (x, y, w, h) ->
     if R.is(x, "string") || R.is(x, "object")
       container = if R.is(x, "string") then document.getElementById(x) else x
       if container.tagName
@@ -604,7 +604,7 @@ Raphael = (->
     else
       { container: 1, x: x, y: y, width: w, height: h }
   
-  plugins: (con, add) ->
+  plugins = (con, add) ->
     that = this
     for prop in add
       if add.hasOwnProperty(prop) and !(prop in con)
@@ -619,13 +619,13 @@ Raphael = (->
           else
             con[prop] = add[prop]
   
-  tear: (el, paper) ->
+  tear = (el, paper) ->
     paper.top = el.prev if el == paper.top
     paper.bottom = el.next if el == paper.bottom
     el.next.prev = el.prev if el.next
     el.prev.next = el.next if el.prev
   
-  tofront: (el, paper) ->
+  tofront = (el, paper) ->
     if paper.top == el
       null
     else
@@ -635,7 +635,7 @@ Raphael = (->
       paper.top.next = el
       paper.top = el
   
-  toback: (el, paper) ->
+  toback = (el, paper) ->
     if paper.bottom == el
       null
     else
@@ -645,7 +645,7 @@ Raphael = (->
       paper.bottom.prev = el
       paper.bottom = el
   
-  insertafter: (el, el2, paper) ->
+  insertafter = (el, el2, paper) ->
     tear(el, paper)
     paper.top = el if el2 == paper.top
     el2.next.prev = el if el2.next
@@ -653,7 +653,7 @@ Raphael = (->
     el.prev = el2
     el2.next = el
   
-  insertbefore: (el, el2, paper) ->
+  insertbefore = (el, el2, paper) ->
     tear(el, paper)
     paper.bottom = el if el2 == paper.bottom
     el2.prev.next = el if el2.prev
@@ -661,7 +661,7 @@ Raphael = (->
     el2.prev = el
     el.next = el2
   
-  removed: (methodname) ->
+  removed = (methodname) ->
     ->
       throw new Error("Rapha\xebl: you are calling to method \u201c" + methodname + "\u201d of removed object")
   
@@ -1209,7 +1209,7 @@ Raphael = (->
       this
 
     create = ->
-      con = R::getContainer.apply(0, arguments)
+      con = getContainer.apply(0, arguments)
       container = con && con.container
       x = con.x
       y = con.y
@@ -1240,7 +1240,7 @@ Raphael = (->
       container.width = width
       container.height = height
       container.canvas = cnvs
-      R::plugins.call(container, container, R.fn)
+      plugins.call(container, container, R.fn)
       container.clear()
       container
 
@@ -1878,7 +1878,7 @@ Raphael = (->
         document.createElement('<' + tagName + ' xmlns="urn:schemas-microsoft.com:vml" class="rvml">')
 
     create = ->
-      con = R::getContainer.apply(0, arguments)
+      con = getContainer.apply(0, arguments)
       container = con.container
       height = con.height
       width = con.width
@@ -1913,7 +1913,7 @@ Raphael = (->
           container.insertBefore(c, container.firstChild)
         else
           container.appendChild(c)
-      R::plugins.call(res, res, R.fn)
+      plugins.call(res, res, R.fn)
       res
 
     Paper::clear = ->
