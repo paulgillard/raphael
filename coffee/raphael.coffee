@@ -2710,7 +2710,7 @@ Raphael = (->
       out.scale(scale, scale, top, height).translate(x - top, y - height)
     out
 
-  R::format = (token, params) ->
+  R.format = (token, params) ->
     formatrg = /\{(\d+)\}/g
     args = if R.is(params, "array") then [0].concat(params) else arguments
     if token and R.is(token, "string") and args.length - 1
@@ -2719,7 +2719,7 @@ Raphael = (->
     )
     token or E
 
-  R::ninja = ->
+  R.ninja = ->
     if oldRaphael.was then (Raphael = oldRaphael.is) else delete Raphael
     R
 
