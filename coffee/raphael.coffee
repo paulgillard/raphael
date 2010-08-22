@@ -912,14 +912,12 @@ Raphael = (->
                   if !R.is(attrs["fill-opacity"], "undefined") and R.is(params["fill-opacity"], "undefined")
                     $(node, { "fill-opacity": attrs["fill-opacity"] })
                   $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
-                  $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
                   node.setAttribute(att, clr.hex())
                 else if (({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper)
                   attrs.gradient = value
                   attrs.fill = "none"
                 else
                   $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
-                  $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
                   node.setAttribute(att, clr.hex())
             when "stroke"
               clr = R.getRGB(value)
@@ -934,6 +932,14 @@ Raphael = (->
                 if gradient
                   stops = gradient.getElementsByTagName("stop")
                   stops[stops.length - 1][setAttribute]("stop-opacity", value)
+              else
+                value = parseInt(value, 10) + "px" if att == "font-size"
+                cssrule = att.replace(/(\-.)/g, (w) ->
+                  String.prototype.toUpperCase.call(w.substring(1))
+                )
+                node.style[cssrule] = value
+                # Need following line for Firefox
+                node.setAttribute(att, value)
             else
               value = parseInt(value, 10) + "px" if att == "font-size"
               cssrule = att.replace(/(\-.)/g, (w) ->
