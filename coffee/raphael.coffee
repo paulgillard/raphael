@@ -673,9 +673,9 @@ Raphael = (->
   if R.type == "SVG"
     $ = (el, attr) ->
       if attr
-        for key in attr
-          if attr.hasOwnProperty key
-            el.setAttribute(key, String(attr[key]))
+        for name, value of attr
+          if attr.hasOwnProperty name
+            el.setAttribute(name, String(value))
       else
         el = document.createElementNS(Paper.svgNamespace, el)
         el.style.webkitTapHighlightColor = "rgba(0,0,0,0)"
