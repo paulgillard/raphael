@@ -22,15 +22,15 @@ functionCacher = (expensiveFunction, scope, postprocessor) ->
 
 Raphael = (->
   separator = /[, ]+/
+  events = ["click", "dblclick", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup", "touchstart", "touchmove", "touchend", "orientationchange", "touchcancel", "gesturestart", "gesturechange", "gestureend"]
+  availableAttrs = { blur: 0, "clip-rect": "0 0 1e9 1e9", cursor: "default", cx: 0, cy: 0, fill: "#fff", "fill-opacity": 1, font: '10px "Arial"', "font-family": '"Arial"', "font-size": "10", "font-style": "normal", "font-weight": 400, gradient: 0, height: 0, href: "http://Rjs.com/", opacity: 1, path: "M0,0", r: 0, rotation: 0, rx: 0, ry: 0, scale: "1 1", src: "", stroke: "#000", "stroke-dasharray": "", "stroke-linecap": "butt", "stroke-linejoin": "butt", "stroke-miterlimit": 0, "stroke-opacity": 1, "stroke-width": 1, target: "_blank", "text-anchor": "middle", title: "R", translation: "0 0", width: 0, x: 0, y: 0 }
+  availableAnimAttrs = { along: "along", blur: "number", "clip-rect": "csv", cx: "number", cy: "number", fill: "colour", "fill-opacity": "number", "font-size": "number", height: "number", opacity: "number", path: "path", r: "number", rotation: "csv", rx: "number", ry: "number", scale: "csv", stroke: "colour", "stroke-opacity": "number", "stroke-width": "number", translation: "csv", width: "number", x: "number", y: "number" }
 
   class R
     @version: '1.4.7'
     @hsrg: { hs: 1, rg: 1 }
-    @events: ["click", "dblclick", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup", "touchstart", "touchmove", "touchend", "orientationchange", "touchcancel", "gesturestart", "gesturechange", "gestureend"]
     @_oid: 0
     @_id: 0
-    @availableAttrs: { blur: 0, "clip-rect": "0 0 1e9 1e9", cursor: "default", cx: 0, cy: 0, fill: "#fff", "fill-opacity": 1, font: '10px "Arial"', "font-family": '"Arial"', "font-size": "10", "font-style": "normal", "font-weight": 400, gradient: 0, height: 0, href: "http://Rjs.com/", opacity: 1, path: "M0,0", r: 0, rotation: 0, rx: 0, ry: 0, scale: "1 1", src: "", stroke: "#000", "stroke-dasharray": "", "stroke-linecap": "butt", "stroke-linejoin": "butt", "stroke-miterlimit": 0, "stroke-opacity": 1, "stroke-width": 1, target: "_blank", "text-anchor": "middle", title: "R", translation: "0 0", width: 0, x: 0, y: 0 }
-    @availableAnimAttrs: { along: "along", blur: "number", "clip-rect": "csv", cx: "number", cy: "number", fill: "colour", "fill-opacity": "number", "font-size": "number", height: "number", opacity: "number", path: "path", r: "number", rotation: "csv", rx: "number", ry: "number", scale: "csv", stroke: "colour", "stroke-opacity": "number", "stroke-width": "number", translation: "csv", width: "number", x: "number", y: "number" }
     @type: if window.SVGAngle or document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") then "SVG" else "VML"
     @fn: {}
 
@@ -775,7 +775,7 @@ Raphael = (->
       o.rotate(0, true) if parseFloat(rot)
       for att in params
         if params.hasOwnProperty(att)
-          if !@availableAttrs.hasOwnProperty(att)
+          if !availableAttrs.hasOwnProperty(att)
             continue
           value = params[att]
           attrs[att] = value
@@ -1196,7 +1196,7 @@ Raphael = (->
       $(el, { x: x, y: y, "text-anchor": "middle" })
       svg.canvas.appendChild(el) if svg.canvas
       res = new Element(el, svg)
-      res.attrs = { x: x, y: y, "text-anchor": "middle", text: text, font: @availableAttrs.font, stroke: "none", fill: "#000" }
+      res.attrs = { x: x, y: y, "text-anchor": "middle", text: text, font: availableAttrs.font, stroke: "none", fill: "#000" }
       res.type = "text"
       setFillAndStroke(res, res.attrs)
       res
@@ -1854,7 +1854,7 @@ Raphael = (->
       res.attrs.y = y
       res.attrs.w = 1
       res.attrs.h = 1
-      setFillAndStroke(res, { font: @availableAttrs.font, stroke: "none", fill: "#000" })
+      setFillAndStroke(res, { font: availableAttrs.font, stroke: "none", fill: "#000" })
       res.setBox()
       vml.canvas.appendChild(g)
       res
@@ -2013,7 +2013,7 @@ Raphael = (->
       dragi.end && dragi.end.call(dragi.el)
     drag = []
 
-  for event in R.events
+  for event in events
     ((eventName) ->
       R[eventName] = Element.prototype[eventName] = (fn) ->
         if R.is(fn, "function")
@@ -2360,7 +2360,7 @@ Raphael = (->
           pos = if R.easing_formulas[easing] then R.easing_formulas[easing](time / ms) else time / ms
           for attr in from
             if from.hasOwnProperty(attr)
-              switch R.availableAnimAttrs[attr]
+              switch availableAnimAttrs[attr]
                 when "along"
                   now = pos * ms * diff[attr]
                   now = to.len - now if to.back
@@ -2468,11 +2468,11 @@ Raphael = (->
     diff = {}
     for attr in params
       if params.hasOwnProperty(attr)
-        if R.availableAnimAttrs.hasOwnProperty(attr)
+        if availableAnimAttrs.hasOwnProperty(attr)
           from[attr] = @attr(attr)
-          from[attr] = @availableAttrs[attr] if !from[attr]?
+          from[attr] = availableAttrs[attr] if !from[attr]?
           to[attr] = params[attr]
-          switch R.availableAnimAttrs[attr]
+          switch availableAnimAttrs[attr]
             when "along"
               len = getTotalLength(params[attr])
               point = getPointAtLength(params[attr], len * !!params.back)
