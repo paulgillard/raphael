@@ -773,7 +773,8 @@ Raphael = (->
         rotxy[1] = +rotxy[1]
         rotxy[2] = +rotxy[2]
       o.rotate(0, true) if parseFloat(rot)
-      for att in params
+      # TODO: name is same as value
+      for att, name of params
         if params.hasOwnProperty(att)
           if !availableAttrs.hasOwnProperty(att)
             continue
@@ -1323,9 +1324,9 @@ Raphael = (->
       newpath = (params.x != a.x or params.y != a.y or params.width != a.width or params.height != a.height or params.r != a.r) and o.type == "rect"
       res = o
 
-      for par in params
-        if params.hasOwnProperty(par)
-          a[par] = params[par]
+      for att, value of params
+        if params.hasOwnProperty(att)
+          a[att] = params[att] # TODO: This is same as value
       if newpath
         a.path = rectPath(a.x, a.y, a.width, a.height, a.r)
         o.X = a.x
