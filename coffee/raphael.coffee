@@ -173,7 +173,7 @@ Raphael = (->
       return null
     paramCounts = { a: 7, c: 6, h: 1, l: 2, m: 2, q: 4, s: 4, t: 2, v: 1, z: 0 }
     data = []
-    if this.is(pathString, "array") and this.is(pathString[0], "array")
+    if R.is(pathString, "array") and R.is(pathString[0], "array")
       data = this.pathClone(pathString)
     if !data.length
       String(pathString).replace(R.pathCommand, ((a, b, c) ->
@@ -233,7 +233,7 @@ Raphael = (->
   
   pathClone = (pathArray) ->
     res = []
-    if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
+    if (!R.is(pathArray, "array") || !R.is(pathArray && pathArray[0], "array")) # rough assumption
       pathArray = R.parsePathString(pathArray)
     i = -1
     for path in pathArray
@@ -245,7 +245,7 @@ Raphael = (->
     res
   
   pathToRelative = (pathArray) ->
-    if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
+    if (!R.is(pathArray, "array") || !R.is(pathArray && pathArray[0], "array")) # rough assumption
       pathArray = R.parsePathString(pathArray)
     res = []
     x = y = mx = my = start = 0
@@ -298,7 +298,7 @@ Raphael = (->
     res
   
   pathToAbsolute = (pathArray) ->
-    if (!this.is(pathArray, "array") || !this.is(pathArray && pathArray[0], "array")) # rough assumption
+    if (!R.is(pathArray, "array") || !R.is(pathArray && pathArray[0], "array")) # rough assumption
       pathArray = R.parsePathString(pathArray)
     res = []
     x = y = mx = my = start = 0
