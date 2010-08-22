@@ -91,7 +91,7 @@ Raphael = (->
   # TODO: This should go on the string prototype
   R.getRGB = (colour) ->
     if !colour or !!((colour = String(colour)).indexOf("-") + 1)
-      return new RGB(-1, -1, -1).error()
+      return new RGB(-1, -1, -1).isError()
     if colour == "none"
       return new RGB(-1, -1, -1)
     !(R.hsrg.hasOwnProperty(colour.substring(0, 2)) or colour.charAt() == "#") and (colour = this.toHex(colour))
@@ -161,7 +161,7 @@ Raphael = (->
         red = parseFloat(rgb[0]) * 2.55
         (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360 * 2.55)
         return new HSL(red, parseFloat(rgb[1]) * 2.55, parseFloat(rgb[2]) * 2.55).toRGB()
-    new RGB(-1, -1, -1).error()
+    new RGB(-1, -1, -1).isError()
   
   R._path2string = ->
     this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
@@ -572,7 +572,7 @@ Raphael = (->
       par = gradient[i].match(/^([^:]*):?([\d\.]*)/)
       dot.color = R.getRGB(par[1])
       return null if (dot.color.error)
-      dot.color = dot.color.hex
+      dot.color = dot.color.hex()
       dot.offset = par[2] + "%" if par[2]?
       dots.push(dot)
     for i in [1..dots.length - 1]
@@ -912,18 +912,18 @@ Raphael = (->
                   if !R.is(attrs["fill-opacity"], "undefined") and R.is(params["fill-opacity"], "undefined")
                     $(node, { "fill-opacity": attrs["fill-opacity"] })
                   $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
-                  node.setAttribute(att, clr.hex)
                   $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
+                  node.setAttribute(att, clr.hex())
                 else if (({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper)
                   attrs.gradient = value
                   attrs.fill = "none"
                 else
                   $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
-                  node.setAttribute(att, clr.hex)
                   $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
+                  node.setAttribute(att, clr.hex())
             when "stroke"
               clr = R.getRGB(value)
-              node.setAttribute(att, clr.hex)
+              node.setAttribute(att, clr.hex())
               $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
             when "gradient"
               if ({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r"
@@ -1403,7 +1403,7 @@ Raphael = (->
             fill.src = isURL[1]
             fill.type = "tile"
           else
-            fill.color = R.getRGB(params.fill).hex
+            fill.color = R.getRGB(params.fill).hex()
             fill.src = ""
             fill.type = "solid"
             if R.getRGB(params.fill).error and (res.type in { circle: 1, ellipse: 1 } or String(params.fill).charAt() != "r") and addGradientFill(res, params.fill)
@@ -1416,7 +1416,7 @@ Raphael = (->
           stroke.on = true
         stroke.on = false if params.stroke == "none" or stroke.on == null or params.stroke == 0 or params["stroke-width"] == 0
         strokeColor = R.getRGB(params.stroke)
-        stroke.color = strokeColor.hex if stroke.on and params.stroke
+        stroke.color = strokeColor.hex() if stroke.on and params.stroke
         opacity = ((+a["stroke-opacity"] + 1 or 2) - 1) * ((+a.opacity + 1 or 2) - 1) * ((+strokeColor.o + 1 or 2) - 1)
         width = (parseFloat(params["stroke-width"]) or 1) * 0.75
         opacity = 0 if opacity < 0
@@ -2749,8 +2749,8 @@ class RGB
   toString: ->
     this.hex()
 
-  error: ->
-    this.error = true
+  isError: ->
+    @error = true
     this
 
   hex: ->
