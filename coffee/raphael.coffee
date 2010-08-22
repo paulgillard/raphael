@@ -794,7 +794,7 @@ Raphael = (->
                 pn.insertBefore(hl, node)
                 hl.appendChild(node)
                 pn = hl
-              pn.setAttributeNS(o.paper.xlink, att, value)
+              pn.setAttributeNS(Paper.xLinkNamespace, att, value)
             when "cursor"
               node.style.cursor = value
             when "clip-rect"
@@ -857,7 +857,7 @@ Raphael = (->
                   node.setAttribute(att, value)
             when "src"
               if o.type == "image"
-                node.setAttributeNS(o.paper.xlink, "href", value)
+                node.setAttributeNS(Paper.xLinkNamespace, "href", value)
             when "stroke-width"
               node.style.strokeWidth = value
               # Need following line for Firefox
@@ -885,7 +885,7 @@ Raphael = (->
                 el.id = "r" + (R._id++).toString(36)
                 $(el, { x: 0, y: 0, patternUnits: "userSpaceOnUse", height: 1, width: 1 })
                 $(ig, { x: 0, y: 0 })
-                ig.setAttributeNS(o.paper.xlink, "href", isURL[1])
+                ig.setAttributeNS(Paper.xLinkNamespace, "href", isURL[1])
                 el.appendChild(ig)
               
                 img = document.createElement("img")
@@ -1193,7 +1193,7 @@ Raphael = (->
     theImage = (svg, src, x, y, w, h) ->
       el = $("image")
       $(el, { x: x, y: y, width: w, height: h, preserveAspectRatio: "none" })
-      el.setAttributeNS(svg.xlink, "href", src)
+      el.setAttributeNS(Paper.xLinkNamespace, "href", src)
       svg.canvas.appendChild(el) if svg.canvas
       res = new Element(el, svg)
       res.attrs = { x: x, y: y, width: w, height: h, src: src }
