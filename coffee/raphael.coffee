@@ -998,7 +998,7 @@ Raphael = (->
       rotate: (deg, cx, cy) ->
         if @removed
           return this
-        if deg == null
+        if !deg?
           if @_.rt.cx
             return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(" ")
           return @_.rt.deg
@@ -1540,7 +1540,7 @@ Raphael = (->
 
       rotate: (deg, cx, cy) ->
         return this if this.removed
-        if deg == null
+        if !deg?
           if @_.rt.cx
             return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(" ")
           return @_.rt.deg
@@ -1549,11 +1549,11 @@ Raphael = (->
           cx = parseFloat(deg[1])
           cy = parseFloat(deg[2])
         deg = parseFloat(deg[0])
-        if cx != null
+        if cx?
           @_.rt.deg = deg
         else
           @_.rt.deg += deg
-        cx = null if cy == null
+        cx = null if !cy?
         @_.rt.cx = cx
         @_.rt.cy = cy
         this.setBox(@attrs, cx, cy)
@@ -2095,7 +2095,7 @@ Raphael = (->
 
   Element::scale = (x, y, cx, cy) ->
     return this if (this.removed)
-    if x == null && y == null
+    if !x? and !y?
       x: this._.sx
       y: this._.sy
       toString: this.x_y
@@ -2427,7 +2427,7 @@ Raphael = (->
     Math.max(Math.min(color, 255), 0)
 
   Element::translate = (x, y) ->
-    if x == null
+    if !x?
       return { x: this._.tx, y: this._.ty, toString: this.x_y }
       this._.tx += +x
       this._.ty += +y
@@ -2470,7 +2470,7 @@ Raphael = (->
       if params.hasOwnProperty(attr)
         if R.availableAnimAttrs.hasOwnProperty(attr)
           from[attr] = @attr(attr)
-          from[attr] = @availableAttrs[attr] if from[attr] == null
+          from[attr] = @availableAttrs[attr] if !from[attr]?
           to[attr] = params[attr]
           switch R.availableAnimAttrs[attr]
             when "along"
@@ -2715,7 +2715,7 @@ Raphael = (->
     args = if R.is(params, "array") then [0].concat(params) else arguments
     if token and R.is(token, "string") and args.length - 1
       token = token.replace(formatrg, (str, i) ->
-        if args[++i] == null then E else args[i]
+        if !args[++i]? then E else args[i]
     )
     token or E
 
