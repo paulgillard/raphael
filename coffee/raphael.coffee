@@ -86,81 +86,81 @@ Raphael = (->
         i.style.color = colour
         return document.defaultView.getComputedStyle(i, "").getPropertyValue("color")
 
-    # TODO: This should go on the string prototype
-    getRGB: (colour) ->
-      if !colour or !!((colour = String(colour)).indexOf("-") + 1)
-        return new RGB(-1, -1, -1).error()
-      if colour == "none"
-        return new RGB(-1, -1, -1)
-      !(R.hsrg.hasOwnProperty(colour.substring(0, 2)) or colour.charAt() == "#") and (colour = this.toHex(colour))
-      colourRegExp = /^\s*((#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+\s*,\s*[\d\.]+\s*,\s*[\d\.]+(?:\s*,\s*[\d\.]+)?)\s*\)|rgba?\(\s*([\d\.]+%\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%(?:\s*,\s*[\d\.]+%)?)\s*\)|hsb\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)|hsb\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\)|hsl\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)|hsl\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\))\s*$/i
-      commaSpaces = /\s*,\s*/
-      rgb = colour.match(colourRegExp)
-      if rgb?
-        # (#[a-f\d]{6})
-        # 
-        # #a13f2c
-        if rgb[2]
-          return new RGB(parseInt(rgb[2].substring(1, 3), 16), parseInt(rgb[2].substring(3, 5), 16), parseInt(rgb[2].substring(5), 16))
-        # (#[a-f\d]{3})
-        # 
-        # #a2f
-        if rgb[3]
-          return new RGB(parseInt((t = rgb[3].charAt(1)) + t, 16), parseInt((t = rgb[3].charAt(2)) + t, 16), parseInt((t = rgb[3].charAt(3)) + t, 16))
-        # rgba?\(\s*([\d\.]+\s*,\s*[\d\.]+\s*,\s*[\d\.]+(?:\s*,\s*[\d\.]+)?)\s*\)
-        # 
-        # rgba(0.3, 0.4, 0.9)
-        # rgba(0.3, 0.4, 0.9, 0.2)
-        if rgb[4]
-          rgbo = rgb[4].split(commaSpaces)
-          return new RGB(parseFloat(rgbo[0]), parseFloat(rgbo[1]), parseFloat(rgbo[2]), parseFloat(rgbo[3]))
-        # rgba?\(\s*([\d\.]+%\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%(?:\s*,\s*[\d\.]+%)?)\s*\)
-        # 
-        # rgba(30%, 40%, 90%, 20%)
-        # rgba(30%, 40%, 90%)
-        if rgb[5]
-          rgbo = rgb[5].split(commaSpaces)
-          return new RGB(parseFloat(rgbo[0]) * 2.55, parseFloat(rgbo[1]) * 2.55, parseFloat(rgbo[2]) * 2.55, parseFloat(rgbo[3]))
-        # hsb\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)
-        # 
-        # hsb(30deg, 0.8, 0.7)
-        # hsb(30°, 0.8, 0.7)
-        if rgb[6]
-          rgb = rgb[6].split(commaSpaces)
-          red = parseFloat(rgb[0])
-          (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360)
-          return new HSB(red, parseFloat(rgb[1]), parseFloat(rgb[2])).toRGB()
-        # hsb\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\)
-        # 
-        # hsb(3.3%, 80%, 70%)
-        # hsb(30°, 80%, 70%)
-        # hsb(30deg, 80%, 70%)
-        if rgb[7]
-          rgb = rgb[7].split(commaSpaces)
-          red = parseFloat(rgb[0]) * 2.55
-          (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360 * 2.55)
-          return new HSB(red, parseFloat(rgb[1]) * 2.55, parseFloat(rgb[2]) * 2.55).toRGB()
-        # hsl\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)
-        # 
-        # hsl(30deg, 0.8, 0.7)
-        # hsl(30°, 0.8, 0.7)
-        if rgb[8]
-          rgb = rgb[8].split(commaSpaces)
-          red = parseFloat(rgb[0])
-          (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360)
-          return new HSL(red, parseFloat(rgb[1]), parseFloat(rgb[2])).toRGB()
-        # hsl\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\)
-        # 
-        # hsl(8.3%, 80%, 70%)
-        # hsl(30°, 80%, 70%)
-        # hsl(30deg, 80%, 70%)
-        if rgb[9]
-          rgb = rgb[9].split(commaSpaces)
-          red = parseFloat(rgb[0]) * 2.55
-          (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360 * 2.55)
-          return new HSL(red, parseFloat(rgb[1]) * 2.55, parseFloat(rgb[2]) * 2.55).toRGB()
-      new RGB(-1, -1, -1).error()
-
+  # TODO: This should go on the string prototype
+  R.getRGB = (colour) ->
+    if !colour or !!((colour = String(colour)).indexOf("-") + 1)
+      return new RGB(-1, -1, -1).error()
+    if colour == "none"
+      return new RGB(-1, -1, -1)
+    !(R.hsrg.hasOwnProperty(colour.substring(0, 2)) or colour.charAt() == "#") and (colour = this.toHex(colour))
+    colourRegExp = /^\s*((#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+\s*,\s*[\d\.]+\s*,\s*[\d\.]+(?:\s*,\s*[\d\.]+)?)\s*\)|rgba?\(\s*([\d\.]+%\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%(?:\s*,\s*[\d\.]+%)?)\s*\)|hsb\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)|hsb\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\)|hsl\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)|hsl\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\))\s*$/i
+    commaSpaces = /\s*,\s*/
+    rgb = colour.match(colourRegExp)
+    if rgb?
+      # (#[a-f\d]{6})
+      # 
+      # #a13f2c
+      if rgb[2]
+        return new RGB(parseInt(rgb[2].substring(1, 3), 16), parseInt(rgb[2].substring(3, 5), 16), parseInt(rgb[2].substring(5), 16))
+      # (#[a-f\d]{3})
+      # 
+      # #a2f
+      if rgb[3]
+        return new RGB(parseInt((t = rgb[3].charAt(1)) + t, 16), parseInt((t = rgb[3].charAt(2)) + t, 16), parseInt((t = rgb[3].charAt(3)) + t, 16))
+      # rgba?\(\s*([\d\.]+\s*,\s*[\d\.]+\s*,\s*[\d\.]+(?:\s*,\s*[\d\.]+)?)\s*\)
+      # 
+      # rgba(0.3, 0.4, 0.9)
+      # rgba(0.3, 0.4, 0.9, 0.2)
+      if rgb[4]
+        rgbo = rgb[4].split(commaSpaces)
+        return new RGB(parseFloat(rgbo[0]), parseFloat(rgbo[1]), parseFloat(rgbo[2]), parseFloat(rgbo[3]))
+      # rgba?\(\s*([\d\.]+%\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%(?:\s*,\s*[\d\.]+%)?)\s*\)
+      # 
+      # rgba(30%, 40%, 90%, 20%)
+      # rgba(30%, 40%, 90%)
+      if rgb[5]
+        rgbo = rgb[5].split(commaSpaces)
+        return new RGB(parseFloat(rgbo[0]) * 2.55, parseFloat(rgbo[1]) * 2.55, parseFloat(rgbo[2]) * 2.55, parseFloat(rgbo[3]))
+      # hsb\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)
+      # 
+      # hsb(30deg, 0.8, 0.7)
+      # hsb(30°, 0.8, 0.7)
+      if rgb[6]
+        rgb = rgb[6].split(commaSpaces)
+        red = parseFloat(rgb[0])
+        (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360)
+        return new HSB(red, parseFloat(rgb[1]), parseFloat(rgb[2])).toRGB()
+      # hsb\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\)
+      # 
+      # hsb(3.3%, 80%, 70%)
+      # hsb(30°, 80%, 70%)
+      # hsb(30deg, 80%, 70%)
+      if rgb[7]
+        rgb = rgb[7].split(commaSpaces)
+        red = parseFloat(rgb[0]) * 2.55
+        (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360 * 2.55)
+        return new HSB(red, parseFloat(rgb[1]) * 2.55, parseFloat(rgb[2]) * 2.55).toRGB()
+      # hsl\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)
+      # 
+      # hsl(30deg, 0.8, 0.7)
+      # hsl(30°, 0.8, 0.7)
+      if rgb[8]
+        rgb = rgb[8].split(commaSpaces)
+        red = parseFloat(rgb[0])
+        (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360)
+        return new HSL(red, parseFloat(rgb[1]), parseFloat(rgb[2])).toRGB()
+      # hsl\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\)
+      # 
+      # hsl(8.3%, 80%, 70%)
+      # hsl(30°, 80%, 70%)
+      # hsl(30deg, 80%, 70%)
+      if rgb[9]
+        rgb = rgb[9].split(commaSpaces)
+        red = parseFloat(rgb[0]) * 2.55
+        (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360 * 2.55)
+        return new HSL(red, parseFloat(rgb[1]) * 2.55, parseFloat(rgb[2]) * 2.55).toRGB()
+    new RGB(-1, -1, -1).error()
+  
   R._path2string = ->
     this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
   
