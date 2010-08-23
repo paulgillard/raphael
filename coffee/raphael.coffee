@@ -815,9 +815,9 @@ Raphael = (->
                 $(node, { "clip-path": "url(#" + el.id + ")" })
                 o.clip = rc
               if !value
-                clip = document.getElementById(node.getAttribute("clip-path").replace(/(^url\(#|\)$)/g, E))
+                clip = document.getElementById(node.getAttribute("clip-path").replace(/(^url\(#|\)$)/g, ""))
                 clip.parentNode.removeChild(clip) if clip
-                $(node, "clip-path": E)
+                $(node, "clip-path": "")
                 delete o.clip
             when "path"
               if (o.type == "path")
@@ -928,7 +928,7 @@ Raphael = (->
                 addGradientFill(node, value, o.paper)
             when "opacity", "fill-opacity"
               if attrs.gradient
-                gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, E))
+                gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, ""))
                 if gradient
                   stops = gradient.getElementsByTagName("stop")
                   stops[stops.length - 1][setAttribute]("stop-opacity", value)
@@ -960,7 +960,7 @@ Raphael = (->
         return
       a = el.attrs
       node = el.node
-      fontSize = if node.firstChild then parseInt(document.defaultView.getComputedStyle(node.firstChild, E).getPropertyValue("font-size"), 10) else 10
+      fontSize = if node.firstChild then parseInt(document.defaultView.getComputedStyle(node.firstChild, "").getPropertyValue("font-size"), 10) else 10
       if params.hasOwnProperty("text")
         a.text = params.text
         while node.firstChild
@@ -1294,7 +1294,7 @@ Raphael = (->
         r = String.prototype.toLowerCase.call(pa[i][0])
         r = "x" if r == "z"
         for j in [1..p.length - 1]
-          r += Math.round(p[j] * zoom) + (if j != p.length - 1 then "," else E)
+          r += Math.round(p[j] * zoom) + (if j != p.length - 1 then "," else "")
         res.push(r)
       res.join(" ")
 
@@ -1384,9 +1384,9 @@ Raphael = (->
         node.src = params.src
       if o.type == "image" and params.opacity
         node.filterOpacity = ms + ".Alpha(opacity=" + (params.opacity * 100) + ")"
-        s.filter = (node.filterMatrix or E) + (node.filterOpacity or E)
+        s.filter = (node.filterMatrix or "") + (node.filterOpacity or "")
       s.font = params.font if params.font
-      s.fontFamily = '"' + params["font-family"].split(",")[0].replace(/^['"]+|['"]+$/g, E) + '"' if params["font-family"]
+      s.fontFamily = '"' + params["font-family"].split(",")[0].replace(/^['"]+|['"]+$/g, "") + '"' if params["font-family"]
       s.fontSize = params["font-size"] if params["font-size"]
       s.fontWeight = params["font-weight"] if params["font-weight"]
       s.fontStyle = params["font-style"] if params["font-style"]
@@ -1749,7 +1749,7 @@ Raphael = (->
         blurregexp = /[ ]progid:\S+Blur\([^\)]+\)/g
         s = @node.runtimeStyle
         f = s.filter
-        f = f.replace(blurregexp, E)
+        f = f.replace(blurregexp, "")
         if +size != 0
           !attrs.blur = size
           s.filter = f + S + ms + ".Blur(pixelradius=" + (+size || 1.5) + ")"
@@ -2083,7 +2083,7 @@ Raphael = (->
     theImage(this, src || "about:blank", x || 0, y || 0, w || 0, h || 0)
 
   Paper::text = (x, y, text) ->
-    theText(this, x || 0, y || 0, text || E)
+    theText(this, x || 0, y || 0, text || "")
 
   Paper::set = (itemsArray) ->
     itemsArray = Array.prototype.splice.call(arguments, 0, arguments.length) if arguments.length > 1
@@ -2190,7 +2190,7 @@ Raphael = (->
             a.fy = diry - 1
           else
             @node.filterMatrix = ms + ".Matrix(M11=".concat(dirx, ", M12=0, M21=0, M22=", diry, ", Dx=0, Dy=0, sizingmethod='auto expand', filtertype='bilinear')")
-            s.filter = (this.node.filterMatrix || E) + (this.node.filterOpacity || E)
+            s.filter = (this.node.filterMatrix || "") + (this.node.filterOpacity || "")
       else
           if @transformations
             @transformations[2] = ""
@@ -2199,7 +2199,7 @@ Raphael = (->
             a.fy = 0
           else
             @node.filterMatrix = ""
-            s.filter = (@node.filterMatrix || E) + (@node.filterOpacity || E)
+            s.filter = (@node.filterMatrix || "") + (@node.filterOpacity || "")
       a.scale = [x, y, cx, cy].join(" ")
       @_.sx = x
       @_.sy = y
@@ -2407,7 +2407,7 @@ Raphael = (->
                       now = +from[attr][0] + pos * ms * diff[attr][0]
                       now += "," + from[attr][1] + "," + from[attr][2] if from[attr][1]
                     when "scale"
-                      now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if 2 in to[attr] then to[attr][2] else E), (if 3 in to[attr] then to[attr][3] else E)].join(" ")
+                      now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if 2 in to[attr] then to[attr][2] else ""), (if 3 in to[attr] then to[attr][3] else "")].join(" ")
                     when "clip-rect"
                       now = []
                       i = 4
@@ -2683,7 +2683,7 @@ Raphael = (->
     return if !R.fonts
     font = R.fonts[family]
     if !font
-      name = new RegExp("(^|\\s)" + family.replace(/[^\w\d\s+!~.:_-]/g, E) + "(\\s|$)", "i")
+      name = new RegExp("(^|\\s)" + family.replace(/[^\w\d\s+!~.:_-]/g, "") + "(\\s|$)", "i")
       for fontName in R.fonts
         if R.fonts.hasOwnProperty(fontName)
           if name.test(fontName)
