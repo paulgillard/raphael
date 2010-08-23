@@ -708,7 +708,7 @@ Raphael = (->
             fy = Math.sqrt(0.25 - Math.pow(fx - 0.5, 2)) * dir + 0.5
             if fy != .5
               fy = fy.toFixed(5) - 1e-5 * dir
-        E
+        ""
       )
       gradient = gradient.split /\s*\-\s*/
       if type == "linear"
@@ -1438,7 +1438,7 @@ Raphael = (->
           stroke.endcap = if params["stroke-linecap"] == "butt" then "flat" else if params["stroke-linecap"] == "square" then "square" else "round"
         if params["stroke-dasharray"]
           dasharray = { "-": "shortdash", ".": "shortdot", "-.": "shortdashdot", "-..": "shortdashdotdot", ". ": "dot", "- ": "dash", "--": "longdash", "- .": "dashdot", "--.": "longdashdot", "--..": "longdashdotdot" }
-          stroke.dashstyle = if dasharray.hasOwnProperty(params["stroke-dasharray"]) then dasharray[params["stroke-dasharray"]] else E
+          stroke.dashstyle = if dasharray.hasOwnProperty(params["stroke-dasharray"]) then dasharray[params["stroke-dasharray"]] else ""
         node.appendChild(stroke) if newstroke
       if res.type == "text"
         s = res.paper.span.style
@@ -1483,7 +1483,7 @@ Raphael = (->
             if Math.pow(fx - 0.5, 2) + Math.pow(fy - 0.5, 2) > .25
               fy = Math.sqrt(0.25 - Math.pow(fx - 0.5, 2)) * ((fy > 0.5) * 2 - 1) + 0.5
             fxfy = fx + S + fy
-          E
+          ""
         )
         gradient = gradient.split(/\s*\-\s*/)
         if type == "linear"
@@ -2726,7 +2726,7 @@ Raphael = (->
       token = token.replace(formatrg, (str, i) ->
         if !args[++i]? then E else args[i]
     )
-    token or E
+    token or ""
 
   R.ninja = ->
     if oldRaphael.was then (Raphael = oldRaphael.is) else delete Raphael
