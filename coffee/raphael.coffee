@@ -567,7 +567,7 @@ Raphael = (->
   # TODO: parseDots was originally cached
   parseDots = (gradient) ->
     dots = []
-    for i in [0..gradient.length]
+    for i in [0..gradient.length - 1]
       dot = {}
       par = gradient[i].match(/^([^:]*):?([\d\.]*)/)
       dot.color = R.getRGB(par[1])
@@ -736,7 +736,7 @@ Raphael = (->
       el.id = "r" + (R._id++).toString(36)
       $(el, if type == "radial" then { fx: fx, fy: fy } else { x1: vector[0], y1: vector[1], x2: vector[2], y2: vector[3] })
       SVG.defs.appendChild(el)
-      for i in [0..dots.length]
+      for i in [0..dots.length - 1]
         stop = $("stop")
         $(stop, { offset: (if dots[i].offset then dots[i].offset else if !i then "0%" else "100%")
         "stop-color": dots[i].color || "##fff" }
@@ -966,7 +966,7 @@ Raphael = (->
         while node.firstChild
           node.removeChild(node.firstChild)
         texts = String(params.text).split("\n")
-        for i in [0..texts.length]
+        for i in [0..texts.length - 1]
           if texts[i]
             tspan = $("tspan")
             $(tspan, { dy: fontSize * leading, x: a.x }) if i
@@ -974,7 +974,7 @@ Raphael = (->
             node.appendChild(tspan)
       else
         texts = node.getElementsByTagName("tspan")
-        for i in [o..texts.length]
+        for i in [0..texts.length - 1]
           $(texts[i], { dy: fontSize * leading, x: a.x }) if i
       $(node, { y: a.y })
       bb = el.getBBox()
@@ -1101,7 +1101,7 @@ Raphael = (->
           return @attrs[name]
         if !value? and R.is(name, "array")
           values = {}
-          for j in [0..name.length]
+          for j in [0..name.length - 1]
             values[name[j]] = @attr(name[j])
           return values
         if value?
