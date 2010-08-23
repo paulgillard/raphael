@@ -162,7 +162,20 @@ Raphael = (->
         (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360 * 2.55)
         return new HSL(red, parseFloat(rgb[1]) * 2.55, parseFloat(rgb[2]) * 2.55).toRGB()
     new RGB(-1, -1, -1).isError()
-  
+
+  R.getColor = (value) ->
+    start = @getColor.start = @getColor.start || new HSB(0, 1, value || 0.75)
+    rgb = start.toRGB()
+    start.h += 0.075
+    if start.h > 1
+      start.h = 0
+      start.s -= .2
+      @getColor.start = new HSB(0, 1, start.b) if start.s <= 0
+    rgb.hex()
+
+  R.getColor.reset = ->
+      delete @start
+
   R._path2string = ->
     this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
   
