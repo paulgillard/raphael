@@ -1579,7 +1579,7 @@ Raphael = (->
         gs = this.Group.style
         os = (@shape and @shape.style) || @node.style
         params ?= {}
-        for i in params
+        for i, value of params
           if params.hasOwnProperty(i)
             @attrs[i] = params[i]
         cx ?= @_.rt.cx
@@ -2347,7 +2347,7 @@ Raphael = (->
   animationElements = { length : 0 }
   animation = ->
     Now = +new Date
-    for l in animationElements
+    for l, value of animationElements
       if l != "length" and animationElements.hasOwnProperty(l)
         e = animationElements[l]
         if e.stop or e.el.removed
@@ -2367,7 +2367,7 @@ Raphael = (->
         set = {}
         if time < ms
           pos = if R.easing_formulas[easing] then R.easing_formulas[easing](time / ms) else time / ms
-          for attr in from
+          for attr, value of from
             if from.hasOwnProperty(attr)
               switch availableAnimAttrs[attr]
                 when "along"
@@ -2475,7 +2475,7 @@ Raphael = (->
     from = {}
     to = {}
     diff = {}
-    for attr in params
+    for attr, name of params
       if params.hasOwnProperty(attr)
         if availableAnimAttrs.hasOwnProperty(attr)
           from[attr] = @attr(attr)
