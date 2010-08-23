@@ -2383,9 +2383,9 @@ Raphael = (->
                   now = +from[attr] + pos * ms * diff[attr]
                 when "colour"
                   now = "rgb(" + [
-                      upto255(Math.round(from[attr].r + pos * ms * diff[attr].r)),
-                      upto255(Math.round(from[attr].g + pos * ms * diff[attr].g)),
-                      upto255(Math.round(from[attr].b + pos * ms * diff[attr].b))
+                      upto255(Math.round(from[attr].red + pos * ms * diff[attr].red)),
+                      upto255(Math.round(from[attr].green + pos * ms * diff[attr].green)),
+                      upto255(Math.round(from[attr].blue + pos * ms * diff[attr].blue))
                   ].join(",") + ")"
                 when "path"
                   now = []
@@ -2500,10 +2500,7 @@ Raphael = (->
             when "colour"
               from[attr] = R.getRGB(from[attr])
               toColour = R.getRGB(to[attr])
-              diff[attr] =
-                r: (toColour.r - from[attr].r) / ms
-                g: (toColour.g - from[attr].g) / ms
-                b: (toColour.b - from[attr].b) / ms
+              diff[attr] = new RGB((toColour.red - from[attr].red) / ms, (toColour.green - from[attr].green) / ms, (toColour.blue - from[attr].blue) / ms)
             when "path"
               pathes = pathToCurve(from[attr], to[attr])
               from[attr] = pathes[0]
