@@ -931,7 +931,7 @@ Raphael = (->
                 gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, ""))
                 if gradient
                   stops = gradient.getElementsByTagName("stop")
-                  stops[stops.length - 1][setAttribute]("stop-opacity", value)
+                  stops[stops.length - 1].setAttribute("stop-opacity", value)
               else
                 value = parseInt(value, 10) + "px" if att == "font-size"
                 cssrule = att.replace(/(\-.)/g, (w) ->
@@ -2182,7 +2182,7 @@ Raphael = (->
       if @type in { text: 1, image: 1 } and (dirx != 1 or diry != 1)
           if @transformations
             @transformations[2] = "scale(".concat(dirx, ",", diry, ")")
-            @node[setAttribute]("transform", this.transformations.join(" "))
+            @node.setAttribute("transform", this.transformations.join(" "))
             dx = if dirx == -1 then -a.x - (neww || 0) else a.x
             dy = if diry == -1 then -a.y - (newh || 0) else a.y
             @attr { x: dx, y: dy }
@@ -2194,7 +2194,7 @@ Raphael = (->
       else
           if @transformations
             @transformations[2] = ""
-            @node[setAttribute]("transform", this.transformations.join(" "))
+            @node.setAttribute("transform", this.transformations.join(" "))
             a.fx = 0
             a.fy = 0
           else
