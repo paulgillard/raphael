@@ -62,31 +62,31 @@ Raphael = (->
       (type == "array" && Array.isArray && Array.isArray(object)) ||
       String.prototype.toLowerCase.call(Object.prototype.toString.call(object).slice(8, -1)) == type
 
-    toHex: (colour) ->
-      if this.type() == "VML"
-        colour = String(colour).replace(/^\s+|\s+$/g, "")
-        try
-          temporaryDocument = new window.ActiveXObject("htmlfile")
-          temporaryDocument.write "<" + "body>"
-          temporaryDocument.close()
-          temporaryBody = temporaryDocument.body
-        catch error
-          temporaryBody = window.createPopup().document.body
-        range = temporaryBody.createTextRange()
-        try
-          temporaryBody.style.color = colour
-          value = range.queryCommandValue("ForeColor")
-          value = ((value & 255) << 16) | (value & 65280) | ((value & 16711680) >>> 16)
-          return "#" + ("000000" + value.toString(16)).slice(-6)
-        catch error
-          return "none"
-      else
-        i = document.createElement("i")
-        i.title = "Rapha\xebl Colour Picker"
-        i.style.display = "none"
-        document.body.appendChild(i)
-        i.style.color = colour
-        return document.defaultView.getComputedStyle(i, "").getPropertyValue("color")
+  toHex = (colour) ->
+    if this.type() == "VML"
+      colour = String(colour).replace(/^\s+|\s+$/g, "")
+      try
+        temporaryDocument = new window.ActiveXObject("htmlfile")
+        temporaryDocument.write "<" + "body>"
+        temporaryDocument.close()
+        temporaryBody = temporaryDocument.body
+      catch error
+        temporaryBody = window.createPopup().document.body
+      range = temporaryBody.createTextRange()
+      try
+        temporaryBody.style.color = colour
+        value = range.queryCommandValue("ForeColor")
+        value = ((value & 255) << 16) | (value & 65280) | ((value & 16711680) >>> 16)
+        return "#" + ("000000" + value.toString(16)).slice(-6)
+      catch error
+        return "none"
+    else
+      i = document.createElement("i")
+      i.title = "Rapha\xebl Colour Picker"
+      i.style.display = "none"
+      document.body.appendChild(i)
+      i.style.color = colour
+      return document.defaultView.getComputedStyle(i, "").getPropertyValue("color")
 
   # TODO: This should go on the string prototype
   R.getRGB = (colour) ->
