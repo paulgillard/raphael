@@ -2110,7 +2110,7 @@ Raphael = (->
       toString: this.x_y
     y ?= x
     y = x if !+y
-    a = @attrs(123)
+    a = @attrs
     if x != 0
       bb = this.getBBox()
       rcx = bb.x + bb.width / 2
