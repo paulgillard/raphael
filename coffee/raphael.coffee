@@ -206,7 +206,7 @@ Raphael = (->
           if !paramCounts[name]
             break
       ))
-    data.toString = this._path2string
+    data.toString = R._path2string
     data
   
   R.findDotsAtSegment = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
@@ -256,7 +256,7 @@ Raphael = (->
       j = -1
       for pathItem in path
         res[i][++j] = pathItem
-    res.toString = this._path2string
+    res.toString = R._path2string
     res
   
   pathToRelative = (pathArray) ->
@@ -309,7 +309,7 @@ Raphael = (->
         else
           x += +res[i][len - 2]
           y += +res[i][len - 1]
-    res.toString = this._path2string
+    res.toString = R._path2string
     res
   
   pathToAbsolute = (pathArray) ->
@@ -364,7 +364,7 @@ Raphael = (->
         else
           x = res[i][len - 2]
           y = res[i][len - 1]
-    res.toString = this._path2string
+    res.toString = R._path2string
     res
   
   lineToCurve = (x1, y1, x2, y2) ->
