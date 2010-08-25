@@ -191,10 +191,10 @@ Raphael = (->
     if R.is(pathString, "array") and R.is(pathString[0], "array")
       data = this.pathClone(pathString)
     if !data.length
-      String(pathString).replace(R.pathCommand, ((a, b, c) ->
+      String(pathString).replace(pathCommand, ((a, b, c) ->
         params = []
         name = String.prototype.toLowerCase.call(b)
-        c.replace(R.pathValues, ((a, b) ->
+        c.replace(pathValues, ((a, b) ->
           b and params.push(+b)
         ))
         if name == "m" and params.length > 2
