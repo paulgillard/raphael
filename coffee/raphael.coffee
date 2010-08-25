@@ -621,8 +621,8 @@ Raphael = (->
   
   plugins = (con, add) ->
     that = this
-    for prop in add
-      if add.hasOwnProperty(prop) and !(prop in con)
+    for prop, value of add
+      if !(prop in con)
         switch typeof add[prop]
           when "function"
             ((f) ->
@@ -689,8 +689,7 @@ Raphael = (->
     $ = (el, attr) ->
       if attr
         for name, value of attr
-          if attr.hasOwnProperty name
-            el.setAttribute(name, String(value))
+          el.setAttribute(name, String(value))
       else
         el = document.createElementNS(Paper.svgNamespace, el)
         el.style.webkitTapHighlightColor = "rgba(0,0,0,0)"
@@ -790,169 +789,160 @@ Raphael = (->
       o.rotate(0, true) if parseFloat(rot)
       # TODO: name is same as value
       for att, name of params
-        if params.hasOwnProperty(att)
-          if !availableAttrs.hasOwnProperty(att)
-            continue
-          value = params[att]
-          attrs[att] = value
-          switch att
-            when "blur"
-              o.blur(value)
-            when "rotation"
-              o.rotate(value, true)
-            when "href", "title", "target"
-              pn = node.parentNode
-              if String.prototype.toLowerCase.call(pn.tagName) != "a"
-                hl = $("a")
-                pn.insertBefore(hl, node)
-                hl.appendChild(node)
-                pn = hl
-              pn.setAttributeNS(Paper.xLinkNamespace, att, value)
-            when "cursor"
-              node.style.cursor = value
-            when "clip-rect"
-              rect = String(value).split(separator)
-              if rect.length == 4
-                o.clip && o.clip.parentNode.parentNode.removeChild(o.clip.parentNode)
-                el = $("clipPath")
-                rc = $("rect")
-                el.id = "r" + (R._id++).toString(36)
-                $(rc,
-                    x: rect[0]
-                    y: rect[1]
-                    width: rect[2]
-                    height: rect[3]
-                )
-                el.appendChild(rc)
-                o.paper.defs.appendChild(el)
-                $(node, { "clip-path": "url(#" + el.id + ")" })
-                o.clip = rc
-              if !value
-                clip = document.getElementById(node.getAttribute("clip-path").replace(/(^url\(#|\)$)/g, ""))
-                clip.parentNode.removeChild(clip) if clip
-                $(node, "clip-path": "")
-                delete o.clip
-            when "path"
-              if (o.type == "path")
-                $(node, { d: if value then attrs.path = pathToAbsolute(value) else "M0,0" })
-            when "width", "x"
-              if att == "width"
-                node.setAttribute(att, value)
-                if attrs.fx
-                  att = "x"
-                  value = attrs.x
-              if att == "x"
-                if attrs.fx
-                  value = -attrs.x - (attrs.width || 0)
-            when "cx", "rx"
-              if att == "cx" or o.type != "rect"
-                rotxy[1] += value - attrs[att] if att == "cx" and rotxy
-                node.setAttribute(att, value)
-                updatePosition(o) if o.pattern
-            when "height", "y"
-              if att == "height"
-                node.setAttribute(att, value)
-                if attrs.fy
-                  att = "y"
-                  value = attrs.y
-              if att == "y"
-                if attrs.fy
-                  value = -attrs.y - (attrs.height || 0)
-            when "cy", "ry"
-              if att == "cy" or o.type != "rect"
-                rotxy[2] += value - attrs[att] if att == "cy" and rotxy
-                node.setAttribute(att, value)
-                updatePosition(o) if o.pattern
-            when "r"
-              if o.type == "rect"
-                  $(node, { rx: value, ry: value })
-              else
-                  node.setAttribute(att, value)
-            when "src"
-              if o.type == "image"
-                node.setAttributeNS(Paper.xLinkNamespace, "href", value)
-            when "stroke-width"
-              node.style.strokeWidth = value
-              # Need following line for Firefox
+        if !availableAttrs.hasOwnProperty(att)
+          continue
+        value = params[att]
+        attrs[att] = value
+        switch att
+          when "blur"
+            o.blur(value)
+          when "rotation"
+            o.rotate(value, true)
+          when "href", "title", "target"
+            pn = node.parentNode
+            if String.prototype.toLowerCase.call(pn.tagName) != "a"
+              hl = $("a")
+              pn.insertBefore(hl, node)
+              hl.appendChild(node)
+              pn = hl
+            pn.setAttributeNS(Paper.xLinkNamespace, att, value)
+          when "cursor"
+            node.style.cursor = value
+          when "clip-rect"
+            rect = String(value).split(separator)
+            if rect.length == 4
+              o.clip && o.clip.parentNode.parentNode.removeChild(o.clip.parentNode)
+              el = $("clipPath")
+              rc = $("rect")
+              el.id = "r" + (R._id++).toString(36)
+              $(rc,
+                  x: rect[0]
+                  y: rect[1]
+                  width: rect[2]
+                  height: rect[3]
+              )
+              el.appendChild(rc)
+              o.paper.defs.appendChild(el)
+              $(node, { "clip-path": "url(#" + el.id + ")" })
+              o.clip = rc
+            if !value
+              clip = document.getElementById(node.getAttribute("clip-path").replace(/(^url\(#|\)$)/g, ""))
+              clip.parentNode.removeChild(clip) if clip
+              $(node, "clip-path": "")
+              delete o.clip
+          when "path"
+            if (o.type == "path")
+              $(node, { d: if value then attrs.path = pathToAbsolute(value) else "M0,0" })
+          when "width", "x"
+            if att == "width"
               node.setAttribute(att, value)
-              if attrs["stroke-dasharray"]
-                addDashes(o, attrs["stroke-dasharray"])
-            when "stroke-dasharray"
-              addDashes(o, value)
-            when "translation"
-              xy = String(value).split(separator)
-              xy[0] = +xy[0] || 0
-              xy[1] = +xy[1] || 0
-              if rotxy
-                rotxy[1] += xy[0]
-                rotxy[2] += xy[1]
-              translate.call(o, xy[0], xy[1])
-            when "scale"
-              xy = String(value).split(separator)
-              o.scale(+xy[0] || 1, +xy[1] || +xy[0] || 1, (if isNaN(parseFloat(xy[2])) then null else +xy[2]), (if isNaN(parseFloat(xy[3])) then null else +xy[3]))
-            when "fill"
-              isURL = String(value).match(ISURL)
-              if isURL
-                el = $("pattern")
-                ig = $("image")
-                el.id = "r" + (R._id++).toString(36)
-                $(el, { x: 0, y: 0, patternUnits: "userSpaceOnUse", height: 1, width: 1 })
-                $(ig, { x: 0, y: 0 })
-                ig.setAttributeNS(Paper.xLinkNamespace, "href", isURL[1])
-                el.appendChild(ig)
-              
-                img = document.createElement("img")
-                img.style.cssText = "position:absolute;left:-9999em;top-9999em"
-                img.onload = ->
-                  $(el, { width: this.offsetWidth, height: this.offsetHeight })
-                  $(ig, { width: this.offsetWidth, height: this.offsetHeight })
-                  document.body.removeChild(this)
-                  o.paper.safari()
-                document.body.appendChild(img)
-                img.src = isURL[1]
-                o.paper.defs.appendChild(el)
-                node.style.fill = "url(#" + el.id + ")"
-                $(node, { fill: "url(#" + el.id + ")" })
-                o.pattern = el
-                updatePosition(o) if o.pattern
-              else
-                clr = R.getRGB(value)
-                if !clr.error
-                  delete params.gradient
-                  delete attrs.gradient
-                  if !R.is(attrs.opacity, "undefined") and R.is(params.opacity, "undefined")
-                    $(node, { opacity: attrs.opacity })
-                  if !R.is(attrs["fill-opacity"], "undefined") and R.is(params["fill-opacity"], "undefined")
-                    $(node, { "fill-opacity": attrs["fill-opacity"] })
-                  $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
-                  node.setAttribute(att, clr.hex())
-                else if (({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper)
-                  attrs.gradient = value
-                  attrs.fill = "none"
-                else
-                  $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
-                  node.setAttribute(att, clr.hex())
-            when "stroke"
-              clr = R.getRGB(value)
-              node.setAttribute(att, clr.hex())
-              $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
-            when "gradient"
-              if ({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r"
-                addGradientFill(node, value, o.paper)
-            when "opacity", "fill-opacity"
-              if attrs.gradient
-                gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, ""))
-                if gradient
-                  stops = gradient.getElementsByTagName("stop")
-                  stops[stops.length - 1].setAttribute("stop-opacity", value)
-              else
-                value = parseInt(value, 10) + "px" if att == "font-size"
-                cssrule = att.replace(/(\-.)/g, (w) ->
-                  String.prototype.toUpperCase.call(w.substring(1))
-                )
-                node.style[cssrule] = value
-                # Need following line for Firefox
+              if attrs.fx
+                att = "x"
+                value = attrs.x
+            if att == "x"
+              if attrs.fx
+                value = -attrs.x - (attrs.width || 0)
+          when "cx", "rx"
+            if att == "cx" or o.type != "rect"
+              rotxy[1] += value - attrs[att] if att == "cx" and rotxy
+              node.setAttribute(att, value)
+              updatePosition(o) if o.pattern
+          when "height", "y"
+            if att == "height"
+              node.setAttribute(att, value)
+              if attrs.fy
+                att = "y"
+                value = attrs.y
+            if att == "y"
+              if attrs.fy
+                value = -attrs.y - (attrs.height || 0)
+          when "cy", "ry"
+            if att == "cy" or o.type != "rect"
+              rotxy[2] += value - attrs[att] if att == "cy" and rotxy
+              node.setAttribute(att, value)
+              updatePosition(o) if o.pattern
+          when "r"
+            if o.type == "rect"
+                $(node, { rx: value, ry: value })
+            else
                 node.setAttribute(att, value)
+          when "src"
+            if o.type == "image"
+              node.setAttributeNS(Paper.xLinkNamespace, "href", value)
+          when "stroke-width"
+            node.style.strokeWidth = value
+            # Need following line for Firefox
+            node.setAttribute(att, value)
+            if attrs["stroke-dasharray"]
+              addDashes(o, attrs["stroke-dasharray"])
+          when "stroke-dasharray"
+            addDashes(o, value)
+          when "translation"
+            xy = String(value).split(separator)
+            xy[0] = +xy[0] || 0
+            xy[1] = +xy[1] || 0
+            if rotxy
+              rotxy[1] += xy[0]
+              rotxy[2] += xy[1]
+            translate.call(o, xy[0], xy[1])
+          when "scale"
+            xy = String(value).split(separator)
+            o.scale(+xy[0] || 1, +xy[1] || +xy[0] || 1, (if isNaN(parseFloat(xy[2])) then null else +xy[2]), (if isNaN(parseFloat(xy[3])) then null else +xy[3]))
+          when "fill"
+            isURL = String(value).match(ISURL)
+            if isURL
+              el = $("pattern")
+              ig = $("image")
+              el.id = "r" + (R._id++).toString(36)
+              $(el, { x: 0, y: 0, patternUnits: "userSpaceOnUse", height: 1, width: 1 })
+              $(ig, { x: 0, y: 0 })
+              ig.setAttributeNS(Paper.xLinkNamespace, "href", isURL[1])
+              el.appendChild(ig)
+
+              img = document.createElement("img")
+              img.style.cssText = "position:absolute;left:-9999em;top-9999em"
+              img.onload = ->
+                $(el, { width: this.offsetWidth, height: this.offsetHeight })
+                $(ig, { width: this.offsetWidth, height: this.offsetHeight })
+                document.body.removeChild(this)
+                o.paper.safari()
+              document.body.appendChild(img)
+              img.src = isURL[1]
+              o.paper.defs.appendChild(el)
+              node.style.fill = "url(#" + el.id + ")"
+              $(node, { fill: "url(#" + el.id + ")" })
+              o.pattern = el
+              updatePosition(o) if o.pattern
+            else
+              clr = R.getRGB(value)
+              if !clr.error
+                delete params.gradient
+                delete attrs.gradient
+                if !R.is(attrs.opacity, "undefined") and R.is(params.opacity, "undefined")
+                  $(node, { opacity: attrs.opacity })
+                if !R.is(attrs["fill-opacity"], "undefined") and R.is(params["fill-opacity"], "undefined")
+                  $(node, { "fill-opacity": attrs["fill-opacity"] })
+                $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
+                node.setAttribute(att, clr.hex())
+              else if (({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper)
+                attrs.gradient = value
+                attrs.fill = "none"
+              else
+                $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
+                node.setAttribute(att, clr.hex())
+          when "stroke"
+            clr = R.getRGB(value)
+            node.setAttribute(att, clr.hex())
+            $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
+          when "gradient"
+            if ({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r"
+              addGradientFill(node, value, o.paper)
+          when "opacity", "fill-opacity"
+            if attrs.gradient
+              gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, ""))
+              if gradient
+                stops = gradient.getElementsByTagName("stop")
+                stops[stops.length - 1].setAttribute("stop-opacity", value)
             else
               value = parseInt(value, 10) + "px" if att == "font-size"
               cssrule = att.replace(/(\-.)/g, (w) ->
@@ -961,6 +951,14 @@ Raphael = (->
               node.style[cssrule] = value
               # Need following line for Firefox
               node.setAttribute(att, value)
+          else
+            value = parseInt(value, 10) + "px" if att == "font-size"
+            cssrule = att.replace(/(\-.)/g, (w) ->
+              String.prototype.toUpperCase.call(w.substring(1))
+            )
+            node.style[cssrule] = value
+            # Need following line for Firefox
+            node.setAttribute(att, value)
       tuneText(o, params)
       if rotxy
         o.rotate(rotxy.join(" "))
@@ -1093,9 +1091,8 @@ Raphael = (->
         return this if @removed
         if !name?
           res = {}
-          for i in @attrs
-            if @attrs.hasOwnProperty(i)
-              res[i] = @attrs[i]
+          for i, value of @attrs
+            res[i] = @attrs[i]
           res.rotation = this.rotate() if @_.rt.deg
           res.scale = this.scale() if @_.sx != 1 || @_.sy != 1
           if res.gradient and res.fill == "none"
@@ -1346,8 +1343,7 @@ Raphael = (->
       res = o
 
       for att, value of params
-        if params.hasOwnProperty(att)
-          a[att] = params[att] # TODO: This is same as value
+        a[att] = params[att] # TODO: This is same as value
       if newpath
         a.path = rectPath(a.x, a.y, a.width, a.height, a.r)
         o.X = a.x
@@ -1593,8 +1589,7 @@ Raphael = (->
         os = (@shape and @shape.style) || @node.style
         params ?= {}
         for i, value of params
-          if params.hasOwnProperty(i)
-            @attrs[i] = params[i]
+          @attrs[i] = params[i]
         cx ?= @_.rt.cx
         cy ?= @_.rt.cy
         attr = this.attrs
@@ -1691,9 +1686,8 @@ Raphael = (->
         return this if @removed
         if !name?
           res = {}
-          for i in @attrs
-            if @attrs.hasOwnProperty(i)
-              res[i] = this.attrs[i];
+          for i, value of @attrs
+            res[i] = this.attrs[i];
           res.rotation = this.rotate() if @_.rt.deg
           res.scale = this.scale() if @_.sx != 1 || @_.sy != 1
           if res.gradient and res.fill == "none"
@@ -2361,7 +2355,7 @@ Raphael = (->
   animation = ->
     Now = +new Date
     for l, value of animationElements
-      if l != "length" and animationElements.hasOwnProperty(l)
+      if l != "length"
         e = animationElements[l]
         if e.stop or e.el.removed
           delete animationElements[l]
@@ -2381,52 +2375,51 @@ Raphael = (->
         if time < ms
           pos = if R.easing_formulas[easing] then R.easing_formulas[easing](time / ms) else time / ms
           for attr, value of from
-            if from.hasOwnProperty(attr)
-              switch availableAnimAttrs[attr]
-                when "along"
-                  now = pos * ms * diff[attr]
-                  now = to.len - now if to.back
-                  point = getPointAtLength(to[attr], now)
-                  that.translate(diff.sx - diff.x or 0, diff.sy - diff.y or 0)
-                  diff.x = point.x
-                  diff.y = point.y
-                  that.translate(point.x - diff.sx, point.y - diff.sy)
-                  that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
-                when "number"
-                  now = +from[attr] + pos * ms * diff[attr]
-                when "colour"
-                  now = "rgb(" + [
-                      upto255(Math.round(from[attr].red + pos * ms * diff[attr].red)),
-                      upto255(Math.round(from[attr].green + pos * ms * diff[attr].green)),
-                      upto255(Math.round(from[attr].blue + pos * ms * diff[attr].blue))
-                  ].join(",") + ")"
-                when "path"
-                  now = []
-                  for i in [0..from[attr].length - 1]
-                    now[i] = [from[attr][i][0]]
-                    for j in [1..from[attr][i].length - 1]
-                      now[i][j] = +from[attr][i][j] + pos * ms * diff[attr][i][j]
-                    now[i] = now[i].join(" ")
-                  now = now.join(" ")
-                when "csv"
-                  switch attr
-                    when "translation"
-                      x = diff[attr][0] * (time - prev)
-                      y = diff[attr][1] * (time - prev)
-                      t.x += x
-                      t.y += y
-                      now = x + S + y
-                    when "rotation"
-                      now = +from[attr][0] + pos * ms * diff[attr][0]
-                      now += "," + from[attr][1] + "," + from[attr][2] if from[attr][1]
-                    when "scale"
-                      now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if 2 in to[attr] then to[attr][2] else ""), (if 3 in to[attr] then to[attr][3] else "")].join(" ")
-                    when "clip-rect"
-                      now = []
-                      i = 4
-                      while i--
-                        now[i] = +from[attr][i] + pos * ms * diff[attr][i]
-              set[attr] = now
+            switch availableAnimAttrs[attr]
+              when "along"
+                now = pos * ms * diff[attr]
+                now = to.len - now if to.back
+                point = getPointAtLength(to[attr], now)
+                that.translate(diff.sx - diff.x or 0, diff.sy - diff.y or 0)
+                diff.x = point.x
+                diff.y = point.y
+                that.translate(point.x - diff.sx, point.y - diff.sy)
+                that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
+              when "number"
+                now = +from[attr] + pos * ms * diff[attr]
+              when "colour"
+                now = "rgb(" + [
+                    upto255(Math.round(from[attr].red + pos * ms * diff[attr].red)),
+                    upto255(Math.round(from[attr].green + pos * ms * diff[attr].green)),
+                    upto255(Math.round(from[attr].blue + pos * ms * diff[attr].blue))
+                ].join(",") + ")"
+              when "path"
+                now = []
+                for i in [0..from[attr].length - 1]
+                  now[i] = [from[attr][i][0]]
+                  for j in [1..from[attr][i].length - 1]
+                    now[i][j] = +from[attr][i][j] + pos * ms * diff[attr][i][j]
+                  now[i] = now[i].join(" ")
+                now = now.join(" ")
+              when "csv"
+                switch attr
+                  when "translation"
+                    x = diff[attr][0] * (time - prev)
+                    y = diff[attr][1] * (time - prev)
+                    t.x += x
+                    t.y += y
+                    now = x + S + y
+                  when "rotation"
+                    now = +from[attr][0] + pos * ms * diff[attr][0]
+                    now += "," + from[attr][1] + "," + from[attr][2] if from[attr][1]
+                  when "scale"
+                    now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if 2 in to[attr] then to[attr][2] else ""), (if 3 in to[attr] then to[attr][3] else "")].join(" ")
+                  when "clip-rect"
+                    now = []
+                    i = 4
+                    while i--
+                      now[i] = +from[attr][i] + pos * ms * diff[attr][i]
+            set[attr] = now
           that.attr(set)
           that._run.call(that) if that._run
         else
@@ -2489,61 +2482,60 @@ Raphael = (->
     to = {}
     diff = {}
     for attr, name of params
-      if params.hasOwnProperty(attr)
-        if availableAnimAttrs.hasOwnProperty(attr)
-          from[attr] = @attr(attr)
-          from[attr] = availableAttrs[attr] if !from[attr]?
-          to[attr] = params[attr]
-          switch availableAnimAttrs[attr]
-            when "along"
-              len = getTotalLength(params[attr])
-              point = getPointAtLength(params[attr], len * !!params.back)
-              bb = @getBBox()
-              diff[attr] = len / ms
-              diff.tx = bb.x
-              diff.ty = bb.y
-              diff.sx = point.x
-              diff.sy = point.y
-              to.rot = params.rot
-              to.back = params.back
-              to.len = len
-              diff.r = parseFloat(@rotate()) or 0 if params.rot
-            when "number"
-              diff[attr] = (to[attr] - from[attr]) / ms
-            when "colour"
-              from[attr] = R.getRGB(from[attr])
-              toColour = R.getRGB(to[attr])
-              diff[attr] = new RGB((toColour.red - from[attr].red) / ms, (toColour.green - from[attr].green) / ms, (toColour.blue - from[attr].blue) / ms)
-            when "path"
-              pathes = pathToCurve(from[attr], to[attr])
-              from[attr] = pathes[0]
-              toPath = pathes[1]
-              diff[attr] = []
-              for i in [0..from[attr].length - 1]
-                diff[attr][i] = [0];
-                for j in [1..from[attr][i].length - 1]
-                  diff[attr][i][j] = (toPath[i][j] - from[attr][i][j]) / ms
-            when "csv"
-              values = String(params[attr]).split(separator)
-              from2 = String(from[attr]).split(separator)
-              switch attr
-                when "translation"
-                  from[attr] = [0, 0]
-                  diff[attr] = [values[0] / ms, values[1] / ms]
-                when "rotation"
-                  from[attr] = (from2[1] == values[1] && from2[2] == values[2]) ? from2 : [0, values[1], values[2]]
-                  diff[attr] = [(values[0] - from[attr][0]) / ms, 0, 0]
-                when "scale"
-                  params[attr] = values
-                  from[attr] = String(from[attr]).split(separator)
-                  diff[attr] = [(values[0] - from[attr][0]) / ms, (values[1] - from[attr][1]) / ms, 0, 0]
-                when "clip-rect"
-                  from[attr] = String(from[attr]).split(separator)
-                  diff[attr] = []
-                  i = 4
-                  while i--
-                    diff[attr][i] = (values[i] - from[attr][i]) / ms
-              to[attr] = values
+      if availableAnimAttrs.hasOwnProperty(attr)
+        from[attr] = @attr(attr)
+        from[attr] = availableAttrs[attr] if !from[attr]?
+        to[attr] = params[attr]
+        switch availableAnimAttrs[attr]
+          when "along"
+            len = getTotalLength(params[attr])
+            point = getPointAtLength(params[attr], len * !!params.back)
+            bb = @getBBox()
+            diff[attr] = len / ms
+            diff.tx = bb.x
+            diff.ty = bb.y
+            diff.sx = point.x
+            diff.sy = point.y
+            to.rot = params.rot
+            to.back = params.back
+            to.len = len
+            diff.r = parseFloat(@rotate()) or 0 if params.rot
+          when "number"
+            diff[attr] = (to[attr] - from[attr]) / ms
+          when "colour"
+            from[attr] = R.getRGB(from[attr])
+            toColour = R.getRGB(to[attr])
+            diff[attr] = new RGB((toColour.red - from[attr].red) / ms, (toColour.green - from[attr].green) / ms, (toColour.blue - from[attr].blue) / ms)
+          when "path"
+            pathes = pathToCurve(from[attr], to[attr])
+            from[attr] = pathes[0]
+            toPath = pathes[1]
+            diff[attr] = []
+            for i in [0..from[attr].length - 1]
+              diff[attr][i] = [0];
+              for j in [1..from[attr][i].length - 1]
+                diff[attr][i][j] = (toPath[i][j] - from[attr][i][j]) / ms
+          when "csv"
+            values = String(params[attr]).split(separator)
+            from2 = String(from[attr]).split(separator)
+            switch attr
+              when "translation"
+                from[attr] = [0, 0]
+                diff[attr] = [values[0] / ms, values[1] / ms]
+              when "rotation"
+                from[attr] = (from2[1] == values[1] && from2[2] == values[2]) ? from2 : [0, values[1], values[2]]
+                diff[attr] = [(values[0] - from[attr][0]) / ms, 0, 0]
+              when "scale"
+                params[attr] = values
+                from[attr] = String(from[attr]).split(separator)
+                diff[attr] = [(values[0] - from[attr][0]) / ms, (values[1] - from[attr][1]) / ms, 0, 0]
+              when "clip-rect"
+                from[attr] = String(from[attr]).split(separator)
+                diff[attr] = []
+                i = 4
+                while i--
+                  diff[attr][i] = (values[i] - from[attr][i]) / ms
+            to[attr] = values
     this.stop()
     @in_animation = 1
     animationElements[this.id] =
@@ -2648,14 +2640,13 @@ Raphael = (->
        s.push(@items[i].clone())
       s
 
-  for method in Element.prototype
-    if Element.prototype.hasOwnProperty(method)
-      Set.prototype[method] = ((methodname) ->
-          (->
-            for i in [0..@items.length - 1]
-              @items[i][methodname].apply(@items[i], arguments)
-            this)
-      )(method)
+  for method, value of Element.prototype
+    Set.prototype[method] = ((methodname) ->
+        (->
+          for i in [0..@items.length - 1]
+            @items[i][methodname].apply(@items[i], arguments)
+          this)
+    )(method)
 
   R::registerFont = (font) ->
     return font if !font.face
@@ -2665,28 +2656,25 @@ Raphael = (->
       face: {}
       glyphs: {}
     family = font.face["font-family"]
-    for prop in font.face
-      if font.face.hasOwnProperty(prop)
-        fontcopy.face[prop] = font.face[prop]
+    for prop, value of font.face
+      fontcopy.face[prop] = font.face[prop]
     if @fonts[family]
       @fonts[family].push(fontcopy)
     else
       @fonts[family] = [fontcopy]
     if !font.svg
       fontcopy.face["units-per-em"] = parseInt(font.face["units-per-em"], 10)
-      for glyph in font.glyphs
-        if font.glyphs.hasOwnProperty(glyph)
-          path = font.glyphs[glyph]
-          fontcopy.glyphs[glyph] =
-            w: path.w,
-            k: {},
-            d: path.d && "M" + path.d.replace(/[mlcxtrv]/g, (command) ->
-                    { l: "L", c: "C", x: "z", t: "m", r: "l", v: "c" }[command] or "M"
-                ) + "z"
-          if path.k
-            for k in path.k
-              if path.hasOwnProperty(k)
-                fontcopy.glyphs[glyph].k[k] = path.k[k]
+      for glyph, value of font.glyphs
+        path = font.glyphs[glyph]
+        fontcopy.glyphs[glyph] =
+          w: path.w,
+          k: {},
+          d: path.d && "M" + path.d.replace(/[mlcxtrv]/g, (command) ->
+                  { l: "L", c: "C", x: "z", t: "m", r: "l", v: "c" }[command] or "M"
+              ) + "z"
+        if path.k
+          for k, value of path.k
+            fontcopy.glyphs[glyph].k[k] = path.k[k]
     font
 
   Paper::getFont = (family, weight, style, stretch) ->
@@ -2697,11 +2685,10 @@ Raphael = (->
     font = R.fonts[family]
     if !font
       name = new RegExp("(^|\\s)" + family.replace(/[^\w\d\s+!~.:_-]/g, "") + "(\\s|$)", "i")
-      for fontName in R.fonts
-        if R.fonts.hasOwnProperty(fontName)
-          if name.test(fontName)
-            font = R.fonts[fontName]
-            break
+      for fontName, value of R.fonts
+        if name.test(fontName)
+          font = R.fonts[fontName]
+          break
     if font
       for i in [0..font.length - 1]
         thefont = font[i]
