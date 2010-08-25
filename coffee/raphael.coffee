@@ -41,7 +41,7 @@ Raphael = (->
         a = arguments[0]
         cnv = create.apply(R, a.splice(0, 3 + R.is(a[0], "number")))
         res = cnv.set()
-        for i in [0..a.length - 1]
+        for i of a
           j = a[i] || {}
           elements.test(j.type) && res.push(cnv[j.type]().attr(j))
         return res
@@ -269,46 +269,48 @@ Raphael = (->
       my = y = pathArray[0][2]
       start++
       res.push ["M", x, y]
-    for i in [start..pathArray.length - 1]
-      r = res[i] = []
-      path = pathArray[i]
-      if path[0] != String.prototype.toLowerCase.call(path[0])
-        r[0] = String.prototype.toLowerCase.call(path[0])
-        switch r[0]
-          when "a"
-            r[1] = path[1]
-            r[2] = path[2]
-            r[3] = path[3]
-            r[4] = path[4]
-            r[5] = path[5]
-            r[6] = +(path[6] - x).toFixed(3)
-            r[7] = +(path[7] - y).toFixed(3)
-          when "v"
-            r[1] = +(path[1] - y).toFixed(3)
-          when "m"
-            mx = path[1]
-            my = path[2]
-          else
-            for j in [1..path.length - 1]
-              r[j] = +(path[j] - (if j % 2 then x else y)).toFixed(3)
-      else
-        if path[0] == "m"
-          mx = path[1] + x
-          my = path[2] + y
-        for k in [0..path.length - 1]
-          res[i][k] = path[k]
-      len = res[i].length
-      switch res[i][0]
-        when "z"
-          x = mx
-          y = my
-        when "h"
-          x += +res[i][len - 1]
-        when "v"
-          y += +res[i][len - 1]
+    for i of pathArray
+      if i >= start
+        r = res[i] = []
+        path = pathArray[i]
+        if path[0] != String.prototype.toLowerCase.call(path[0])
+          r[0] = String.prototype.toLowerCase.call(path[0])
+          switch r[0]
+            when "a"
+              r[1] = path[1]
+              r[2] = path[2]
+              r[3] = path[3]
+              r[4] = path[4]
+              r[5] = path[5]
+              r[6] = +(path[6] - x).toFixed(3)
+              r[7] = +(path[7] - y).toFixed(3)
+            when "v"
+              r[1] = +(path[1] - y).toFixed(3)
+            when "m"
+              mx = path[1]
+              my = path[2]
+            else
+              for j of path
+                if j >= 1
+                  r[j] = +(path[j] - (if j % 2 then x else y)).toFixed(3)
         else
-          x += +res[i][len - 2]
-          y += +res[i][len - 1]
+          if path[0] == "m"
+            mx = path[1] + x
+            my = path[2] + y
+          for k of path
+            res[i][k] = path[k]
+        len = res[i].length
+        switch res[i][0]
+          when "z"
+            x = mx
+            y = my
+          when "h"
+            x += +res[i][len - 1]
+          when "v"
+            y += +res[i][len - 1]
+          else
+            x += +res[i][len - 2]
+            y += +res[i][len - 1]
     res.toString = R._path2string
     res
   
@@ -322,48 +324,50 @@ Raphael = (->
       my = y = +pathArray[0][2]
       start++
       res[0] = ["M", x, y]
-    for i in [start..pathArray.length - 1]
-      r = res[i] = []
-      path = pathArray[i]
-      if path[0] != String.prototype.toUpperCase.call(path[0])
-        r[0] = String.prototype.toUpperCase.call(path[0])
-        switch r[0]
-          when "A"
-            r[1] = path[1]
-            r[2] = path[2]
-            r[3] = path[3]
-            r[4] = path[4]
-            r[5] = path[5]
-            r[6] = +(path[6] + x)
-            r[7] = +(path[7] + y)
-          when "V"
-            r[1] = +(path[1] + y)
-          when "H"
-            r[1] = +(path[1] + x)
-          when "M"
-            mx = +path[1] + x
-            my = +path[2] + y
-          else
-            for j in [1..path.length - 1]
-              r[j] = +path[j] + (if j % 2 then x else y)
-      else
-        for k in [0..path.length - 1]
-          res[i][k] = path[k]
-      len = res[i].length
-      switch r[0]
-        when "Z"
-          x = mx
-          y = my
-        when "H"
-          x = r[1]
-        when "V"
-          y = r[1]
-        when "M"
-          mx = res[i][len - 2]
-          my = res[i][len - 1]
+    for i of pathArray
+      if i >= start
+        r = res[i] = []
+        path = pathArray[i]
+        if path[0] != String.prototype.toUpperCase.call(path[0])
+          r[0] = String.prototype.toUpperCase.call(path[0])
+          switch r[0]
+            when "A"
+              r[1] = path[1]
+              r[2] = path[2]
+              r[3] = path[3]
+              r[4] = path[4]
+              r[5] = path[5]
+              r[6] = +(path[6] + x)
+              r[7] = +(path[7] + y)
+            when "V"
+              r[1] = +(path[1] + y)
+            when "H"
+              r[1] = +(path[1] + x)
+            else
+              if r[0] == "M"
+                mx = +path[1] + x
+                my = +path[2] + y
+              for j of path
+                if j >= 1
+                  r[j] = +path[j] + (if j % 2 then x else y)
         else
-          x = res[i][len - 2]
-          y = res[i][len - 1]
+          for k of path
+            res[i][k] = path[k]
+        len = res[i].length
+        switch r[0]
+          when "Z"
+            x = mx
+            y = my
+          when "H"
+            x = r[1]
+          when "V"
+            y = r[1]
+          when "M"
+            x = mx = res[i][len - 2]
+            y = my = res[i][len - 1]
+          else
+            x = res[i][len - 2]
+            y = res[i][len - 1]
     res.toString = R._path2string
     res
   
@@ -457,7 +461,7 @@ Raphael = (->
     else
       res = [m2, m3, m4].concat(res).join().split(",")
       newres = []
-      for i in [0..res.length - 1]
+      for i of res
         newres[i] = if i % 2 then rotate(res[i - 1], res[i], rad).y else rotate(res[i], res[i + 1], rad).x
       newres
   
@@ -556,7 +560,7 @@ Raphael = (->
         a1.x = path1[i][1]
         a1.y = path1[i][2]
         ii = Math.max(p.length, if p2? then p2.length else 0)
-    for i in [0..Math.max(p.length, if p2? then p2.length else 0)]
+    for i of Math.max(p.length, if p2? then p2.length else 0)
       p[i] = processPath(p[i], attrs)
       fixArc(p, i)
       p2[i] = processPath(p2[i], attrs2) if p2?
@@ -580,7 +584,7 @@ Raphael = (->
   # TODO: parseDots was originally cached
   parseDots = (gradient) ->
     dots = []
-    for i in [0..gradient.length - 1]
+    for i of gradient
       dot = {}
       par = gradient[i].match(/^([^:]*):?([\d\.]*)/)
       dot.color = R.getRGB(par[1])
@@ -588,22 +592,24 @@ Raphael = (->
       dot.color = dot.color.hex()
       dot.offset = par[2] + "%" if par[2]?
       dots.push(dot)
-    for i in [1..dots.length - 1]
-      if !dots[i].offset
-        start = parseFloat(dots[i - 1].offset || 0)
-        end = 0
-        for j in [i + 1..dots.length - 1]
-          if dots[j].offset
-            end = dots[j].offset
-            break
-        if !end
-          end = 100
-          j = dots.length - 1
-        end = parseFloat(end)
-        d = (end - start) / (j - i + 1)
-        for k in [i..j - 1]
-          start += d
-          dots[k].offset = start + "%"
+    for i of dots
+      if i >= 1
+        if !dots[i].offset
+          start = parseFloat(dots[i - 1].offset || 0)
+          end = 0
+          for j of dots
+            if j >= i + 1
+              if dots[j].offset
+                end = dots[j].offset
+                break
+          if !end
+            end = 100
+            j = dots.length - 1
+          end = parseFloat(end)
+          d = (end - start) / (j - i + 1)
+          for k in [i..j - 1]
+            start += d
+            dots[k].offset = start + "%"
     dots
   
   getContainer = (x, y, w, h) ->
@@ -621,7 +627,7 @@ Raphael = (->
   
   plugins = (con, add) ->
     that = this
-    for prop, value of add
+    for prop of add
       if !(prop in con)
         switch typeof add[prop]
           when "function"
@@ -748,7 +754,7 @@ Raphael = (->
       el.id = "r" + (R._id++).toString(36)
       $(el, if type == "radial" then { fx: fx, fy: fy } else { x1: vector[0], y1: vector[1], x2: vector[2], y2: vector[3] })
       SVG.defs.appendChild(el)
-      for i in [0..dots.length - 1]
+      for i of dots
         stop = $("stop")
         $(stop, { offset: (if dots[i].offset then dots[i].offset else if !i then "0%" else "100%")
         "stop-color": dots[i].color || "##fff" }
@@ -977,7 +983,7 @@ Raphael = (->
         while node.firstChild
           node.removeChild(node.firstChild)
         texts = String(params.text).split("\n")
-        for i in [0..texts.length - 1]
+        for i of texts
           if texts[i]
             tspan = $("tspan")
             $(tspan, { dy: fontSize * leading, x: a.x }) if i
@@ -985,7 +991,7 @@ Raphael = (->
             node.appendChild(tspan)
       else
         texts = node.getElementsByTagName("tspan")
-        for i in [0..texts.length - 1]
+        for i of texts
           $(texts[i], { dy: fontSize * leading, x: a.x }) if i
       $(node, { y: a.y })
       bb = el.getBBox()
@@ -1079,7 +1085,7 @@ Raphael = (->
           bbox = bbox || {}
         if @type == "text"
           bbox = { x: bbox.x, y: Infinity, width: 0, height: 0 }
-          for i in [0..@node.getNumberOfChars()]
+          for i of @node.getNumberOfChars()
             bb = @node.getExtentOfChar(i)
             bbox.y = bb.y if bb.y < bbox.y
             bbox.height = bb.y + bb.height - bbox.y if bb.y + bb.height - bbox.y > bbox.height
@@ -1091,7 +1097,7 @@ Raphael = (->
         return this if @removed
         if !name?
           res = {}
-          for i, value of @attrs
+          for i of @attrs
             res[i] = @attrs[i]
           res.rotation = this.rotate() if @_.rt.deg
           res.scale = this.scale() if @_.sx != 1 || @_.sy != 1
@@ -1111,7 +1117,7 @@ Raphael = (->
           return @attrs[name]
         if !value? and R.is(name, "array")
           values = {}
-          for j in [0..name.length - 1]
+          for j of name
             values[name[j]] = @attr(name[j])
           return values
         if value?
@@ -1299,12 +1305,13 @@ Raphael = (->
         res
       pa = command(path)
       res = []
-      for i in [0..pa.length - 1]
+      for i of pa
         p = pa[i]
         r = String.prototype.toLowerCase.call(pa[i][0])
         r = "x" if r == "z"
-        for j in [1..p.length - 1]
-          r += Math.round(p[j] * zoom) + (if j != p.length - 1 then "," else "")
+        for j of p
+          if j >= 1
+            r += Math.round(p[j] * zoom) + (if j != p.length - 1 then "," else "")
         res.push(r)
       res.join(" ")
 
@@ -1342,8 +1349,8 @@ Raphael = (->
       newpath = (params.x != a.x or params.y != a.y or params.width != a.width or params.height != a.height or params.r != a.r) and o.type == "rect"
       res = o
 
-      for att, value of params
-        a[att] = params[att] # TODO: This is same as value
+      for att of params
+        a[att] = params[att]
       if newpath
         a.path = rectPath(a.x, a.y, a.width, a.height, a.r)
         o.X = a.x
@@ -1512,7 +1519,7 @@ Raphael = (->
           fill.color = dots[0].color
           fill.color2 = dots[dots.length - 1].color
           clrs = []
-          for i in [0..dot.length - 1]
+          for i of dots
             clrs.push(dots[i].offset + S + dots[i].color) if dots[i].offset
           if fill.colors
             if clrs.length
@@ -1588,7 +1595,7 @@ Raphael = (->
         gs = this.Group.style
         os = (@shape and @shape.style) || @node.style
         params ?= {}
-        for i, value of params
+        for i of params
           @attrs[i] = params[i]
         cx ?= @_.rt.cx
         cy ?= @_.rt.cy
@@ -1686,7 +1693,7 @@ Raphael = (->
         return this if @removed
         if !name?
           res = {}
-          for i, value of @attrs
+          for i of @attrs
             res[i] = this.attrs[i];
           res.rotation = this.rotate() if @_.rt.deg
           res.scale = this.scale() if @_.sx != 1 || @_.sy != 1
@@ -1706,7 +1713,7 @@ Raphael = (->
             return @attrs[name]
         if @attrs and !value? and R.is(name, "array")
           values = {}
-          for i in [0..name.length - 1]
+          for i of name
             values[name[i]] = @attr(name[i])
           return values
         if value?
@@ -2158,7 +2165,7 @@ Raphael = (->
         when "path"
           path = pathToRelative(a.path)
           skip = true
-          for i in [0..path.length - 1]
+          for i of path
             p = path[i]
             P0 = String.prototype.toUpperCase.call(p[0])
             if P0 == "M" and skip
@@ -2172,14 +2179,17 @@ Raphael = (->
               p[2] *= diry * ky
               p[5] = +!(if dirx + diry then !+p[5] else +p[5])
             else if P0 == "H"
-              for j in [1..p.length - 1]
-                p[j] *= kx
+              for j of p
+                if j >= 1
+                  p[j] *= kx
             else if P0 == "V"
-              for j in [1..p.length - 1]
-                p[j] *= ky
+              for j of p
+                if j >= 1
+                  p[j] *= ky
             else
-              for j in [1..p.length - 1]
-                p[j] *= if j % 2 then kx else ky
+              for j of p
+                if j >= 1
+                  p[j] *= if j % 2 then kx else ky
           dim2 = pathDimensions(path)
           dx = ncx - dim2.x - dim2.width / 2
           dy = ncy - dim2.y - dim2.height / 2
@@ -2238,7 +2248,7 @@ Raphael = (->
       sp = ""
       subpaths = {}
       len = 0
-      for i in [0..path.length - 1]
+      for i of path
         p = path[i]
         if p[0] == "M"
           x = +p[1]
@@ -2355,7 +2365,7 @@ Raphael = (->
   animationElements = { length : 0 }
   animation = ->
     Now = +new Date
-    for l, value of animationElements
+    for l of animationElements
       if l != "length"
         e = animationElements[l]
         if e.stop or e.el.removed
@@ -2375,7 +2385,7 @@ Raphael = (->
         set = {}
         if time < ms
           pos = if R.easing_formulas[easing] then R.easing_formulas[easing](time / ms) else time / ms
-          for attr, value of from
+          for attr of from
             switch availableAnimAttrs[attr]
               when "along"
                 now = pos * ms * diff[attr]
@@ -2396,10 +2406,11 @@ Raphael = (->
                 ].join(",") + ")"
               when "path"
                 now = []
-                for i in [0..from[attr].length - 1]
+                for i of from[attr]
                   now[i] = [from[attr][i][0]]
-                  for j in [1..from[attr][i].length - 1]
-                    now[i][j] = +from[attr][i][j] + pos * ms * diff[attr][i][j]
+                  for j of from[attr][i]
+                    if j >= 1
+                      now[i][j] = +from[attr][i][j] + pos * ms * diff[attr][i][j]
                   now[i] = now[i].join(" ")
                 now = now.join(" ")
               when "csv"
@@ -2512,10 +2523,11 @@ Raphael = (->
             from[attr] = pathes[0]
             toPath = pathes[1]
             diff[attr] = []
-            for i in [0..from[attr].length - 1]
+            for i of from[attr]
               diff[attr][i] = [0];
-              for j in [1..from[attr][i].length - 1]
-                diff[attr][i][j] = (toPath[i][j] - from[attr][i][j]) / ms
+              for j of from[attr][i]
+                if j >= 1
+                  diff[attr][i][j] = (toPath[i][j] - from[attr][i][j]) / ms
           when "csv"
             values = String(params[attr]).split(separator)
             from2 = String(from[attr]).split(separator)
@@ -2571,13 +2583,13 @@ Raphael = (->
       @length = 0
       @type = "set"
       if items
-        for i in [0..items.length - 1]
+        for i of items
           if items[i] and (items[i].constructor == Element or items[i].constructor == Set)
             @[@items.length] = @items[@items.length] = items[i]
             @length++
   
     push: ->
-      for i in [0..arguments.length -1]
+      for i of arguments
         item = arguments[i];
         if item and (item.constructor == Element or item.constructor == Set)
           len = @items.length
@@ -2591,10 +2603,10 @@ Raphael = (->
 
     attr: (name, value) ->
       if name and R.is(name, "array") and R.is(name[0], "object")
-        for j in [0..name.length - 1]
+        for j of name
           @items[j].attr(name[j])
       else
-        for i in [0..@items.length - 1]
+        for i of @items
           @items[i].attr(name, value)
       this
   
@@ -2637,14 +2649,14 @@ Raphael = (->
   
     clone: (s) ->
       s = new Set
-      for i in [0..@items.length - 1]
+      for i of @items
        s.push(@items[i].clone())
       s
 
-  for method, value of Element.prototype
+  for method of Element.prototype
     Set.prototype[method] = ((methodname) ->
         (->
-          for i in [0..@items.length - 1]
+          for i of @items
             @items[i][methodname].apply(@items[i], arguments)
           this)
     )(method)
@@ -2657,7 +2669,7 @@ Raphael = (->
       face: {}
       glyphs: {}
     family = font.face["font-family"]
-    for prop, value of font.face
+    for prop of font.face
       fontcopy.face[prop] = font.face[prop]
     if @fonts[family]
       @fonts[family].push(fontcopy)
@@ -2665,7 +2677,7 @@ Raphael = (->
       @fonts[family] = [fontcopy]
     if !font.svg
       fontcopy.face["units-per-em"] = parseInt(font.face["units-per-em"], 10)
-      for glyph, value of font.glyphs
+      for glyph of font.glyphs
         path = font.glyphs[glyph]
         fontcopy.glyphs[glyph] =
           w: path.w,
@@ -2674,7 +2686,7 @@ Raphael = (->
                   { l: "L", c: "C", x: "z", t: "m", r: "l", v: "c" }[command] or "M"
               ) + "z"
         if path.k
-          for k, value of path.k
+          for k of path.k
             fontcopy.glyphs[glyph].k[k] = path.k[k]
     font
 
@@ -2686,12 +2698,12 @@ Raphael = (->
     font = R.fonts[family]
     if !font
       name = new RegExp("(^|\\s)" + family.replace(/[^\w\d\s+!~.:_-]/g, "") + "(\\s|$)", "i")
-      for fontName, value of R.fonts
+      for fontName of R.fonts
         if name.test(fontName)
           font = R.fonts[fontName]
           break
     if font
-      for i in [0..font.length - 1]
+      for i of font
         thefont = font[i]
         if thefont.face["font-weight"] == weight and (thefont.face["font-style"] == style or !thefont.face["font-style"]) and thefont.face["font-stretch"] == stretch
           break
@@ -2709,7 +2721,7 @@ Raphael = (->
       bb = font.face.bbox.split(separator)
       top = +bb[0]
       height = +bb[1] + (if origin == "baseline" then bb[3] - bb[1] + (+font.face.descent) else (bb[3] - bb[1]) / 2)
-      for i in [0..letters.length - 1]
+      for i of letters
         prev = i and font.glyphs[letters[i - 1]] or {}
         curr = font.glyphs[letters[i]]
         shift += if i then (prev.w or font.w) + (prev.k and prev.k[letters[i]] or 0) else 0
