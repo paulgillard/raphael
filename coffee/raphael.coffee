@@ -166,11 +166,11 @@ Raphael = (->
   R.getColor = (value) ->
     start = @getColor.start = @getColor.start || new HSB(0, 1, value || 0.75)
     rgb = start.toRGB()
-    start.h += 0.075
-    if start.h > 1
-      start.h = 0
-      start.s -= .2
-      @getColor.start = new HSB(0, 1, start.b) if start.s <= 0
+    start.hue += 0.075
+    if start.hue > 1
+      start.hue = 0
+      start.saturation -= .2
+      @getColor.start = new HSB(0, 1, start.brightness) if start.saturation <= 0
     rgb.hex()
 
   R.getColor.reset = ->
