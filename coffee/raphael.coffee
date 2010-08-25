@@ -2186,7 +2186,8 @@ Raphael = (->
           path[0][1] += dx
           path[0][2] += dy
           @attr { path: path }
-      if @type in { text: 1, image: 1 } and (dirx != 1 or diry != 1)
+      # TODO: Array find would be good
+      if (@type == "text" or @type == "image") and (dirx != 1 or diry != 1)
           if @transformations
             @transformations[2] = "scale(".concat(dirx, ",", diry, ")")
             @node.setAttribute("transform", this.transformations.join(" "))
