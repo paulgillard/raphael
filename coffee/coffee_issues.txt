@@ -13,3 +13,21 @@ instead of
 res.paper.span.innerHTML = String(res.node.string).replace(/</g, "&#60;").replace(/&/g, "&#38;").replace(/\n/g, "<br>") if res.node.string
 
 -----------------------------
+
+when defining
+
+for index of variable
+  alert index
+
+we aren't asking for the value to be populated so why does the output return
+
+var _a, _b, index;
+var __hasProp = Object.prototype.hasOwnProperty;
+_b = variable;
+for (index in _b) {
+  if (!__hasProp.call(_b, index)) continue;
+  _a = _b[index];
+  alert(index);
+}
+
+why is _a needed?
