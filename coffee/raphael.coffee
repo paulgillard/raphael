@@ -1,9 +1,9 @@
 ###
-Raphael 1.4.7 - JavaScript Vector Library
+Raphael 1.5.2 - JavaScript Vector Library
 
 Copyright (c) 2010 Dmitry Baranovskiy (http://raphaeljs.com)
 CoffeeScript conversion by Paul Gillard
-Licensed under the MIT (http://www.opensource.org/licenses/mit-license.php) license.
+Licensed under the MIT (http://raphaeljs.com/license.html) license.
 ###
 
 functionCacher = (expensiveFunction, scope, postprocessor) ->
@@ -22,14 +22,29 @@ functionCacher = (expensiveFunction, scope, postprocessor) ->
 
 Raphael = (->
   separator = /[, ]+/
+  elements = { circle: 1, rect: 1, path: 1, ellipse: 1, text: 1, image: 1 }
   events = ["click", "dblclick", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup", "touchstart", "touchmove", "touchend", "orientationchange", "touchcancel", "gesturestart", "gesturechange", "gestureend"]
   availableAttrs = { blur: 0, "clip-rect": "0 0 1e9 1e9", cursor: "default", cx: 0, cy: 0, fill: "#fff", "fill-opacity": 1, font: '10px "Arial"', "font-family": '"Arial"', "font-size": "10", "font-style": "normal", "font-weight": 400, gradient: 0, height: 0, href: "http://Rjs.com/", opacity: 1, path: "M0,0", r: 0, rotation: 0, rx: 0, ry: 0, scale: "1 1", src: "", stroke: "#000", "stroke-dasharray": "", "stroke-linecap": "butt", "stroke-linejoin": "butt", "stroke-miterlimit": 0, "stroke-opacity": 1, "stroke-width": 1, target: "_blank", "text-anchor": "middle", title: "R", translation: "0 0", width: 0, x: 0, y: 0 }
   availableAnimAttrs = { along: "along", blur: "number", "clip-rect": "csv", cx: "number", cy: "number", fill: "colour", "fill-opacity": "number", "font-size": "number", height: "number", opacity: "number", path: "path", r: "number", rotation: "csv", rx: "number", ry: "number", scale: "csv", stroke: "colour", "stroke-opacity": "number", "stroke-width": "number", translation: "csv", width: "number", x: "number", y: "number" }
   ISURL = /^url\(['"]?([^\)]+?)['"]?\)$/i
   radial_gradient = /^r(?:\(([^,]+?)\s*,\s*([^\)]+?)\))?/
+  isnan = { "NaN": 1, "Infinity": 1, "-Infinity": 1 }
+  bezierrg = /^(?:cubic-)?bezier\(([^,]+),([^,]+),([^,]+),([^\)]+)\)/
+  animKeyFrames= /^(from|to|\d+%?)$/
+  commaSpaces = /\s*,\s*/
+  hsrg = { hs: 1, rg:  1}
+  p2s = /,?([achlmqrstvxz]),?/gi
+  pathCommand = /([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig
+  pathValues = /(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig
+  radial_gradient = /^r(?:\(([^,]+?)\s*,\s*([^\)]+?)\))?/
+  sortByKey = (a, b) ->
+    a.key - b.key
+  oldRaphael =
+    was: Object.prototype.hasOwnProperty.call(window, "Raphael")
+    is: window.Raphael
 
   class R
-    @version: '1.4.7'
+    @version: '1.5.2'
     @hsrg: { hs: 1, rg: 1 }
     @_oid: 0
     @_id: 0
@@ -43,7 +58,7 @@ Raphael = (->
         res = cnv.set()
         for i of a
           j = a[i] || {}
-          elements.test(j.type) && res.push(cnv[j.type]().attr(j))
+          elements.hasOwnProperty(j.type) && res.push(cnv[j.type]().attr(j))
         return res
       # TODO: Typically a contructor should return this
       return create.apply(R, arguments)
@@ -56,37 +71,92 @@ Raphael = (->
 
     @is: (object, type) ->
       type: String.prototype.toLowerCase.call(type)
-      (type == "object" && object == Object(object)) ||
-      (type == "undefined" && typeof object == type) ||
-      (type == "null" && object == null) ||
-      (type == "array" && Array.isArray && Array.isArray(object)) ||
-      String.prototype.toLowerCase.call(Object.prototype.toString.call(object).slice(8, -1)) == type
+      if type == "finite"
+        return !isnan.hasOwnProperty(+object)
+      (type == "null" and object == null) ||
+      (type == typeof object) ||
+      (type == "object" and object == Object(object)) ||
+      (type == "array" and Array.isArray and Array.isArray(object)) ||
+      Object.prototype.toString.call(object).slice(8, -1).toLowerCase() == type
 
-  toHex = (colour) ->
+  # colour utilities
+  toHex = (color) ->
     if this.type() == "VML"
-      colour = String(colour).replace(/^\s+|\s+$/g, "")
+      # http://dean.edwards.name/weblog/2009/10/convert-any-colour-value-to-hex-in-msie/
+      trim = /^\s+|\s+$/g
       try
-        temporaryDocument = new window.ActiveXObject("htmlfile")
-        temporaryDocument.write "<" + "body>"
-        temporaryDocument.close()
-        temporaryBody = temporaryDocument.body
+        docum = new ActiveXObject("htmlfile")
+        docum.write("<body>")
+        docum.close()
+        bod = docum.body
       catch error
-        temporaryBody = window.createPopup().document.body
-      range = temporaryBody.createTextRange()
-      try
-        temporaryBody.style.color = colour
-        value = range.queryCommandValue("ForeColor")
-        value = ((value & 255) << 16) | (value & 65280) | ((value & 16711680) >>> 16)
-        return "#" + ("000000" + value.toString(16)).slice(-6)
-      catch error
-        return "none"
+        bod = createPopup().document.body
+      range = bod.createTextRange()
+      toHex = functionCacher((color) ->
+        try
+          bod.style.color = String(color).replace(trim, "")
+          value = range.queryCommandValue("ForeColor")
+          value = ((value & 255) << 16) | (value & 65280) | ((value & 16711680) >>> 16)
+          return "#" + ("000000" + value.toString(16)).slice(-6)
+        catch error
+          return "none"
+      )
     else
       i = document.createElement("i")
       i.title = "Rapha\xebl Colour Picker"
       i.style.display = "none"
       document.body.appendChild(i)
-      i.style.color = colour
-      return document.defaultView.getComputedStyle(i, "").getPropertyValue("color")
+      toHex = functionCacher((color) ->
+        i.style.color = color
+        document.defaultView.getComputedStyle(i, "").getPropertyValue("color")
+      )
+    toHex(color)
+
+  R.angle = (x1, y1, x2, y2, x3, y3) ->
+    if x3 == null
+      x = x1 - x2
+      y = y1 - y2
+      if !x and !y
+        return 0
+      ((x < 0) * 180 + math.atan(-y / -x) * 180 / PI + 360) % 360
+    else
+      R.angle(x1, y1, x3, y3) - R.angle(x2, y2, x3, y3)
+
+  R.rad = (deg) ->
+    deg % 360 * PI / 180
+
+  R.deg = (rad) ->
+    rad * 180 / PI % 360
+
+  R.snapTo = (values, value, tolerance) ->
+    tolerance = if R.is(tolerance, "finite") then tolerance else 10
+    if R.is(values, array)
+      i = values.length
+      while i--
+        if (abs(values[i] - value) <= tolerance)
+          return values[i]
+    else
+      values = +values
+      rem = value % values
+      if rem < tolerance
+        return value - rem
+      if rem > values - tolerance
+        return value - rem + values
+    value
+
+  createUUID = ->
+    # http://www.ietf.org/rfc/rfc4122.txt
+    s = []
+    i = 0
+    for i in [0..31]
+      s[i] = (~~(math.random() * 16))[toString](16)
+    s[12] = 4 # bits 12-15 of the time_hi_and_version field to 0010
+    s[16] = ((s[16] & 3) | 8)[toString](16) # bits 6-7 of the clock_seq_hi_and_reserved to 01
+    "r-" + s[join]("")
+
+  R.setWindow = (newwin) ->
+    win = newwin
+    doc = win.document
 
   # TODO: This should go on the string prototype
   R.getRGB = (colour) ->
@@ -94,12 +164,12 @@ Raphael = (->
       return new RGB(-1, -1, -1).isError()
     if colour == "none"
       return new RGB(-1, -1, -1)
-    !(R.hsrg.hasOwnProperty(colour.substring(0, 2)) or colour.charAt() == "#") and (colour = this.toHex(colour))
-    colourRegExp = /^\s*((#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+\s*,\s*[\d\.]+\s*,\s*[\d\.]+(?:\s*,\s*[\d\.]+)?)\s*\)|rgba?\(\s*([\d\.]+%\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%(?:\s*,\s*[\d\.]+%)?)\s*\)|hsb\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)|hsb\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\)|hsl\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)|hsl\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\))\s*$/i
+    !(R.hsrg.hasOwnProperty(colour.toLowerCase().substring(0, 2)) or colour.charAt() == "#") and (colour = this.toHex(colour))
+    colourRegExp = /^\s*((#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\))\s*$/i
     commaSpaces = /\s*,\s*/
     rgb = colour.match(colourRegExp)
     if rgb?
-      # (#[a-f\d]{6})
+      # #[a-f\d]{6}
       # 
       # #a13f2c
       if rgb[2]
@@ -109,58 +179,71 @@ Raphael = (->
       # #a2f
       if rgb[3]
         return new RGB(parseInt((t = rgb[3].charAt(1)) + t, 16), parseInt((t = rgb[3].charAt(2)) + t, 16), parseInt((t = rgb[3].charAt(3)) + t, 16))
-      # rgba?\(\s*([\d\.]+\s*,\s*[\d\.]+\s*,\s*[\d\.]+(?:\s*,\s*[\d\.]+)?)\s*\)
+      # rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)
       # 
-      # rgba(0.3, 0.4, 0.9)
+      # rgb(0.3, 0.4, 0.9)
       # rgba(0.3, 0.4, 0.9, 0.2)
-      if rgb[4]
-        rgbo = rgb[4].split(commaSpaces)
-        return new RGB(parseFloat(rgbo[0]), parseFloat(rgbo[1]), parseFloat(rgbo[2]), parseFloat(rgbo[3]))
-      # rgba?\(\s*([\d\.]+%\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%(?:\s*,\s*[\d\.]+%)?)\s*\)
-      # 
+      # rgb(30%, 40%, 90%)
       # rgba(30%, 40%, 90%, 20%)
-      # rgba(30%, 40%, 90%)
+      if rgb[4]
+        values = rgb[4].split(commaSpaces)
+        red = parseFloat(values[0])
+        red *= 2.55 if values[0].slice(-1) == "%"
+        green = parseFloat(values[1])
+        green *= 2.55 if values[1].slice(-1) == "%"
+        blue = parseFloat(values[2])
+        blue *= 2.55 if values[2].slice(-1) == "%"
+        opacity = parseFloat(values[3]) if rgb[1].toLowerCase().slice(0, 4) == "rgba"
+        opacity /= 100 if values[3] and values[3].slice(-1) == "%"
+        return new RGB(red, green, blue, opacity)
+      # hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)
+      # 
+      # hsb(30deg, 0.8, 0.7, 0.2)
+      # hsb(30°, 0.8, 0.7, 0.2)
+      # hsb(3.3%, 80%, 70%, 20%)
+      # hsb(30°, 80%, 70%, 20%)
+      # hsb(30deg, 80%, 70%, 20%)
+      # hsba(30deg, 0.8, 0.7, 0.2)
+      # hsba(30°, 0.8, 0.7, 0.2)
+      # hsba(3.3%, 80%, 70%, 20%)
+      # hsba(30°, 80%, 70%, 20%)
+      # hsba(30deg, 80%, 70%, 20%)
       if rgb[5]
-        rgbo = rgb[5].split(commaSpaces)
-        return new RGB(parseFloat(rgbo[0]) * 2.55, parseFloat(rgbo[1]) * 2.55, parseFloat(rgbo[2]) * 2.55, parseFloat(rgbo[3]))
-      # hsb\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)
-      # 
-      # hsb(30deg, 0.8, 0.7)
-      # hsb(30°, 0.8, 0.7)
-      if rgb[6]
-        rgb = rgb[6].split(commaSpaces)
-        red = parseFloat(rgb[0])
-        (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360)
-        return new HSB(red, parseFloat(rgb[1]), parseFloat(rgb[2])).toRGB()
-      # hsb\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\)
-      # 
-      # hsb(3.3%, 80%, 70%)
-      # hsb(30°, 80%, 70%)
-      # hsb(30deg, 80%, 70%)
-      if rgb[7]
-        rgb = rgb[7].split(commaSpaces)
-        red = parseFloat(rgb[0]) * 2.55
-        (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360 * 2.55)
-        return new HSB(red, parseFloat(rgb[1]) * 2.55, parseFloat(rgb[2]) * 2.55).toRGB()
-      # hsl\(\s*([\d\.]+(?:deg|\xb0)?\s*,\s*[\d\.]+\s*,\s*[\d\.]+)\s*\)
+        values = rgb[5].split(commaSpaces)
+        hue = parseFloat(values[0])
+        hue *= 2.55 if values[0].slice(-1) == "%"
+        saturation = parseFloat(values[1])
+        saturation *= 2.55 if values[1].slice(-1) == "%"
+        brightness = parseFloat(values[2])
+        brightness *= 2.55 if values[2].slice(-1) == "%"
+        hue /= 360 if values[0].slice(-3) == "deg" or values[0].slice(-1) == "\xb0"
+        opacity = parseFloat(values[3]) if rgb[1].toLowerCase().slice(0, 4) == "hsba"
+        opacity /= 100 if values[3] and values[3].slice(-1) == "%"
+        return new HSB(hue, saturation, brightness).toRGB(opacity)
+      # hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\))\s*$/i
       # 
       # hsl(30deg, 0.8, 0.7)
       # hsl(30°, 0.8, 0.7)
-      if rgb[8]
-        rgb = rgb[8].split(commaSpaces)
-        red = parseFloat(rgb[0])
-        (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360)
-        return new HSL(red, parseFloat(rgb[1]), parseFloat(rgb[2])).toRGB()
-      # hsl\(\s*([\d\.]+(?:deg|\xb0|%)\s*,\s*[\d\.]+%\s*,\s*[\d\.]+%)\s*\)
-      # 
+      # hsla(30deg, 0.8, 0.7, 0.2)
+      # hsla(30°, 0.8, 0.7, 0.2)
       # hsl(8.3%, 80%, 70%)
       # hsl(30°, 80%, 70%)
       # hsl(30deg, 80%, 70%)
-      if rgb[9]
-        rgb = rgb[9].split(commaSpaces)
-        red = parseFloat(rgb[0]) * 2.55
-        (rgb[0].slice(-3) == "deg" || rgb[0].slice(-1) == "\xb0") && (red /= 360 * 2.55)
-        return new HSL(red, parseFloat(rgb[1]) * 2.55, parseFloat(rgb[2]) * 2.55).toRGB()
+      # hsla(8.3%, 80%, 70%, 20%)
+      # hsla(30°, 80%, 70%, 20%)
+      # hsla(30deg, 80%, 70%, 20%)
+      if rgb[6]
+        values = rgb[6].split(commaSpaces)
+        hue = parseFloat(values[0])
+        hue *= 2.55 if values[0].slice(-1) == "%"
+        saturation = parseFloat(values[1])
+        saturation *= 2.55 if values[1].slice(-1) == "%"
+        lightness = parseFloat(values[2])
+        lightness *= 2.55 if values[2].slice(-1) == "%"
+        hue /= 360 if values[0].slice(-3) == "deg" or values[0].slice(-1) == "\xb0"
+        opacity = parseFloat(values[3]) if rgb[1].toLowerCase().slice(0, 4) == "hsla"
+        opacity /= 100 if values[3] and values[3].slice(-1) == "%"
+        return new HSL(hue, saturation, lightness).toRGB(opacity)
     new RGB(-1, -1, -1).isError()
 
   R.getColor = (value) ->
@@ -178,7 +261,7 @@ Raphael = (->
 
   R._path2string = ->
     this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
-  
+ 
   pathCommand = /([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig
   pathValues = /(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig
   
@@ -416,8 +499,8 @@ Raphael = (->
               Math.sqrt(Math.abs((rx2 * ry2 - rx2 * y * y - ry2 * x * x) / (rx2 * y * y + ry2 * x * x)))
       cx = k * rx * y / ry + (x1 + x2) / 2
       cy = k * -ry * x / rx + (y1 + y2) / 2
-      f1 = Math.asin(((y1 - cy) / ry).toFixed(7))
-      f2 = Math.asin(((y2 - cy) / ry).toFixed(7))
+      f1 = Math.asin(((y1 - cy) / ry).toFixed(9))
+      f2 = Math.asin(((y2 - cy) / ry).toFixed(9))
       f1 = if x1 < cx then PI - f1 else f1
       f2 = if x2 < cx then PI - f2 else f2
       if f1 < 0
@@ -480,8 +563,8 @@ Raphael = (->
     t2 = (-b - Math.sqrt(b * b - 4 * a * c)) / 2 / a
     y = [p1y, p2y]
     x = [p1x, p2x]
-    t1 = 0.5 if Math.abs(t1) > 1e12
-    t2 = 0.5 if Math.abs(t2) > 1e12
+    t1 = 0.5 if Math.abs(t1) > "1e12"
+    t2 = 0.5 if Math.abs(t2) > "1e12"
     if t1 > 0 and t1 < 1
       dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1)
       x.push(dot.x)
@@ -495,8 +578,8 @@ Raphael = (->
     c = p1y - c1y
     t1 = (-b + Math.sqrt(b * b - 4 * a * c)) / 2 / a
     t2 = (-b - Math.sqrt(b * b - 4 * a * c)) / 2 / a
-    t1 = 0.5 if Math.abs(t1) > 1e12
-    t2 = 0.5 if Math.abs(t2) > 1e12
+    t1 = 0.5 if Math.abs(t1) > "1e12"
+    t2 = 0.5 if Math.abs(t2) > "1e12"
     if t1 > 0 and t1 < 1
       dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1)
       x.push(dot.x)
@@ -691,6 +774,9 @@ Raphael = (->
     @svgNamespace: "http://www.w3.org/2000/svg"
     @xLinkNamespace: "http://www.w3.org/1999/xlink"
 
+    constructor :->
+      @customAttributes = {}
+
   if R.type == "SVG"
     $ = (el, attr) ->
       if attr
@@ -751,7 +837,7 @@ Raphael = (->
       id = id.match /^url\(#(.*)\)$/
       SVG.defs.removeChild(document.getElementById(id[1])) if id
       el = $(type + "Gradient")
-      el.id = "r" + (R._id++).toString(36)
+      el.id = createUUID()
       $(el, if type == "radial" then { fx: fx, fy: fy } else { x1: vector[0], y1: vector[1], x2: vector[2], y2: vector[3] })
       SVG.defs.appendChild(el)
       for i of dots
@@ -811,7 +897,10 @@ Raphael = (->
               pn.insertBefore(hl, node)
               hl.appendChild(node)
               pn = hl
-            pn.setAttributeNS(Paper.xLinkNamespace, att, value)
+            if att == "target" and value == "blank"
+              pn.setAttributeNS(Paper.xLinkNamespace, "show", "new")
+            else
+              pn.setAttributeNS(Paper.xLinkNamespace, att, value)
           when "cursor"
             node.style.cursor = value
           when "clip-rect"
@@ -820,7 +909,7 @@ Raphael = (->
               o.clip && o.clip.parentNode.parentNode.removeChild(o.clip.parentNode)
               el = $("clipPath")
               rc = $("rect")
-              el.id = "r" + (R._id++).toString(36)
+              el.id = createUUID()
               $(rc,
                   x: rect[0]
                   y: rect[1]
@@ -899,7 +988,7 @@ Raphael = (->
             if isURL
               el = $("pattern")
               ig = $("image")
-              el.id = "r" + (R._id++).toString(36)
+              el.id = createUUID()
               $(el, { x: 0, y: 0, patternUnits: "userSpaceOnUse", height: 1, width: 1 })
               $(ig, { x: 0, y: 0 })
               ig.setAttributeNS(Paper.xLinkNamespace, "href", isURL[1])
@@ -928,22 +1017,41 @@ Raphael = (->
                   $(node, { opacity: attrs.opacity })
                 if !R.is(attrs["fill-opacity"], "undefined") and R.is(params["fill-opacity"], "undefined")
                   $(node, { "fill-opacity": attrs["fill-opacity"] })
-                $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
+                if clr.hasOwnProperty("opacity")
+                  $(node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
                 node.setAttribute(att, clr.hex())
               else if (({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper)
                 attrs.gradient = value
                 attrs.fill = "none"
               else
-                $(node, { "fill-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if clr.hasOwnProperty("o")
+                if clr.hasOwnProperty("opacity")
+                  $(node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
                 node.setAttribute(att, clr.hex())
           when "stroke"
             clr = R.getRGB(value)
             node.setAttribute(att, clr.hex())
-            $(node, { "stroke-opacity": if clr.o > 1 then clr.o / 100 else clr.o }) if att == "stroke" and clr.hasOwnProperty("o")
+            if clr.hasOwnProperty("opacity")
+              $(node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
           when "gradient"
             if ({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r"
               addGradientFill(node, value, o.paper)
-          when "opacity", "fill-opacity"
+          when "opacity"
+            if attrs.gradient and attrs.hasOwnProperty("stroke-opacity")
+              $(node, { "stroke-opacity": if value > 1 then value / 100 else value })
+            if attrs.gradient
+              gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, ""))
+              if gradient
+                stops = gradient.getElementsByTagName("stop")
+                stops[stops.length - 1].setAttribute("stop-opacity", value)
+            else
+              value = parseInt(value, 10) + "px" if att == "font-size"
+              cssrule = att.replace(/(\-.)/g, (w) ->
+                String.prototype.toUpperCase.call(w.substring(1))
+              )
+              node.style[cssrule] = value
+              # Need following line for Firefox
+              node.setAttribute(att, value)
+          when "fill-opacity"
             if attrs.gradient
               gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, ""))
               if gradient
@@ -996,7 +1104,7 @@ Raphael = (->
       $(node, { y: a.y })
       bb = el.getBBox()
       dif = a.y - (bb.y + bb.height / 2)
-      $(node, { y: a.y + dif }) if dif and isFinite(dif)
+      $(node, { y: a.y + dif }) if dif and R.is(dif, "finite")
 
     class Element
       constructor: (node, svg) ->
@@ -1034,7 +1142,7 @@ Raphael = (->
           cx = parseFloat(deg[1])
           cy = parseFloat(deg[2])
         deg = parseFloat(deg[0])
-        if cx != null
+        if cx != null and cx != false
           @_.rt.deg = deg
         else
           @_.rt.deg += deg
@@ -1123,9 +1231,15 @@ Raphael = (->
         if value?
           params = {}
           params[name] = value
-          setFillAndStroke(this, params)
         else if name? and R.is(name, "object")
-          setFillAndStroke(this, name)
+          params = name
+        for key of @paper.customAttributes
+          if params.hasOwnProperty(key) and R.is(@paper.customAttributes[key], "function")
+            par = @paper.customAttributes[key].apply(this, [][concat](params[key]))
+            @attrs[key] = params[key]
+            for subkey of par
+              params[subkey] = par[subkey]
+        setFillAndStroke(this, params)
         this
 
       toFront: ->
@@ -1145,7 +1259,7 @@ Raphael = (->
 
       insertAfter: (element) ->
         return this if @removed
-        node = element.node || element[element.length].node
+        node = element.node || element[element.length - 1].node
         if node.nextSibling
           node.parentNode.insertBefore(@node, node.nextSibling)
         else
@@ -1166,7 +1280,7 @@ Raphael = (->
           fltr = $("filter")
           blur = $("feGaussianBlur")
           @attrs.blur = size
-          fltr.id = "r" + (R._id++).toString(36)
+          fltr.id = createUUID()
           $(blur, { stdDeviation: +size || 1.5 })
           fltr.appendChild(blur)
           @paper.defs.appendChild(fltr)
@@ -1333,7 +1447,6 @@ Raphael = (->
       p = new Element(el, g, vml)
       attr = { fill: "none", stroke: "#000" }
       attr.path = pathString if pathString
-      p.isAbsolute = true
       p.type = "path"
       p.path = []
       p.Path = ""
@@ -1413,8 +1526,7 @@ Raphael = (->
         newfill = fill = createNode("fill") if !fill
         if "fill-opacity" in params or "opacity" in params
           opacity = ((+a["fill-opacity"] + 1 or 2) - 1) * ((+a.opacity + 1 or 2) - 1) * ((+R.getRGB(params.fill).o + 1 or 2) - 1)
-          opacity = 0 if opacity < 0
-          opacity = 1 if opacity > 1
+          opacity = Math.min(Math.max(opacity, 0), 1)
           fill.opacity = opacity
         fill.on = true if params.fill
         if fill.on == null or params.fill == "none"
@@ -1441,8 +1553,7 @@ Raphael = (->
         stroke.color = strokeColor.hex() if stroke.on and params.stroke
         opacity = ((+a["stroke-opacity"] + 1 or 2) - 1) * ((+a.opacity + 1 or 2) - 1) * ((+strokeColor.o + 1 or 2) - 1)
         width = (parseFloat(params["stroke-width"]) or 1) * 0.75
-        opacity = 0 if opacity < 0
-        opacity = 1 if opacity > 1
+        opacity = Math.min(Math.max(opacity, 0), 1)
         width = a["stroke-width"] if params["stroke-width"] == null
         stroke.weight = width if params["stroke-width"]
         opacity *= width if width and width < 1
@@ -1721,6 +1832,12 @@ Raphael = (->
           params[name] = value
         params = name if !value? and R.is(name, "object")
         if params
+          for key of @paper.customAttributes
+            if params.hasOwnProperty(key) and R.is(@paper.customAttributes[key], "function")
+              par = @paper.customAttributes[key].apply(this, [][concat](params[key]))
+              @attrs[key] = params[key]
+              for subkey of par
+                params[subkey] = par[subkey]
           if params.text and @type == "text"
             @node.string = params.text
           setFillAndStroke(this, params)
@@ -1743,7 +1860,7 @@ Raphael = (->
       insertAfter: (element) ->
         return this if @removed
         if element.constructor == Set
-          element = element[element.length]
+          element = element[element.length - 1]
         if element.Group.nextSibling
           element.Group.parentNode.insertBefore(@Group, element.Group.nextSibling)
         else
@@ -1832,7 +1949,6 @@ Raphael = (->
     R::theImage = (vml, src, x, y, w, h) ->
       g = createNode("group")
       o = createNode("image")
-      ol = o.style
       g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
       g.coordsize = coordsize
       g.coordorigin = vml.coordorigin
@@ -1925,7 +2041,7 @@ Raphael = (->
       res.span = document.createElement("span")
       res.span.style.cssText = "position:absolute;left:-9999em;top:-9999em;padding:0;margin:0;line-height:1;display:inline;"
       c.appendChild(res.span)
-      cs.cssText = R.format("width:{0};height:{1};display:inline-block;position:relative;clip:rect(0 {0} {1} 0);overflow:hidden", width, height)
+      cs.cssText = R.format("top:0;left:0;width:{0};height:{1};display:inline-block;position:relative;clip:rect(0 {0} {1} 0);overflow:hidden", width, height)
       if container == 1
         document.body.appendChild(c)
         cs.left = x + "px"
@@ -1953,7 +2069,8 @@ Raphael = (->
       true
 
   # WebKit rendering bug workaround method
-  if ((navigator.vendor == "Apple Computer, Inc.") and (navigator.userAgent.match(/Version\/(.*?)\s/)[1] < 4 or window.navigator.platform.slice(0, 2) == "iP"))
+  version = navigator.userAgent.match(/Version\/(.*?)\s/)
+  if (navigator.vendor == "Apple Computer, Inc.") and (version and version[1] < 4 or navigator.platform.slice(0, 2) == "iP")
     Paper::safari = ->
       rect = @rect(-99, -99, @width + 99, @height + 99).attr({ stroke: "none" })
       window.setTimeout(->
@@ -2011,6 +2128,8 @@ Raphael = (->
   dragMove = (e) ->
     x = e.clientX
     y = e.clientY
+    scrollY = doc.documentElement.scrollTop or doc.body.scrollTop
+    scrollX = doc.documentElement.scrollLeft or doc.body.scrollLeft
     j = drag.length
     while j--
       dragi = drag[j]
@@ -2025,23 +2144,25 @@ Raphael = (->
             break
       else
         e.preventDefault()
-      dragi.move.call(dragi.el, x - dragi.el._drag.x, y - dragi.el._drag.y, x, y) if dragi.move
+      x += scrollX
+      y += scrollY
+      dragi.move and dragi.move.call(dragi.move_scope or dragi.el, x - dragi.el._drag.x, y - dragi.el._drag.y, x, y, e)
 
-  dragUp = ->
+  dragUp = (e) ->
     R.unmousemove(dragMove).unmouseup(dragUp)
     i = drag.length
     while i--
       dragi = drag[i]
       dragi.el._drag = {}
-      dragi.end && dragi.end.call(dragi.el)
+      dragi.end and dragi.end.call(dragi.end_scope or dragi.start_scope or dragi.move_scope or dragi.el, e)
     drag = []
 
   for event in events
     ((eventName) ->
-      R[eventName] = Element.prototype[eventName] = (fn) ->
+      R[eventName] = Element.prototype[eventName] = (fn, scope) ->
         if R.is(fn, "function")
           this.events = this.events || []
-          this.events.push({ name: eventName, f: fn, unbind: addEvent(this.shape || this.node || document, eventName, fn, this) })
+          this.events.push({ name: eventName, f: fn, unbind: addEvent(this.shape || this.node || document, eventName, fn, scope || this) })
         this
       R["un" + eventName] = Element.prototype["un" + eventName] = (fn) ->
         events = this.events
@@ -2055,8 +2176,8 @@ Raphael = (->
         this
     )(event)
 
-  Element::hover = (f_in, f_out) ->
-    @mouseover(f_in).mouseout(f_out)
+  Element::hover = (f_in, f_out, scope_in, scope_out) ->
+    @mouseover(f_in, scope_in).mouseout(f_out, scope_out || scope_in)
 
   Element::unhover = (f_in, f_out) ->
     @unmouseover(f_in).unmouseout(f_out)
@@ -2065,12 +2186,14 @@ Raphael = (->
     @_drag = {}
     @mousedown((e) ->
       (e.originalEvent || e).preventDefault()
-      @_drag.x = e.clientX
-      @_drag.y = e.clientY
+      scrollY = document.documentElement.scrollTop or document.body.scrollTop
+      scrollX = document.documentElement.scrollLeft or document.body.scrollLeft
+      @_drag.x = e.clientX + scrollX
+      @_drag.y = e.clientY + scrollY
       @_drag.id = e.identifier
-      onstart.call(this, e.clientX, e.clientY) if onstart
+      onstart.call(start_scope or move_scope or this, e.clientX + scrollX, e.clientY + scrollY) if onstart
       R.mousemove(dragMove).mouseup(dragUp) if !drag.length
-      drag.push({ el: this, move: onmove, end: onend })
+      drag.push({ el: this, move: onmove, end: onend, move_scope: move_scope, start_scope: start_scope, end_scope: end_scope })
     )
     this
 
@@ -2078,7 +2201,7 @@ Raphael = (->
     i = drag.length
     while i--
       drag[i].el == this and (drag[i].move == onmove and drag[i].end == onend) and drag.splice(i, 1)
-      R.unmousemove(dragMove).unmouseup(dragUp) if !drag.length
+    R.unmousemove(dragMove).unmouseup(dragUp) if !drag.length
 
   Paper::circle = (x, y, r) ->
     theCircle(this, x || 0, y || 0, r || 0)
@@ -2097,7 +2220,7 @@ Raphael = (->
     theImage(this, src || "about:blank", x || 0, y || 0, w || 0, h || 0)
 
   Paper::text = (x, y, text) ->
-    theText(this, x || 0, y || 0, text || "")
+    theText(this, x || 0, y || 0, String(text))
 
   Paper::set = (itemsArray) ->
     itemsArray = Array.prototype.splice.call(arguments, 0, arguments.length) if arguments.length > 1
@@ -2129,31 +2252,36 @@ Raphael = (->
       bb = this.getBBox()
       rcx = bb.x + bb.width / 2
       rcy = bb.y + bb.height / 2
-      kx = x / @_.sx
-      ky = y / @_.sy
+      kx = Math.abs(x / @_.sx)
+      ky = Math.abs(y / @_.sy)
       cx = if +cx || cx == 0 then cx else rcx
       cy = if +cy || cy == 0 then cy else rcy
+      posx = this._.sx > 0
+      posy = this._.sy > 0
       dirx = ~~(x / Math.abs(x))
       diry = ~~(y / Math.abs(y))
+      dkx = kx * dirx
+      dky = ky * diry
       s = @node.style
-      ncx = cx + (rcx - cx) * kx
-      ncy = cy + (rcy - cy) * ky
+      ncx = cx + Math.abs(rcx - cx) * dkx * (if rcx > cx == posx then 1 else -1)
+      ncy = cy + Math.abs(rcy - cy) * dky * (if rcy > cy == posy then 1 else -1)
+      fr = (if x * dirx > y * diry then ky else kx)
       switch @type
         when "rect", "image"
-          neww = a.width * dirx * kx
-          newh = a.height * diry * ky
+          neww = a.width * kx
+          newh = a.height * ky
           @attr(
             height: newh
-            r: a.r * Math.min(dirx * kx, diry * ky)
+            r: a.r * fr
             width: neww
             x: ncx - neww / 2
             y: ncy - newh / 2
           )
         when "circle", "ellipse"
           @attr(
-            rx: a.rx * dirx * kx
-            ry: a.ry * diry * ky
-            r: a.r * Math.min(dirx * kx, diry * ky)
+            rx: a.rx * kx
+            ry: a.ry * ky
+            r: a.r * fr
             cx: ncx
             cy: ncy
           )
@@ -2165,6 +2293,8 @@ Raphael = (->
         when "path"
           path = pathToRelative(a.path)
           skip = true
+          fx = if posx then dkx else kx
+          fy = if posy then dky else ky
           for i of path
             p = path[i]
             P0 = String.prototype.toUpperCase.call(p[0])
@@ -2173,23 +2303,23 @@ Raphael = (->
             else
               skip = false
             if P0 == "A"
-              p[path[i].length - 2] *= kx
-              p[path[i].length - 1] *= ky
-              p[1] *= dirx * kx
-              p[2] *= diry * ky
-              p[5] = +!(if dirx + diry then !+p[5] else +p[5])
+              p[path[i].length - 2] *= fx
+              p[path[i].length - 1] *= fy
+              p[1] *= kx
+              p[2] *= ky
+              p[5] = +!(if dirx + diry then !!+p[5] else !+p[5])
             else if P0 == "H"
               for j of p
                 if j >= 1
-                  p[j] *= kx
+                  p[j] *= fx
             else if P0 == "V"
               for j of p
                 if j >= 1
-                  p[j] *= ky
+                  p[j] *= fy
             else
               for j of p
                 if j >= 1
-                  p[j] *= if j % 2 then kx else ky
+                  p[j] *= if j % 2 then fx else fy
           dim2 = pathDimensions(path)
           dx = ncx - dim2.x - dim2.width / 2
           dy = ncy - dim2.y - dim2.height / 2
@@ -2230,17 +2360,32 @@ Raphael = (->
     delete attr.translation
     @paper[@type]().attr(attr)
 
-  getPointAtSegmentLength = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, length) ->
-    len = 0
-    for i in [0..101]
-      j = i / 100
-      dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, j)
-      len += Math.pow(Math.pow(old.x - dot.x, 2) + Math.pow(old.y - dot.y, 2), .5) if j
-      if len >= length
-        dot
-      old = dot
-
-  functionCacher(getPointAtSegmentLength)
+    curveslengths = {}
+    getPointAtSegmentLength = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, length) ->
+      len = 0
+      precision = 100
+      name = [p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y].join()
+      cache = curveslengths[name]
+      curveslengths[name] = cache = { data: [] } if !cache
+      clearTimeout(cache.timer) if cache.timer
+      cache.timer = setTimeout(->
+        delete curveslengths[name]
+      , 2000)
+      if length != null
+        total = getPointAtSegmentLength(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y)
+        precision = ~~total * 10
+      for i in [0..precision]
+        if cache.data[length] > i
+          dot = cache.data[i * precision]
+        else
+          dot = R.findDotsAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, i / precision)
+          cache.data[i] = dot
+        len += pow(pow(old.x - dot.x, 2) + pow(old.y - dot.y, 2), .5) if i
+        if length != null and len >= length
+          return dot
+        old = dot
+      if length == null
+        return len
 
   getLengthFactory = (istotal, subpath) ->
     (path, length, onlystart) ->
@@ -2254,7 +2399,7 @@ Raphael = (->
           x = +p[1]
           y = +p[2]
         else
-          l = segmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6])
+          l = getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6])
           if len + l > length
               if subpath and !subpaths.start
                 point = getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6], length - len)
@@ -2278,18 +2423,6 @@ Raphael = (->
       point = { x: point.x, y: point.y, alpha: point.alpha } if point.alpha
       point
 
-  segmentLength = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y) ->
-    old = { x: 0, y: 0 }
-    len = 0
-    for i in [0..101]
-      j = i / 100
-      dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, i)
-      len += Math.pow(Math.pow(old.x - dot.x, 2) + Math.pow(old.y - dot.y, 2), .5) if i
-      old = dot
-    len
-
-  functionCacher(segmentLength)
-
   getTotalLength = getLengthFactory(1)
   getPointAtLength = getLengthFactory()
   getSubpathsAtLength = getLengthFactory(0, 1)
@@ -2300,12 +2433,11 @@ Raphael = (->
 
   Element::getPointAtLength = (length) ->
     return if @type != "path"
-    return @node.getPointAtLength(length) if @node.getPointAtLength
     getPointAtLength(@attrs.path, length)
 
   Element::getSubpath = (from, to) ->
     return if @type != "path"
-    if Math.abs(@getTotalLength() - to) < 1e-6
+    if Math.abs(@getTotalLength() - to) < "1e-6"
       return getSubpathsAtLength(@attrs.path, from).end
     a = getSubpathsAtLength(@attrs.path, to, 1)
     if from then getSubpathsAtLength(a, from).end else a
@@ -2362,15 +2494,13 @@ Raphael = (->
             l = s * n * n + .984375
       l
 
-  animationElements = { length : 0 }
+  animationElements = []
   animation = ->
     Now = +new Date
-    for l of animationElements
+    for l in [0..animationElements.length - 1]
       if l != "length"
         e = animationElements[l]
         if e.stop or e.el.removed
-          delete animationElements[l]
-          animationElements.length--
           continue
         time = Now - e.start
         ms = e.ms
@@ -2379,12 +2509,10 @@ Raphael = (->
         diff = e.diff
         to = e.to
         t = e.t
-        prev = e.prev or 0
         that = e.el
-        callback = e.callback
         set = {}
         if time < ms
-          pos = if R.easing_formulas[easing] then R.easing_formulas[easing](time / ms) else time / ms
+          pos = easing(time / ms)
           for attr of from
             switch availableAnimAttrs[attr]
               when "along"
@@ -2416,8 +2544,8 @@ Raphael = (->
               when "csv"
                 switch attr
                   when "translation"
-                    x = diff[attr][0] * (time - prev)
-                    y = diff[attr][1] * (time - prev)
+                    x = pos * ms * diff[attr][0] - t.x
+                    y = pos * ms * diff[attr][1] - t.y
                     t.x += x
                     t.y += y
                     now = x + S + y
@@ -2431,6 +2559,13 @@ Raphael = (->
                     i = 4
                     while i--
                       now[i] = +from[attr][i] + pos * ms * diff[attr][i]
+              else
+                from2 = [].concat(from[attr])
+                now = []
+                i = that.paper.customAttributes[attr].length
+                while i--
+                  now[i] = +from2[i] + pos * ms * diff[attr][i]
+                break
             set[attr] = now
           that.attr(set)
           that._run.call(that) if that._run
@@ -2442,13 +2577,16 @@ Raphael = (->
           (t.x or t.y) and that.translate(-t.x, -t.y)
           to.scale += "" if to.scale
           that.attr(to)
-          delete animationElements[l]
-          animationElements.length--
-          that.in_animation = null
-          callback.call(that) if R.is(callback, "function")
-        e.prev = time
+          animationElements.splice(l--, 1)
     that.paper.safari() if R.svg and that and that.paper
-    window.setTimeout(animation) if animationElements.length
+    setTimeout(animation) if animationElements.length
+
+  keyframesRun = (attr, element, time, prev, prevcallback) ->
+    dif = time - prev
+    element.timeouts.push(setTimeout(->
+      R.is(prevcallback, "function") and prevcallback.call(element)
+      element.animate(attr, dif, attr.easing)
+    , prev))
 
   upto255 = (color) ->
     Math.max(Math.min(color, 255), 0)
@@ -2481,28 +2619,78 @@ Raphael = (->
       path = path.attrs.path if path and path.constructor == Element
       params.along = path if path
       this.animate(params, ms, callback)
+
   Element::animateAlong = along()
   Element::animateAlongBack = along(1)
+
+  CubicBezierAtTime = (t, p1x, p1y, p2x, p2y, duration) ->
+    cx = 3 * p1x
+    bx = 3 * (p2x - p1x) - cx
+    ax = 1 - cx - bx
+    cy = 3 * p1y
+    _by = 3 * (p2y - p1y) - cy # by is reserved in CoffeeScript
+    ay = 1 - cy - _by
+    sampleCurveX = (t) ->
+      ((ax * t + bx) * t + cx) * t
+    solve = (x, epsilon) ->
+      t = solveCurveX(x, epsilon)
+      ((ay * t + _by) * t + cy) * t
+    solveCurveX = (x, epsilon) ->
+      t2 = x
+      for i in [0..7]
+        x2 = sampleCurveX(t2) - x
+        if abs(x2) < epsilon
+          return t2
+        d2 = (3 * ax * t2 + 2 * bx) * t2 + cx
+        if abs(d2) < 1e-6
+          break
+        t2 = t2 - x2 / d2
+      t0 = 0
+      t1 = 1
+      t2 = x
+      if t2 < t0
+        return t0
+      if t2 > t1
+        return t1
+      while t0 < t1
+          x2 = sampleCurveX(t2)
+          if abs(x2 - x) < epsilon
+            return t2
+          if x > x2
+            t0 = t2
+          else
+            t1 = t2
+          t2 = (t1 - t0) / 2 + t0
+      t2
+    solve(t, 1 / (200 * duration))
+
   Element::onAnimation = (f) ->
     @_run = f or 0
     this
 
   Element::animate = (params, ms, easing, callback) ->
+    element = this
+    element.timeouts = element.timeouts or []
     if R.is(easing, "function") or !easing
       callback = easing or null
+    if element.removed
+      callback.call(element) if callback
+      return element
     from = {}
     to = {}
     diff = {}
+    animateable = false
     for attr, name of params
-      if availableAnimAttrs.hasOwnProperty(attr)
-        from[attr] = @attr(attr)
+      if availableAnimAttrs.hasOwnProperty(attr) or element.paper.customAttributes.hasOwnProperty(attr)
+        animateable = true
+        from[attr] = element.attr(attr)
         from[attr] = availableAttrs[attr] if !from[attr]?
         to[attr] = params[attr]
         switch availableAnimAttrs[attr]
           when "along"
             len = getTotalLength(params[attr])
             point = getPointAtLength(params[attr], len * !!params.back)
-            bb = @getBBox()
+            bb = element.getBBox()
             diff[attr] = len / ms
             diff.tx = bb.x
             diff.ty = bb.y
@@ -2511,7 +2699,7 @@ Raphael = (->
             to.rot = params.rot
             to.back = params.back
             to.len = len
-            diff.r = parseFloat(@rotate()) or 0 if params.rot
+            diff.r = parseFloat(element.rotate()) or 0 if params.rot
           when "number"
             diff[attr] = (to[attr] - from[attr]) / ms
           when "colour"
@@ -2524,7 +2712,7 @@ Raphael = (->
             toPath = pathes[1]
             diff[attr] = []
             for i of from[attr]
-              diff[attr][i] = [0];
+              diff[attr][i] = [0]
               for j of from[attr][i]
                 if j >= 1
                   diff[attr][i][j] = (toPath[i][j] - from[attr][i][j]) / ms
@@ -2536,7 +2724,7 @@ Raphael = (->
                 from[attr] = [0, 0]
                 diff[attr] = [values[0] / ms, values[1] / ms]
               when "rotation"
-                from[attr] = (from2[1] == values[1] && from2[2] == values[2]) ? from2 : [0, values[1], values[2]]
+                from[attr] = if (from2[1] == values[1] and from2[2] == values[2]) then from2 else [0, values[1], values[2]]
                 diff[attr] = [(values[0] - from[attr][0]) / ms, 0, 0]
               when "scale"
                 params[attr] = values
@@ -2549,24 +2737,69 @@ Raphael = (->
                 while i--
                   diff[attr][i] = (values[i] - from[attr][i]) / ms
             to[attr] = values
-    this.stop()
-    @in_animation = 1
-    animationElements[this.id] =
-      start: params.start || +new Date
-      ms: ms
-      easing: easing
-      from: from
-      diff: diff
-      to: to
-      el: this
-      callback: callback
-      t: { x: 0, y: 0 }
-    animation() if ++animationElements.length == 1
+          else
+            values = [].concat(params[attr])
+            from2 = [].concat(from[attr])
+            diff[attr] = []
+            i = element.paper.customAttributes[attr].length
+            while i--
+              diff[attr][i] = ((values[i] || 0) - (from2[i] || 0)) / ms
+    if !animateable
+      attrs = []
+      for key of params
+        if animKeyFrames.test(key)
+          attr = { value: params[key] }
+          key = 0 if key == "from"
+          key = 100 if key == "to"
+          attr.key = toInt(key, 10)
+          attrs.push(attr)
+      attrs.sort(sortByKey)
+      if attrs[0].key
+        attrs.unshift({ key: 0, value: element.attrs })
+      for i in [0..attrs.length - 1]
+        keyframesRun(attrs[i].value, element, ms / 100 * attrs[i].key, ms / 100 * (attrs[i - 1] and attrs[i - 1].key or 0), attrs[i - 1] and attrs[i - 1].value.callback)
+      lastcall = attrs[attrs.length - 1].value.callback
+      if lastcall
+        element.timeouts.push(setTimeout(->
+          lastcall.call(element)
+        , ms))
+    else
+      easyeasy = R.easing_formulas[easing]
+      if !easyeasy
+        easyeasy = String(easing).match(bezierrg)
+        if easyeasy and easyeasy.length == 5
+          curve = easyeasy
+          easyeasy = (t) ->
+            CubicBezierAtTime(t, +curve[1], +curve[2], +curve[3], +curve[4], ms)
+        else
+          easyeasy = (t) ->
+            t
+      animationElements.push(
+        start: params.start or +new Date
+        ms: ms
+        easing: easyeasy
+        from: from
+        diff: diff
+        to: to
+        el: element
+        t: { x: 0, y: 0 }
+      )
+      if R.is(callback, "function")
+        element._ac = setTimeout(->
+          callback.call(element)
+        , ms)
+      setTimeout(animation) if animationElements.length == 1
     this
 
   Element::stop = ->
-    animationElements.length-- if animationElements[this.id]
-    delete animationElements[@id]
+    for i in [0..animationElements.length - 1]
+      animationElements.splice(i--, 1) if animationElements[i].el.id == this.id
+    if this.timeouts
+      for i in [0..this.timeouts.length - 1]
+        clearTimeout(this.timeouts[i])
+    this.timeouts = []
+    clearTimeout(this._ac)
+    delete this._ac
     this
 
   Element::translate = (x, y) ->
@@ -2622,7 +2855,7 @@ Raphael = (->
       easing = if R.is(easing, "string") then easing else collector
       item = @items[--i].animate(params, ms, easing, collector)
       while i--
-        @items[i].animateWith(item, params, ms, easing, collector)
+        @items[i].animateWith(item, params, ms, easing, collector) if this.items[i] and !this.items[i].removed
       this
   
     insertAfter: (el) ->
@@ -2709,8 +2942,9 @@ Raphael = (->
           break
     thefont
 
-  Paper::print = (x, y, string, font, size, origin) ->
+  Paper::print = (x, y, string, font, size, origin, letter_spacing) ->
     origin ?= "middle"; # baseline|middle
+    letter_spacing = Math.max(Math.min(letter_spacing or 0, 1), -1)
     out = @set()
     letters = String(string).split("")
     shift = 0
@@ -2724,7 +2958,7 @@ Raphael = (->
       for i of letters
         prev = i and font.glyphs[letters[i - 1]] or {}
         curr = font.glyphs[letters[i]]
-        shift += if i then (prev.w or font.w) + (prev.k and prev.k[letters[i]] or 0) else 0
+        shift += if i then (prev.w or font.w) + (prev.k and prev.k[letters[i]] or 0) + (font.w * letter_spacing) else 0
         out.push(@path(curr.d).attr({ fill: "#000", stroke: "none", translation: [shift, 0] })) if curr and curr.d
       out.scale(scale, scale, top, height).translate(x - top, y - height)
     out
@@ -2739,7 +2973,7 @@ Raphael = (->
     token or ""
 
   R.ninja = ->
-    if oldRaphael.was then (Raphael = oldRaphael.is) else delete Raphael
+    if oldRaphael.was then (window.Raphael = oldRaphael.is) else delete Raphael
     R
 
   functionCacher(R.toHex, R)
@@ -2749,7 +2983,9 @@ Raphael = (->
   functionCacher(R.pathToAbsolute, null, R.pathClone)
 
   R.el = Element.prototype
-  R
+  R.st = Set.prototype
+  
+  if oldRaphael.was then (window.Raphael = R) else (Raphael = R)
 )()
 
 class RGB
@@ -2770,10 +3006,7 @@ class RGB
     this
 
   hex: ->
-    red = (~~@red).toString(16).replace(RGB.rg, "0")
-    green = (~~@green).toString(16).replace(RGB.rg, "0")
-    blue = (~~@blue).toString(16).replace(RGB.rg, "0")
-    return "#" + red + green + blue
+    return "#" + (16777216 | @blue | (@green << 8) | (@red << 16)).toString(16).slice(1)
 
   toHSB: ->
     red = @red
@@ -2841,9 +3074,9 @@ class HSB
   hex: ->
     "#" + @red
 
-  toRGB: ->
+  toRGB: (opacity) ->
     hsl = new HSL(@hue, @saturation, @brightness / 2)
-    hsl.toRGB()
+    hsl.toRGB(opacity)
 
 class HSL
   constructor: (hue, saturation, lightness) ->
@@ -2854,37 +3087,36 @@ class HSL
   toString: ->
     "hsl(" + [@hue, @saturation, @lightness] + ")"
 
-  toRGB: ->
+  toRGB: (opacity) ->
     hue = @hue
     saturation = @saturation
     lightness = @lightness
     if @hue > 1 or @saturation > 1 or @lightness > 1
-      hue /= 255
-      saturation /= 255
-      lightness /= 255
+      hue /= 360
+      saturation /= 100
+      lightness /= 100
     if !saturation
-      return new RGB(lightness, lightness, lightness)
+      return new RGB(lightness, lightness, lightness, opacity)
     else
-      rgb = new RGB()
       if lightness < 0.5
         t2 = lightness * (1 + saturation)
       else
         t2 = lightness + saturation - lightness * saturation
       t1 = 2 * lightness - t2
       rgbChannels = { red: 0, green: 1, blue: 2 }
-      for channel, index of rgbChannels
-        t3 = hue + 1 / 3 * -(index - 1)
+      for channel, value of rgbChannels
+        t3 = hue + 1 / 3 * -(value - 1)
         t3 < 0 and t3++
         t3 > 1 and t3--
         if t3 * 6 < 1
-          rgb[channel] = t1 + (t2 - t1) * 6 * t3
+          rgbChannels[channel] = t1 + (t2 - t1) * 6 * t3
         else if t3 * 2 < 1
-          rgb[channel] = t2
+          rgbChannels[channel] = t2
         else if t3 * 3 < 2
-          rgb[channel] = t1 + (t2 - t1) * (2 / 3 - t3) * 6 
+          rgbChannels[channel] = t1 + (t2 - t1) * (2 / 3 - t3) * 6
         else
-          rgb[channel] = t1
-    rgb.red *= 255
-    rgb.green *= 255
-    rgb.blue *= 255
-    rgb
+          rgbChannels[channel] = t1
+      rgbChannels.red *= 255
+      rgbChannels.green *= 255
+      rgbChannels.blue *= 255
+      return new RGB(rgbChannels.red, rgbChannels.green, rgbChannels.blue, opacity)
