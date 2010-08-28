@@ -1235,7 +1235,7 @@ Raphael = (->
           params = name
         for key of @paper.customAttributes
           if params.hasOwnProperty(key) and R.is(@paper.customAttributes[key], "function")
-            par = @paper.customAttributes[key].apply(this, [][concat](params[key]))
+            par = @paper.customAttributes[key].apply(this, [].concat(params[key]))
             @attrs[key] = params[key]
             for subkey of par
               params[subkey] = par[subkey]
@@ -1834,7 +1834,7 @@ Raphael = (->
         if params
           for key of @paper.customAttributes
             if params.hasOwnProperty(key) and R.is(@paper.customAttributes[key], "function")
-              par = @paper.customAttributes[key].apply(this, [][concat](params[key]))
+              par = @paper.customAttributes[key].apply(this, [].concat(params[key]))
               @attrs[key] = params[key]
               for subkey of par
                 params[subkey] = par[subkey]
