@@ -2498,86 +2498,85 @@ Raphael = (->
   animation = ->
     Now = +new Date
     for l in [0..animationElements.length - 1]
-      if l != "length"
-        e = animationElements[l]
-        if e.stop or e.el.removed
-          continue
-        time = Now - e.start
-        ms = e.ms
-        easing = e.easing
-        from = e.from
-        diff = e.diff
-        to = e.to
-        t = e.t
-        that = e.el
-        set = {}
-        if time < ms
-          pos = easing(time / ms)
-          for attr of from
-            switch availableAnimAttrs[attr]
-              when "along"
-                now = pos * ms * diff[attr]
-                now = to.len - now if to.back
-                point = getPointAtLength(to[attr], now)
-                that.translate(diff.sx - diff.x or 0, diff.sy - diff.y or 0)
-                diff.x = point.x
-                diff.y = point.y
-                that.translate(point.x - diff.sx, point.y - diff.sy)
-                that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
-              when "number"
-                now = +from[attr] + pos * ms * diff[attr]
-              when "colour"
-                now = "rgb(" + [
-                    upto255(Math.round(from[attr].red + pos * ms * diff[attr].red)),
-                    upto255(Math.round(from[attr].green + pos * ms * diff[attr].green)),
-                    upto255(Math.round(from[attr].blue + pos * ms * diff[attr].blue))
-                ].join(",") + ")"
-              when "path"
-                now = []
-                for i of from[attr]
-                  now[i] = [from[attr][i][0]]
-                  for j of from[attr][i]
-                    if j >= 1
-                      now[i][j] = +from[attr][i][j] + pos * ms * diff[attr][i][j]
-                  now[i] = now[i].join(" ")
-                now = now.join(" ")
-              when "csv"
-                switch attr
-                  when "translation"
-                    x = pos * ms * diff[attr][0] - t.x
-                    y = pos * ms * diff[attr][1] - t.y
-                    t.x += x
-                    t.y += y
-                    now = x + S + y
-                  when "rotation"
-                    now = +from[attr][0] + pos * ms * diff[attr][0]
-                    now += "," + from[attr][1] + "," + from[attr][2] if from[attr][1]
-                  when "scale"
-                    now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if 2 in to[attr] then to[attr][2] else ""), (if 3 in to[attr] then to[attr][3] else "")].join(" ")
-                  when "clip-rect"
-                    now = []
-                    i = 4
-                    while i--
-                      now[i] = +from[attr][i] + pos * ms * diff[attr][i]
-              else
-                from2 = [].concat(from[attr])
-                now = []
-                i = that.paper.customAttributes[attr].length
-                while i--
-                  now[i] = +from2[i] + pos * ms * diff[attr][i]
-                break
-            set[attr] = now
-          that.attr(set)
-          that._run.call(that) if that._run
-        else
-          if to.along
-            point = getPointAtLength(to.along, to.len * !to.back)
-            that.translate(diff.sx - (diff.x || 0) + point.x - diff.sx, diff.sy - (diff.y || 0) + point.y - diff.sy)
-            that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
-          (t.x or t.y) and that.translate(-t.x, -t.y)
-          to.scale += "" if to.scale
-          that.attr(to)
-          animationElements.splice(l--, 1)
+      e = animationElements[l]
+      if e.stop or e.el.removed
+        continue
+      time = Now - e.start
+      ms = e.ms
+      easing = e.easing
+      from = e.from
+      diff = e.diff
+      to = e.to
+      t = e.t
+      that = e.el
+      set = {}
+      if time < ms
+        pos = easing(time / ms)
+        for attr of from
+          switch availableAnimAttrs[attr]
+            when "along"
+              now = pos * ms * diff[attr]
+              now = to.len - now if to.back
+              point = getPointAtLength(to[attr], now)
+              that.translate(diff.sx - diff.x or 0, diff.sy - diff.y or 0)
+              diff.x = point.x
+              diff.y = point.y
+              that.translate(point.x - diff.sx, point.y - diff.sy)
+              that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
+            when "number"
+              now = +from[attr] + pos * ms * diff[attr]
+            when "colour"
+              now = "rgb(" + [
+                  upto255(Math.round(from[attr].red + pos * ms * diff[attr].red)),
+                  upto255(Math.round(from[attr].green + pos * ms * diff[attr].green)),
+                  upto255(Math.round(from[attr].blue + pos * ms * diff[attr].blue))
+              ].join(",") + ")"
+            when "path"
+              now = []
+              for i of from[attr]
+                now[i] = [from[attr][i][0]]
+                for j of from[attr][i]
+                  if j >= 1
+                    now[i][j] = +from[attr][i][j] + pos * ms * diff[attr][i][j]
+                now[i] = now[i].join(" ")
+              now = now.join(" ")
+            when "csv"
+              switch attr
+                when "translation"
+                  x = pos * ms * diff[attr][0] - t.x
+                  y = pos * ms * diff[attr][1] - t.y
+                  t.x += x
+                  t.y += y
+                  now = x + S + y
+                when "rotation"
+                  now = +from[attr][0] + pos * ms * diff[attr][0]
+                  now += "," + from[attr][1] + "," + from[attr][2] if from[attr][1]
+                when "scale"
+                  now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if 2 in to[attr] then to[attr][2] else ""), (if 3 in to[attr] then to[attr][3] else "")].join(" ")
+                when "clip-rect"
+                  now = []
+                  i = 4
+                  while i--
+                    now[i] = +from[attr][i] + pos * ms * diff[attr][i]
+            else
+              from2 = [].concat(from[attr])
+              now = []
+              i = that.paper.customAttributes[attr].length
+              while i--
+                now[i] = +from2[i] + pos * ms * diff[attr][i]
+              break
+          set[attr] = now
+        that.attr(set)
+        that._run.call(that) if that._run
+      else
+        if to.along
+          point = getPointAtLength(to.along, to.len * !to.back)
+          that.translate(diff.sx - (diff.x || 0) + point.x - diff.sx, diff.sy - (diff.y || 0) + point.y - diff.sy)
+          that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
+        (t.x or t.y) and that.translate(-t.x, -t.y)
+        to.scale += "" if to.scale
+        that.attr(to)
+        animationElements.splice(l--, 1)
     that.paper.safari() if R.svg and that and that.paper
     setTimeout(animation) if animationElements.length
 
