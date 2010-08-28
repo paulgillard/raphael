@@ -2811,7 +2811,7 @@ Raphael = (->
   R.ae = animationElements
 
   class Set
-    contructor: (items) ->
+    constructor: (items) ->
       @items = []
       @length = 0
       @type = "set"
