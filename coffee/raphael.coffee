@@ -2564,7 +2564,6 @@ Raphael = (->
               i = that.paper.customAttributes[attr].length
               while i--
                 now[i] = +from2[i] + pos * ms * diff[attr][i]
-              break
           set[attr] = now
         that.attr(set)
         that._run.call(that) if that._run
