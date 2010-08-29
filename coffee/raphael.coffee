@@ -1099,7 +1099,7 @@ Raphael = (->
             node.appendChild(tspan)
       else
         texts = node.getElementsByTagName("tspan")
-        for i of texts
+        for i in [0..texts.length - 1]
           $(texts[i], { dy: fontSize * leading, x: a.x }) if i
       $(node, { y: a.y })
       bb = el.getBBox()
