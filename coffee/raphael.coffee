@@ -2790,8 +2790,8 @@ Raphael = (->
     this
 
   Element::stop = ->
-    for i in [0..animationElements.length - 1]
-      animationElements.splice(i--, 1) if animationElements[i].el.id == this.id
+    for index, animationElement of animationElements
+      animationElements.splice(index, 1) if animationElement.el.id == this.id
     if this.timeouts
       for i in [0..this.timeouts.length - 1]
         clearTimeout(this.timeouts[i])
