@@ -30,6 +30,7 @@ Raphael = (->
   radial_gradient = /^r(?:\(([^,]+?)\s*,\s*([^\)]+?)\))?/
   isnan = { "NaN": 1, "Infinity": 1, "-Infinity": 1 }
   bezierrg = /^(?:cubic-)?bezier\(([^,]+),([^,]+),([^,]+),([^\)]+)\)/
+  ms = " progid:DXImageTransform.Microsoft"
   animKeyFrames= /^(from|to|\d+%?)$/
   commaSpaces = /\s*,\s*/
   hsrg = { hs: 1, rg:  1}
@@ -37,8 +38,15 @@ Raphael = (->
   pathCommand = /([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig
   pathValues = /(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig
   radial_gradient = /^r(?:\(([^,]+?)\s*,\s*([^\)]+?)\))?/
+  supportsTouch = "createTouch" in document
+  touchMap =
+    mousedown: "touchstart"
+    mousemove: "touchmove"
+    mouseup: "touchend"
+
   sortByKey = (a, b) ->
     a.key - b.key
+
   oldRaphael =
     was: Object.prototype.hasOwnProperty.call(window, "Raphael")
     is: window.Raphael
