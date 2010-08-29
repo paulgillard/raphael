@@ -1156,7 +1156,7 @@ Raphael = (->
           $(this.clip, { transform: R.format("rotate({0} {1} {2})", -@_.rt.deg, cx, cy) }) if @clip
         else
           @transformations[0] = ""
-          $(this.clip, { transform: E }) if @clip
+          $(this.clip, { transform: '' }) if @clip
         $(this.node, { transform: @transformations.join(" ") })
         this
 
@@ -1609,7 +1609,7 @@ Raphael = (->
             fy = parseFloat(fy)
             if Math.pow(fx - 0.5, 2) + Math.pow(fy - 0.5, 2) > .25
               fy = Math.sqrt(0.25 - Math.pow(fx - 0.5, 2)) * ((fy > 0.5) * 2 - 1) + 0.5
-            fxfy = fx + S + fy
+            fxfy = fx + ' ' + fy
           ""
         )
         gradient = gradient.split(/\s*\-\s*/)
@@ -1631,7 +1631,7 @@ Raphael = (->
           fill.color2 = dots[dots.length - 1].color
           clrs = []
           for i of dots
-            clrs.push(dots[i].offset + S + dots[i].color) if dots[i].offset
+            clrs.push(dots[i].offset + ' ' + dots[i].color) if dots[i].offset
           if fill.colors
             if clrs.length
               fill.colors.value = clrs.join()
@@ -1883,7 +1883,7 @@ Raphael = (->
         f = f.replace(blurregexp, "")
         if +size != 0
           !attrs.blur = size
-          s.filter = f + S + ms + ".Blur(pixelradius=" + (+size || 1.5) + ")"
+          s.filter = f + ' ' + ms + ".Blur(pixelradius=" + (+size || 1.5) + ")"
           s.margin = R.format("-{0}px 0 0 -{0}px", Math.round(+size || 1.5))
         else
           s.filter = f
@@ -2036,7 +2036,7 @@ Raphael = (->
       height += "px" if height == +height
       res.width = 1e3
       res.height = 1e3
-      res.coordsize = zoom * 1e3 + S + zoom * 1e3
+      res.coordsize = zoom * 1e3 + ' ' + zoom * 1e3
       res.coordorigin = "0 0"
       res.span = document.createElement("span")
       res.span.style.cssText = "position:absolute;left:-9999em;top:-9999em;padding:0;margin:0;line-height:1;display:inline;"
@@ -2231,7 +2231,7 @@ Raphael = (->
   Paper::R = R
 
   Element::x_y = ->
-    this.x + S + this.y
+    this.x + ' ' + this.y
 
   Element::resetScale = ->
     return this if (this.removed)
@@ -2547,7 +2547,7 @@ Raphael = (->
                   y = pos * ms * diff[attr][1] - t.y
                   t.x += x
                   t.y += y
-                  now = x + S + y
+                  now = x + ' ' + y
                 when "rotation"
                   now = +from[attr][0] + pos * ms * diff[attr][0]
                   now += "," + from[attr][1] + "," + from[attr][2] if from[attr][1]
@@ -2966,7 +2966,7 @@ Raphael = (->
     args = if R.is(params, "array") then [0].concat(params) else arguments
     if token and R.is(token, "string") and args.length - 1
       token = token.replace(formatrg, (str, i) ->
-        if !args[++i]? then E else args[i]
+        if !args[++i]? then '' else args[i]
     )
     token or ""
 
