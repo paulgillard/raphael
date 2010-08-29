@@ -2589,21 +2589,21 @@ Raphael = (->
   upto255 = (color) ->
     Math.max(Math.min(color, 255), 0)
 
-  Element::translate = (x, y) ->
+  translate = (x, y) ->
     if !x?
       return { x: this._.tx, y: this._.ty, toString: this.x_y }
-      this._.tx += +x
-      this._.ty += +y
-      switch this.type
-        when "circle", "ellipse"
-          this.attr({ cx: +x + this.attrs.cx, cy: +y + this.attrs.cy })
-        when "rect", "image", "text"
-          this.attr({x: +x + this.attrs.x, y: +y + this.attrs.y})
-        when "path"
-          path = pathToRelative(this.attrs.path)
-          path[0][1] += +x
-          path[0][2] += +y
-          this.attr({ path: path })
+    this._.tx += +x
+    this._.ty += +y
+    switch this.type
+      when "circle", "ellipse"
+        this.attr({ cx: +x + this.attrs.cx, cy: +y + this.attrs.cy })
+      when "rect", "image", "text"
+        this.attr({x: +x + this.attrs.x, y: +y + this.attrs.y})
+      when "path"
+        path = pathToRelative(this.attrs.path)
+        path[0][1] += +x
+        path[0][2] += +y
+        this.attr({ path: path })
     this
 
   Element::animateWith = (element, params, ms, easing, callback) ->
