@@ -607,7 +607,7 @@ Raphael = (->
     attrs2 = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
     processPath = (path, d) ->
       return ["C", d.x, d.y, d.x, d.y, d.x, d.y] if !path
-      d.qx = d.qy = null if !(path[0] in { T: 1, Q: 1 })
+      d.qx = d.qy = null if path[0] != 'T' and path[0] != 'Q'
       switch path[0]
         when "M"
           d.X = path[1]
@@ -635,6 +635,8 @@ Raphael = (->
           ["C"].concat(lineToCurve(d.x, d.y, d.x, path[1]))
         when "Z"
           ["C"].concat(lineToCurve(d.x, d.y, d.X, d.Y))
+        else
+          path
     fixArc = (pp, i) ->
       if pp[i].length > 7
         pp[i].shift()
@@ -651,7 +653,7 @@ Raphael = (->
         a1.x = path1[i][1]
         a1.y = path1[i][2]
         ii = Math.max(p.length, if p2? then p2.length else 0)
-    for i in [0..Math.max(p.length, if p2? then p2.length else 0)]
+    for i in [0..Math.max(p.length, if p2? then p2.length else 0) - 1]
       p[i] = processPath(p[i], attrs)
       fixArc(p, i)
       p2[i] = processPath(p2[i], attrs2) if p2?

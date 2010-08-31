@@ -31,3 +31,14 @@ for (index in _b) {
 }
 
 why is _a needed?
+
+-------------------------
+
+test ->
+  switch 3
+    when 1
+      1
+    when 2
+      2
+
+returns undefined. Thought CoffeeScript always returned a value
