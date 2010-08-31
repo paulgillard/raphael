@@ -377,10 +377,10 @@ Raphael = (->
               r[7] = +(path[7] - y).toFixed(3)
             when "v"
               r[1] = +(path[1] - y).toFixed(3)
-            when "m"
-              mx = path[1]
-              my = path[2]
             else
+              if r[0] =="m"
+                mx = path[1]
+                my = path[2]
               for j of path
                 if j >= 1
                   r[j] = +(path[j] - (if j % 2 then x else y)).toFixed(3)
