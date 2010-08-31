@@ -651,7 +651,7 @@ Raphael = (->
         a1.x = path1[i][1]
         a1.y = path1[i][2]
         ii = Math.max(p.length, if p2? then p2.length else 0)
-    for i of Math.max(p.length, if p2? then p2.length else 0)
+    for i in [0..Math.max(p.length, if p2? then p2.length else 0)]
       p[i] = processPath(p[i], attrs)
       fixArc(p, i)
       p2[i] = processPath(p2[i], attrs2) if p2?
