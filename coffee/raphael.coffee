@@ -552,7 +552,7 @@ Raphael = (->
     else
       res = [m2, m3, m4].concat(res).join().split(",")
       newres = []
-      for i of res
+      for i in [0..res.length - 1]
         newres[i] = if i % 2 then rotate(res[i - 1], res[i], rad).y else rotate(res[i], res[i + 1], rad).x
       newres
   
