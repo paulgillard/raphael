@@ -481,7 +481,7 @@ Raphael = (->
     rad = PI / 180 * (+angle || 0)
     res = []
     # TODO: rotate was originally cached
-    rotate: (x, y, rad) ->
+    rotate = (x, y, rad) ->
       X = x * Math.cos(rad) - y * Math.sin(rad)
       Y = x * Math.sin(rad) + y * Math.cos(rad)
       { x: X, y: Y }
