@@ -936,34 +936,48 @@ Raphael = (->
           when "path"
             if (o.type == "path")
               $(node, { d: if value then attrs.path = pathToAbsolute(value) else "M0,0" })
-          when "width", "x"
-            if att == "width"
-              node.setAttribute(att, value)
-              if attrs.fx
-                att = "x"
-                value = attrs.x
-            if att == "x"
-              if attrs.fx
-                value = -attrs.x - (attrs.width || 0)
-          when "cx", "rx"
-            if att == "cx" or o.type != "rect"
-              rotxy[1] += value - attrs[att] if att == "cx" and rotxy
+          when "width"
+            node.setAttribute(att, value)
+            if attrs.fx
+              value = -attrs.x - (attrs.width || 0)
+              rotxy[1] += value - attrs['x'] if rotxy
+              node.setAttribute('x', value)
+              updatePosition(o) if o.pattern
+          when "x"
+            if attrs.fx
+              value = -attrs.x - (attrs.width || 0)
+            rotxy[1] += value - attrs[att] if rotxy
+            node.setAttribute(att, value)
+            updatePosition(o) if o.pattern
+          when "rx"
+            if o.type != "rect"
               node.setAttribute(att, value)
               updatePosition(o) if o.pattern
-          when "height", "y"
-            if att == "height"
-              node.setAttribute(att, value)
-              if attrs.fy
-                att = "y"
-                value = attrs.y
-            if att == "y"
-              if attrs.fy
-                value = -attrs.y - (attrs.height || 0)
-          when "cy", "ry"
-            if att == "cy" or o.type != "rect"
-              rotxy[2] += value - attrs[att] if att == "cy" and rotxy
+          when "cx"
+            rotxy[1] += value - attrs[att] if rotxy
+            node.setAttribute(att, value)
+            updatePosition(o) if o.pattern
+          when "height"
+            node.setAttribute(att, value)
+            if attrs.fy
+              value = -attrs.y - (attrs.height || 0)
+              rotxy[2] += value - attrs['y'] if rotxy
+              node.setAttribute('y', value)
+              updatePosition(o) if o.pattern
+          when "y"
+            if attrs.fy
+              value = -attrs.y - (attrs.height || 0)
+            rotxy[2] += value - attrs[att] if rotxy
+            node.setAttribute(att, value)
+            updatePosition(o) if o.pattern
+          when "ry"
+            if o.type != "rect"
               node.setAttribute(att, value)
               updatePosition(o) if o.pattern
+          when "cy"
+            rotxy[2] += value - attrs[att] if rotxy
+            node.setAttribute(att, value)
+            updatePosition(o) if o.pattern
           when "r"
             if o.type == "rect"
                 $(node, { rx: value, ry: value })
@@ -1052,7 +1066,6 @@ Raphael = (->
                 stops = gradient.getElementsByTagName("stop")
                 stops[stops.length - 1].setAttribute("stop-opacity", value)
             else
-              value = parseInt(value, 10) + "px" if att == "font-size"
               cssrule = att.replace(/(\-.)/g, (w) ->
                 String.prototype.toUpperCase.call(w.substring(1))
               )
@@ -1066,15 +1079,21 @@ Raphael = (->
                 stops = gradient.getElementsByTagName("stop")
                 stops[stops.length - 1].setAttribute("stop-opacity", value)
             else
-              value = parseInt(value, 10) + "px" if att == "font-size"
               cssrule = att.replace(/(\-.)/g, (w) ->
                 String.prototype.toUpperCase.call(w.substring(1))
               )
               node.style[cssrule] = value
               # Need following line for Firefox
               node.setAttribute(att, value)
+          when "font-size"
+            value = parseInt(value, 10) + "px"
+            cssrule = att.replace(/(\-.)/g, (w) ->
+              String.prototype.toUpperCase.call(w.substring(1))
+            )
+            node.style[cssrule] = value
+            # Need following line for Firefox
+            node.setAttribute(att, value)
           else
-            value = parseInt(value, 10) + "px" if att == "font-size"
             cssrule = att.replace(/(\-.)/g, (w) ->
               String.prototype.toUpperCase.call(w.substring(1))
             )
