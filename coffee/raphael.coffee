@@ -2271,9 +2271,7 @@ Raphael = (->
   Element::scale = (x, y, cx, cy) ->
     return this if (this.removed)
     if !x? and !y?
-      x: this._.sx
-      y: this._.sy
-      toString: this.x_y
+      return { x: this._.sx, y: this._.sy, toString: this.x_y }
     y ?= x
     y = x if !+y
     a = @attrs

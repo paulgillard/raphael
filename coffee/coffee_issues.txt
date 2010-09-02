@@ -42,3 +42,17 @@ test ->
       2
 
 returns undefined. Thought CoffeeScript always returned a value
+
+---------------------
+
+return
+  x: 1
+  y: 2
+
+fails where
+
+a =
+  x: 1
+  y: 2
+
+doesn't
