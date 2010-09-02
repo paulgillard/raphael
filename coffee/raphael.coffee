@@ -2389,32 +2389,32 @@ Raphael = (->
     delete attr.translation
     @paper[@type]().attr(attr)
 
-    curveslengths = {}
-    getPointAtSegmentLength = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, length) ->
-      len = 0
-      precision = 100
-      name = [p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y].join()
-      cache = curveslengths[name]
-      curveslengths[name] = cache = { data: [] } if !cache
-      clearTimeout(cache.timer) if cache.timer
-      cache.timer = setTimeout(->
-        delete curveslengths[name]
-      , 2000)
-      if length != null
-        total = getPointAtSegmentLength(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y)
-        precision = ~~total * 10
-      for i in [0..precision]
-        if cache.data.length > i
-          dot = cache.data[i * precision]
-        else
-          dot = R.findDotsAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, i / precision)
-          cache.data[i] = dot
-        len += pow(pow(old.x - dot.x, 2) + pow(old.y - dot.y, 2), .5) if i
-        if length != null and len >= length
-          return dot
-        old = dot
-      if length == null
-        return len
+  curveslengths = {}
+  getPointAtSegmentLength = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, length) ->
+    len = 0
+    precision = 100
+    name = [p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y].join()
+    cache = curveslengths[name]
+    curveslengths[name] = cache = { data: [] } if !cache
+    clearTimeout(cache.timer) if cache.timer
+    cache.timer = setTimeout(->
+      delete curveslengths[name]
+    , 2000)
+    if length != null
+      total = getPointAtSegmentLength(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y)
+      precision = ~~total * 10
+    for i in [0..precision]
+      if cache.data.length > i
+        dot = cache.data[i * precision]
+      else
+        dot = R.findDotsAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, i / precision)
+        cache.data[i] = dot
+      len += pow(pow(old.x - dot.x, 2) + pow(old.y - dot.y, 2), .5) if i
+      if length != null and len >= length
+        return dot
+      old = dot
+    if length == null
+      return len
 
   getLengthFactory = (istotal, subpath) ->
     (path, length, onlystart) ->
