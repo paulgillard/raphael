@@ -320,7 +320,8 @@ Raphael = (->
       return { x: 0, y: 0, width: 0, height: 0 }
     path = pathToCurve(path)
     x = y = 0
-    X = Y = []
+    X = []
+    Y = []
     for p in path
       if p[0] == "M"
         x = p[1]
@@ -2890,7 +2891,10 @@ Raphael = (->
       this
   
     getBBox: ->
-      x = y = w = h = []
+      x = []
+      y = []
+      w = []
+      h = []
       for i in [@items.length..0]
       #for (var i = this.items.length; i--;) {
         box = @items[i].getBBox()
