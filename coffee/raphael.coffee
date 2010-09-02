@@ -1121,7 +1121,7 @@ Raphael = (->
         while node.firstChild
           node.removeChild(node.firstChild)
         texts = String(params.text).split("\n")
-        for i of texts
+        for value, i in texts
           if texts[i]
             tspan = $("tspan")
             $(tspan, { dy: fontSize * leading, x: a.x }) if i
