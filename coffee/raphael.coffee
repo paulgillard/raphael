@@ -316,7 +316,7 @@ Raphael = (->
     { x: x, y: y, m: { x: mx, y: my }, n: { x: nx, y: ny }, start: { x: ax, y: ay }, end: { x: cx, y: cy }, alpha: alpha }
   
   pathDimensions = (path) ->
-    if path?
+    if !path?
       return { x: 0, y: 0, width: 0, height: 0 }
     path = pathToCurve(path)
     x = y = 0
