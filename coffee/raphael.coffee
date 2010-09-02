@@ -1223,7 +1223,7 @@ Raphael = (->
           bbox = bbox || {}
         if @type == "text"
           bbox = { x: bbox.x, y: Infinity, width: 0, height: 0 }
-          for i of @node.getNumberOfChars()
+          for i in [0..@node.getNumberOfChars() - 1]
             bb = @node.getExtentOfChar(i)
             bbox.y = bb.y if bb.y < bbox.y
             bbox.height = bb.y + bb.height - bbox.y if bb.y + bb.height - bbox.y > bbox.height
