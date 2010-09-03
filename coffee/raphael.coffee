@@ -2777,7 +2777,7 @@ Raphael = (->
           attr = { value: params[key] }
           key = 0 if key == "from"
           key = 100 if key == "to"
-          attr.key = toInt(key, 10)
+          attr.key = parseInt(key, 10)
           attrs.push(attr)
       attrs.sort(sortByKey)
       if attrs[0].key
