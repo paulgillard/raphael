@@ -853,7 +853,7 @@ Raphael = (->
       SVG.defs.appendChild(el)
       for i of dots
         stop = $("stop")
-        $(stop, { offset: (if dots[i].offset then dots[i].offset else if !i then "0%" else "100%")
+        $(stop, { offset: (if dots[i].offset then dots[i].offset else if i == "0" then "0%" else "100%")
         "stop-color": dots[i].color || "##fff" }
         )
         el.appendChild(stop)
