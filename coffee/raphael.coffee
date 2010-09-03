@@ -678,7 +678,7 @@ Raphael = (->
   # TODO: parseDots was originally cached
   parseDots = (gradient) ->
     dots = []
-    for i of gradient
+    for value, i in gradient
       dot = {}
       par = gradient[i].match(/^([^:]*):?([\d\.]*)/)
       dot.color = R.getRGB(par[1])
@@ -686,12 +686,12 @@ Raphael = (->
       dot.color = dot.color.hex()
       dot.offset = par[2] + "%" if par[2]?
       dots.push(dot)
-    for i of dots
+    for value, i in dots
       if i >= 1
         if !dots[i].offset
           start = parseFloat(dots[i - 1].offset || 0)
           end = 0
-          for j of dots
+          for value, j in dots
             if j >= i + 1
               if dots[j].offset
                 end = dots[j].offset
