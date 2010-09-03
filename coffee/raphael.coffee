@@ -684,10 +684,10 @@ Raphael = (->
       dot.color = R.getRGB(par[1])
       return null if (dot.color.error)
       dot.color = dot.color.hex()
-      dot.offset = par[2] + "%" if par[2]?
+      dot.offset = par[2] + "%" if par[2]
       dots.push(dot)
     for value, i in dots
-      if i >= 1
+      if i > 0 and i < dots.length - 1
         if !dots[i].offset
           start = parseFloat(dots[i - 1].offset || 0)
           end = 0
