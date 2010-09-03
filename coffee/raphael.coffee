@@ -126,7 +126,7 @@ Raphael = (->
       y = y1 - y2
       if !x and !y
         return 0
-      ((x < 0) * 180 + math.atan(-y / -x) * 180 / PI + 360) % 360
+      ((x < 0) * 180 + Math.atan(-y / -x) * 180 / PI + 360) % 360
     else
       R.angle(x1, y1, x3, y3) - R.angle(x2, y2, x3, y3)
 
@@ -141,7 +141,7 @@ Raphael = (->
     if R.is(values, array)
       i = values.length
       while i--
-        if (abs(values[i] - value) <= tolerance)
+        if (Math.abs(values[i] - value) <= tolerance)
           return values[i]
     else
       values = +values
@@ -157,10 +157,10 @@ Raphael = (->
     s = []
     i = 0
     for i in [0..31]
-      s[i] = (~~(math.random() * 16))[toString](16)
+      s[i] = (~~(Math.random() * 16)).toString(16)
     s[12] = 4 # bits 12-15 of the time_hi_and_version field to 0010
-    s[16] = ((s[16] & 3) | 8)[toString](16) # bits 6-7 of the clock_seq_hi_and_reserved to 01
-    "r-" + s[join]("")
+    s[16] = ((s[16] & 3) | 8).toString(16) # bits 6-7 of the clock_seq_hi_and_reserved to 01
+    "r-" + s.join("")
 
   R.setWindow = (newwin) ->
     win = newwin
