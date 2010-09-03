@@ -710,7 +710,7 @@ Raphael = (->
     if R.is(x, "string") || R.is(x, "object")
       container = if R.is(x, "string") then document.getElementById(x) else x
       if container.tagName
-        if y == null
+        if !y?
           container: container
           width: container.style.pixelWidth || container.offsetWidth
           height: container.style.pixelHeight || container.offsetHeight
