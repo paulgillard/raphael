@@ -2158,8 +2158,8 @@ Raphael = (->
   dragMove = (e) ->
     x = e.clientX
     y = e.clientY
-    scrollY = doc.documentElement.scrollTop or doc.body.scrollTop
-    scrollX = doc.documentElement.scrollLeft or doc.body.scrollLeft
+    scrollY = document.documentElement.scrollTop or document.body.scrollTop
+    scrollX = document.documentElement.scrollLeft or document.body.scrollLeft
     j = drag.length
     while j--
       dragi = drag[j]
