@@ -2212,7 +2212,7 @@ Raphael = (->
   Element::unhover = (f_in, f_out) ->
     @unmouseover(f_in).unmouseout(f_out)
 
-  Element::drag = (onmove, onstart, onend) ->
+  Element::drag = (onmove, onstart, onend, move_scope, start_scope, end_scope) ->
     @_drag = {}
     @mousedown((e) ->
       (e.originalEvent || e).preventDefault()
@@ -2221,7 +2221,7 @@ Raphael = (->
       @_drag.x = e.clientX + scrollX
       @_drag.y = e.clientY + scrollY
       @_drag.id = e.identifier
-      onstart.call(start_scope or move_scope or this, e.clientX + scrollX, e.clientY + scrollY) if onstart
+      onstart.call(start_scope or move_scope or this, e.clientX + scrollX, e.clientY + scrollY, e) if onstart
       R.mousemove(dragMove).mouseup(dragUp) if !drag.length
       drag.push({ el: this, move: onmove, end: onend, move_scope: move_scope, start_scope: start_scope, end_scope: end_scope })
     )
