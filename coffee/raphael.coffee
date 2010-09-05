@@ -2408,8 +2408,8 @@ Raphael = (->
       else
         dot = R.findDotsAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, i / precision)
         cache.data[i] = dot
-      len += pow(pow(old.x - dot.x, 2) + pow(old.y - dot.y, 2), .5) if i
       if length != null and len >= length
+      len += Math.pow(Math.pow(old.x - dot.x, 2) + Math.pow(old.y - dot.y, 2), .5) if i
         return dot
       old = dot
     if length == null
