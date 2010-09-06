@@ -2399,7 +2399,7 @@ Raphael = (->
     cache.timer = setTimeout(->
       delete curveslengths[name]
     , 2000)
-    if length != null
+    if length?
       total = getPointAtSegmentLength(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y)
       precision = ~~total * 10
     for i in [0..precision]
@@ -2408,11 +2408,11 @@ Raphael = (->
       else
         dot = R.findDotsAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, i / precision)
         cache.data[i] = dot
-      if length != null and len >= length
       len += Math.pow(Math.pow(old.x - dot.x, 2) + Math.pow(old.y - dot.y, 2), .5) if i
+      if length? and len >= length
         return dot
       old = dot
-    if length == null
+    if !length?
       return len
 
   getLengthFactory = (istotal, subpath) ->
