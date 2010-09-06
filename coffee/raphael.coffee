@@ -2421,8 +2421,7 @@ Raphael = (->
       sp = ""
       subpaths = {}
       len = 0
-      for i of path
-        p = path[i]
+      for p in path
         if p[0] == "M"
           x = +p[1]
           y = +p[2]
@@ -2441,7 +2440,7 @@ Raphael = (->
                 continue
               if !istotal and !subpath
                 point = getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6], length - len)
-                { x: point.x, y: point.y, alpha: point.alpha }
+                return { x: point.x, y: point.y, alpha: point.alpha }
           len += l
           x = +p[5]
           y = +p[6]
