@@ -2403,7 +2403,7 @@ Raphael = (->
       total = getPointAtSegmentLength(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y)
       precision = ~~total * 10
     for i in [0..precision]
-      if cache.data.length > i
+      if cache.data[length] > i
         dot = cache.data[i * precision]
       else
         dot = R.findDotsAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, i / precision)
