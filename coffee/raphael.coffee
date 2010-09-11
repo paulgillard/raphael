@@ -2335,7 +2335,7 @@ Raphael = (->
               p[path[i].length - 1] *= fy
               p[1] *= kx
               p[2] *= ky
-              p[5] = +!(if dirx + diry then !!+p[5] else !+p[5])
+              p[5] = +(if dirx + diry then !!+p[5] else !+p[5])
             else if P0 == "H"
               for j of p
                 if j >= 1
