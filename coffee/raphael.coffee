@@ -638,29 +638,32 @@ Raphael = (->
           ["C"].concat(lineToCurve(d.x, d.y, d.X, d.Y))
         else
           path
-    fixArc = (pp, i) ->
+    fixArc = (pp, i, ii) ->
       if pp[i].length > 7
         pp[i].shift()
         pi = pp[i]
         while pi.length
           pp.splice(i++, 0, ["C"].concat(pi.splice(0, 6)))
         pp.splice(i, 1)
-        ii = Math.max(p.length, if p2? then p2.length else 0)
-    fixM = (path1, path2, a1, a2, i) ->
+        ii = Math.max(p.length, if p2? then p2.length else 0) - 1
+      ii
+    fixM = (path1, path2, a1, a2, i, ii) ->
       if path1? and path2? and path1[i][0] == "M" and path2[i][0] != "M"
         path2.splice(i, 0, ["M", a2.x, a2.y])
         a1.bx = 0
         a1.by = 0
         a1.x = path1[i][1]
         a1.y = path1[i][2]
-        ii = Math.max(p.length, if p2? then p2.length else 0)
-    for i in [0..Math.max(p.length, if p2? then p2.length else 0) - 1]
+        ii = Math.max(p.length, if p2? then p2.length else 0) - 1
+      ii
+    ii = Math.max(p.length, if p2? then p2.length else 0) - 1
+    for i in [0..ii]
       p[i] = processPath(p[i], attrs)
-      fixArc(p, i)
+      ii = fixArc(p, i, ii)
       p2[i] = processPath(p2[i], attrs2) if p2?
-      fixArc(p2, i) if p2?
-      fixM(p, p2, attrs, attrs2, i)
-      fixM(p2, p, attrs2, attrs, i)
+      ii = fixArc(p2, i, ii) if p2?
+      ii = fixM(p, p2, attrs, attrs2, i, ii)
+      ii = fixM(p2, p, attrs2, attrs, i, ii)
       seg = p[i]
       seg2 = p2[i] if p2?
       seglen = seg.length
