@@ -2291,8 +2291,8 @@ Raphael = (->
       dkx = kx * dirx
       dky = ky * diry
       s = @node.style
-      ncx = cx + Math.abs(rcx - cx) * dkx * (if rcx > cx == posx then 1 else -1)
-      ncy = cy + Math.abs(rcy - cy) * dky * (if rcy > cy == posy then 1 else -1)
+      ncx = cx + Math.abs(rcx - cx) * dkx * (if (rcx > cx) == posx then 1 else -1)
+      ncy = cy + Math.abs(rcy - cy) * dky * (if (rcy > cy) == posy then 1 else -1)
       fr = (if x * dirx > y * diry then ky else kx)
       switch @type
         when "rect", "image"

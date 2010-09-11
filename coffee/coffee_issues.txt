@@ -56,3 +56,28 @@ a =
   y: 2
 
 doesn't
+----------------------
+
+if rcx > cx == posx then 1 else -1
+
+compiles to
+
+if ((rcx > cx) && (cx === posx)) {
+  1;
+} else {
+  -1;
+};
+
+when i would expect
+
+if ((rcx > cx) === posx)) {
+  1;
+} else {
+  -1;
+};
+
+to get the latter i need:
+
+if (rcx > cx) == posx then 1 else -1
+
+This might not be an error. I remember reading about the Perl? like statement 1 < a < 3. Is this the same type of thing?
