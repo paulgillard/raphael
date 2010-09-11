@@ -2323,7 +2323,7 @@ Raphael = (->
           skip = true
           fx = if posx then dkx else kx
           fy = if posy then dky else ky
-          for i of path
+          for value, i in path
             p = path[i]
             P0 = String.prototype.toUpperCase.call(p[0])
             if P0 == "M" and skip
@@ -2337,15 +2337,15 @@ Raphael = (->
               p[2] *= ky
               p[5] = +(if dirx + diry then !!+p[5] else !+p[5])
             else if P0 == "H"
-              for j of p
+              for value, j in p
                 if j >= 1
                   p[j] *= fx
             else if P0 == "V"
-              for j of p
+              for value, j in p
                 if j >= 1
                   p[j] *= fy
             else
-              for j of p
+              for value, j in p
                 if j >= 1
                   p[j] *= if j % 2 then fx else fy
           dim2 = pathDimensions(path)
