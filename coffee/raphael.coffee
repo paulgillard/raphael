@@ -2582,7 +2582,7 @@ Raphael = (->
                   now = +from[attr][0] + pos * ms * diff[attr][0]
                   now += "," + from[attr][1] + "," + from[attr][2] if from[attr][1]
                 when "scale"
-                  now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if 2 in to[attr] then to[attr][2] else ""), (if 3 in to[attr] then to[attr][3] else "")].join(" ")
+                  now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if to[attr][2]? then to[attr][2] else ""), (if to[attr][3]? then to[attr][3] else "")].join(" ")
                 when "clip-rect"
                   now = []
                   i = 4
