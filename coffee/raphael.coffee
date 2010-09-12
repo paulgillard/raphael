@@ -172,8 +172,9 @@ Raphael = (->
       return new RGB(-1, -1, -1).isError()
     if colour == "none"
       return new RGB(-1, -1, -1).isNone() # TODO: Could this be say black with zero opacity?
-    !(R.hsrg.hasOwnProperty(colour.toLowerCase().substring(0, 2)) or colour.charAt() == "#") and (colour = this.toHex(colour))
     colourRegExp = /^\s*((#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\))\s*$/i
+    if !R.hsrg.hasOwnProperty(colour.toLowerCase().substring(0, 2)) and !colour.charAt() == "#"
+      colour = this.toHex(colour)
     commaSpaces = /\s*,\s*/
     rgb = colour.match(colourRegExp)
     if rgb?
