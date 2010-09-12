@@ -3058,7 +3058,7 @@ class RGB
     min = Math.min(red, green, blue)
     brightness = max
     if min == max
-      new HSB(0, 0, max)
+      return new HSB(0, 0, max)
     else
       delta = max - min
       saturation = delta / max
@@ -3085,7 +3085,7 @@ class RGB
     min = Math.min(red, green, blue)
     lightness = (max + min) / 2
     if min == max
-      new HSL(0, 0, lightness)
+      return new HSL(0, 0, lightness)
     else
       delta = max - min
       saturation = if lightness < 0.5 then delta / (max + min) else delta / (2 - max - min)
