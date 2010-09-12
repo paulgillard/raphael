@@ -172,37 +172,37 @@ Raphael = (->
       return new RGB(-1, -1, -1).isError()
     if colour == "none"
       return new RGB(-1, -1, -1).isNone() # TODO: Could this be say black with zero opacity?
-    colourRegExp = /^\s*((#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\))\s*$/i
     if !R.hsrg.hasOwnProperty(colour.toLowerCase().substring(0, 2)) and !colour.charAt() == "#"
       colour = this.toHex(colour)
+    colourRegExp = /^\s*(#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)\s*$/i
     commaSpaces = /\s*,\s*/
     rgb = colour.match(colourRegExp)
     if rgb?
       # #[a-f\d]{6}
       # 
       # #a13f2c
-      if rgb[2]
-        return new RGB(parseInt(rgb[2].substring(1, 3), 16), parseInt(rgb[2].substring(3, 5), 16), parseInt(rgb[2].substring(5), 16))
+      if rgb[1]
+        return new RGB(parseInt(rgb[1].substring(1, 3), 16), parseInt(rgb[1].substring(3, 5), 16), parseInt(rgb[1].substring(5), 16))
       # (#[a-f\d]{3})
       # 
       # #a2f
-      if rgb[3]
-        return new RGB(parseInt((t = rgb[3].charAt(1)) + t, 16), parseInt((t = rgb[3].charAt(2)) + t, 16), parseInt((t = rgb[3].charAt(3)) + t, 16))
+      if rgb[2]
+        return new RGB(parseInt((t = rgb[2].charAt(1)) + t, 16), parseInt((t = rgb[2].charAt(2)) + t, 16), parseInt((t = rgb[2].charAt(3)) + t, 16))
       # rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)
       # 
       # rgb(0.3, 0.4, 0.9)
       # rgba(0.3, 0.4, 0.9, 0.2)
       # rgb(30%, 40%, 90%)
       # rgba(30%, 40%, 90%, 20%)
-      if rgb[4]
-        values = rgb[4].split(commaSpaces)
+      if rgb[3]
+        values = rgb[3].split(commaSpaces)
         red = parseFloat(values[0])
         red *= 2.55 if values[0].slice(-1) == "%"
         green = parseFloat(values[1])
         green *= 2.55 if values[1].slice(-1) == "%"
         blue = parseFloat(values[2])
         blue *= 2.55 if values[2].slice(-1) == "%"
-        opacity = parseFloat(values[3]) if rgb[1].toLowerCase().slice(0, 4) == "rgba"
+        opacity = parseFloat(values[3]) if rgb[0].toLowerCase().slice(0, 4) == "rgba"
         opacity /= 100 if values[3] and values[3].slice(-1) == "%"
         return new RGB(red, green, blue, opacity)
       # hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)
@@ -217,8 +217,8 @@ Raphael = (->
       # hsba(3.3%, 80%, 70%, 20%)
       # hsba(30°, 80%, 70%, 20%)
       # hsba(30deg, 80%, 70%, 20%)
-      if rgb[5]
-        values = rgb[5].split(commaSpaces)
+      if rgb[4]
+        values = rgb[4].split(commaSpaces)
         hue = parseFloat(values[0])
         hue *= 2.55 if values[0].slice(-1) == "%"
         saturation = parseFloat(values[1])
@@ -226,7 +226,7 @@ Raphael = (->
         brightness = parseFloat(values[2])
         brightness *= 2.55 if values[2].slice(-1) == "%"
         hue /= 360 if values[0].slice(-3) == "deg" or values[0].slice(-1) == "\xb0"
-        opacity = parseFloat(values[3]) if rgb[1].toLowerCase().slice(0, 4) == "hsba"
+        opacity = parseFloat(values[3]) if rgb[0].toLowerCase().slice(0, 4) == "hsba"
         opacity /= 100 if values[3] and values[3].slice(-1) == "%"
         return new HSB(hue, saturation, brightness).toRGB(opacity)
       # hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\))\s*$/i
@@ -241,8 +241,8 @@ Raphael = (->
       # hsla(8.3%, 80%, 70%, 20%)
       # hsla(30°, 80%, 70%, 20%)
       # hsla(30deg, 80%, 70%, 20%)
-      if rgb[6]
-        values = rgb[6].split(commaSpaces)
+      if rgb[5]
+        values = rgb[5].split(commaSpaces)
         hue = parseFloat(values[0])
         hue *= 2.55 if values[0].slice(-1) == "%"
         saturation = parseFloat(values[1])
@@ -250,7 +250,7 @@ Raphael = (->
         lightness = parseFloat(values[2])
         lightness *= 2.55 if values[2].slice(-1) == "%"
         hue /= 360 if values[0].slice(-3) == "deg" or values[0].slice(-1) == "\xb0"
-        opacity = parseFloat(values[3]) if rgb[1].toLowerCase().slice(0, 4) == "hsla"
+        opacity = parseFloat(values[3]) if rgb[0].toLowerCase().slice(0, 4) == "hsla"
         opacity /= 100 if values[3] and values[3].slice(-1) == "%"
         return new HSL(hue, saturation, lightness).toRGB(opacity)
     new RGB(-1, -1, -1).isError()
