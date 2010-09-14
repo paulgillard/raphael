@@ -3028,7 +3028,7 @@ class RGB
     @red = red
     @green = green
     @blue = blue
-    @opacity = opacity if isFinite(opacity)
+    @opacity = if isFinite(opacity) then opacity else 1
 
   toString: ->
     this.hex()
