@@ -3110,9 +3110,6 @@ class HSB
   toString: ->
     "hsb(" + [@hue, @saturation, @brightness] + ")"
 
-  hex: ->
-    "#" + @red
-
   toRGB: (opacity) ->
     hsl = new HSL(@hue, @saturation, @brightness / 2)
     hsl.toRGB(opacity)
