@@ -3,8 +3,7 @@ module("RGB");
 // Black
 
 test("Implicitly opaque black", function() {
-  red = green = blue = 0
-  colour = new RGB(red, green, blue);
+  colour = new RGB(red = 0, green = 0, blue = 0);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -15,9 +14,7 @@ test("Implicitly opaque black", function() {
 });
 
 test("Explicitly opaque black", function() {
-  red = green = blue = 0
-  opacity = 1
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 0, green = 0, blue = 0, opacity = 1);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -28,9 +25,7 @@ test("Explicitly opaque black", function() {
 });
 
 test("Explicitly translucent black", function() {
-  red = green = blue = 0
-  opacity = 0.4
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 0, green = 0, blue = 0, opacity = 0.4);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -43,9 +38,7 @@ test("Explicitly translucent black", function() {
 // Red
 
 test("Implicitly opaque red", function() {
-  red = 255
-  green = blue = 0
-  colour = new RGB(red, green, blue);
+  colour = new RGB(red = 255, green = 0, blue = 0);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -56,10 +49,7 @@ test("Implicitly opaque red", function() {
 });
 
 test("Explicitly opaque red", function() {
-  red = 255
-  green = blue = 0
-  opacity = 1
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 255, green = 0, blue = 0, opacity = 1);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -70,10 +60,7 @@ test("Explicitly opaque red", function() {
 });
 
 test("Explicitly translucent red", function() {
-  red = 255
-  green = blue = 0
-  opacity = 0.6
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 255, green = 0, blue = 0, opacity = 0.6);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -86,9 +73,7 @@ test("Explicitly translucent red", function() {
 // Yellow
 
 test("Implicitly opaque yellow", function() {
-  blue = 0
-  red = green = 255
-  colour = new RGB(red, green, blue);
+  colour = new RGB(red = 255, green = 255, blue = 0);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -99,10 +84,7 @@ test("Implicitly opaque yellow", function() {
 });
 
 test("Explicitly opaque yellow", function() {
-  blue = 0
-  red = green = 255
-  opacity = 1
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 255, green = 255, blue = 0, opacity = 1);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -113,10 +95,7 @@ test("Explicitly opaque yellow", function() {
 });
 
 test("Explicitly translucent yellow", function() {
-  blue = 0
-  red = green = 255
-  opacity = 0.9
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 255, green = 255, blue = 0, opacity = 0.9);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -129,9 +108,7 @@ test("Explicitly translucent yellow", function() {
 // Green
 
 test("Implicitly opaque green", function() {
-  green = 255
-  red = blue = 0
-  colour = new RGB(red, green, blue);
+  colour = new RGB(red = 0, green = 255, blue = 0);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -142,10 +119,7 @@ test("Implicitly opaque green", function() {
 });
 
 test("Explicitly opaque green", function() {
-  green = 255
-  red = blue = 0
-  opacity = 1
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 0, green = 255, blue = 0, opacity = 1);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -156,10 +130,7 @@ test("Explicitly opaque green", function() {
 });
 
 test("Explicitly translucent green", function() {
-  green = 255
-  red = blue = 0
-  opacity = 0.9
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 0, green = 255, blue = 0, opacity = 0.9);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -172,9 +143,7 @@ test("Explicitly translucent green", function() {
 // Cyan
 
 test("Implicitly opaque cyan", function() {
-  red = 0
-  blue = green = 255
-  colour = new RGB(red, green, blue);
+  colour = new RGB(red = 0, green = 255, blue = 255);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -185,10 +154,7 @@ test("Implicitly opaque cyan", function() {
 });
 
 test("Explicitly opaque cyan", function() {
-  red = 0
-  blue = green = 255
-  opacity = 1
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 0, green = 255, blue = 255, opacity = 1);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -199,10 +165,7 @@ test("Explicitly opaque cyan", function() {
 });
 
 test("Explicitly translucent cyan", function() {
-  red = 0
-  blue = green = 255
-  opacity = 0.9
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 0, green = 255, blue = 255, opacity = 0.9);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -215,9 +178,7 @@ test("Explicitly translucent cyan", function() {
 // Blue
 
 test("Implicitly opaque blue", function() {
-  blue = 255
-  red = green = 0
-  colour = new RGB(red, green, blue);
+  colour = new RGB(red = 0, green = 0, blue = 255);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -228,10 +189,7 @@ test("Implicitly opaque blue", function() {
 });
 
 test("Explicitly opaque blue", function() {
-  blue = 255
-  red = green = 0
-  opacity = 1
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 0, green = 0, blue = 255, opacity = 1);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -242,10 +200,7 @@ test("Explicitly opaque blue", function() {
 });
 
 test("Explicitly translucent blue", function() {
-  blue = 255
-  red = green = 0
-  opacity = 0.9
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 0, green = 0, blue = 255, opacity = 0.9);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -258,9 +213,7 @@ test("Explicitly translucent blue", function() {
 // Magenta
 
 test("Implicitly opaque magenta", function() {
-  green = 0
-  red = blue = 255
-  colour = new RGB(red, green, blue);
+  colour = new RGB(red = 255, green = 0, blue = 255);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -271,10 +224,7 @@ test("Implicitly opaque magenta", function() {
 });
 
 test("Explicitly opaque magenta", function() {
-  green = 0
-  red = blue = 255
-  opacity = 1
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 255, green = 0, blue = 255, opacity = 1);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -285,10 +235,7 @@ test("Explicitly opaque magenta", function() {
 });
 
 test("Explicitly translucent magenta", function() {
-  green = 0
-  red = blue = 255
-  opacity = 0.9
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 255, green = 0, blue = 255, opacity = 0.9);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -301,8 +248,7 @@ test("Explicitly translucent magenta", function() {
 // White
 
 test("Implicitly opaque white", function() {
-  red = green = blue = 255
-  colour = new RGB(red, green, blue);
+  colour = new RGB(red = 255, green = 255, blue = 255);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -313,9 +259,7 @@ test("Implicitly opaque white", function() {
 });
 
 test("Explicitly opaque white", function() {
-  red = green = blue = 255
-  opacity = 1
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 255, green = 255, blue = 255, opacity = 1);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
@@ -326,9 +270,7 @@ test("Explicitly opaque white", function() {
 });
 
 test("Explicitly translucent white", function() {
-  red = green = blue = 255
-  opacity = 0.6
-  colour = new RGB(red, green, blue, opacity);
+  colour = new RGB(red = 255, green = 255, blue = 255, opacity = 0.6);
   equals(colour.red, red, "Red value");
   equals(colour.green, green, "Green value");
   equals(colour.blue, blue, "Blue value");
