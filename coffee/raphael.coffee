@@ -3132,7 +3132,7 @@ class HSL
       saturation /= 100
       lightness /= 100
     if !saturation
-      return new RGB(lightness, lightness, lightness, opacity)
+      rgbChannels = { red: lightness, blue: lightness, green: lightness }
     else
       if lightness < 0.5
         t2 = lightness * (1 + saturation)
@@ -3152,7 +3152,7 @@ class HSL
           rgbChannels[channel] = t1 + (t2 - t1) * (2 / 3 - t3) * 6
         else
           rgbChannels[channel] = t1
-      rgbChannels.red *= 255
-      rgbChannels.green *= 255
-      rgbChannels.blue *= 255
-      return new RGB(rgbChannels.red, rgbChannels.green, rgbChannels.blue, opacity)
+    rgbChannels.red *= 255
+    rgbChannels.green *= 255
+    rgbChannels.blue *= 255
+    return new RGB(rgbChannels.red, rgbChannels.green, rgbChannels.blue, opacity)
