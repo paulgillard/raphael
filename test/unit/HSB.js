@@ -27,7 +27,7 @@ test("red", function() {
 // Yellow
 
 test("yellow", function() {
-  colour = new HSB(hue = 1 / 6, saturation = 1, brightness = 1);
+  colour = new HSB(hue = 60, saturation = 1, brightness = 1);
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.brightness, brightness, "Brightness value");
@@ -39,7 +39,7 @@ test("yellow", function() {
 // Green
 
 test("green", function() {
-  colour = new HSB(hue = 2 / 6, saturation = 1, brightness = 1);
+  colour = new HSB(hue = 120, saturation = 1, brightness = 1);
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.brightness, brightness, "Brightness value");
@@ -51,7 +51,7 @@ test("green", function() {
 // Cyan
 
 test("cyan", function() {
-  colour = new HSB(hue = 3 / 6, saturation = 1, brightness = 1);
+  colour = new HSB(hue = 180, saturation = 1, brightness = 1);
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.brightness, brightness, "Brightness value");
@@ -63,7 +63,7 @@ test("cyan", function() {
 // Blue
 
 test("blue", function() {
-  colour = new HSB(hue = 4 / 6, saturation = 1, brightness = 1);
+  colour = new HSB(hue = 240, saturation = 1, brightness = 1);
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.brightness, brightness, "Brightness value");
@@ -75,7 +75,7 @@ test("blue", function() {
 // Magenta
 
 test("magenta", function() {
-  colour = new HSB(hue = 5 / 6, saturation = 1, brightness = 1);
+  colour = new HSB(hue = 300, saturation = 1, brightness = 1);
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.brightness, brightness, "Brightness value");
