@@ -7,7 +7,7 @@ test("black", function() {
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.lightness, lightness, "Lightness value");
-  same(colour.toRGB(), new RGB(0, 0, 0), "Implicitly opaque RGB value");
+  same(colour.toRGB(), new RGB(0, 0, 0), "RGB value");
   same(colour.toRGB(opacity = 1), new RGB(0, 0, 0, opacity), "Explicitly opaque RGB value");
   same(colour.toRGB(opacity = 0.4), new RGB(0, 0, 0, opacity), "Explicitly translucent RGB value");
 });
@@ -19,7 +19,7 @@ test("red", function() {
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.lightness, lightness, "Lightness value");
-  same(colour.toRGB(), new RGB(255, 0, 0), "Implicitly opaque RGB value");
+  same(colour.toRGB(), new RGB(255, 0, 0), "RGB value");
   same(colour.toRGB(opacity = 1), new RGB(255, 0, 0, opacity), "Explicitly opaque RGB value");
   same(colour.toRGB(opacity = 0.6), new RGB(255, 0, 0, opacity), "Explicitly translucent RGB value");
 });
@@ -31,7 +31,7 @@ test("yellow", function() {
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.lightness, lightness, "Lightness value");
-  same(colour.toRGB(), new RGB(255, 255, 0), "Implicitly opaque RGB value");
+  same(colour.toRGB(), new RGB(255, 255, 0), "RGB value");
   same(colour.toRGB(opacity = 1), new RGB(255, 255, 0, opacity), "Explicitly opaque RGB value");
   same(colour.toRGB(opacity = 0.9), new RGB(255, 255, 0, opacity), "Explicitly translucent RGB value");
 });
@@ -43,7 +43,7 @@ test("green", function() {
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.lightness, lightness, "Lightness value");
-  same(colour.toRGB(), new RGB(0, 255, 0), "Implicitly opaque RGB value");
+  same(colour.toRGB(), new RGB(0, 255, 0), "RGB value");
   same(colour.toRGB(opacity = 1), new RGB(0, 255, 0, opacity), "Explicitly opaque RGB value");
   same(colour.toRGB(opacity = 0.9), new RGB(0, 255, 0, opacity), "Explicitly translucent RGB value");
 });
@@ -55,7 +55,7 @@ test("cyan", function() {
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.lightness, lightness, "Lightness value");
-  same(colour.toRGB(), new RGB(0, 255, 255), "Implicitly opaque RGB value");
+  same(colour.toRGB(), new RGB(0, 255, 255), "RGB value");
   same(colour.toRGB(opacity = 1), new RGB(0, 255, 255, opacity), "Explicitly opaque RGB value");
   same(colour.toRGB(opacity = 0.9), new RGB(0, 255, 255, opacity), "Explicitly translucent RGB value");
 });
@@ -67,7 +67,7 @@ test("blue", function() {
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.lightness, lightness, "Lightness value");
-  same(colour.toRGB(), new RGB(0, 0, 255), "Implicitly opaque RGB value");
+  same(colour.toRGB(), new RGB(0, 0, 255), "RGB value");
   same(colour.toRGB(opacity = 1), new RGB(0, 0, 255, opacity), "Explicitly opaque RGB value");
   same(colour.toRGB(opacity = 0.9), new RGB(0, 0, 255, opacity), "Explicitly translucent RGB value");
 });
@@ -79,7 +79,7 @@ test("magenta", function() {
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.lightness, lightness, "Lightness value");
-  same(colour.toRGB(), new RGB(255, 0, 255), "Implicitly opaque RGB value");
+  same(colour.toRGB(), new RGB(255, 0, 255), "RGB value");
   same(colour.toRGB(opacity = 1), new RGB(255, 0, 255, opacity), "Explicitly opaque RGB value");
   same(colour.toRGB(opacity = 0.9), new RGB(255, 0, 255, opacity), "Explicitly translucent RGB value");
 });
@@ -91,7 +91,7 @@ test("white", function() {
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
   equals(colour.lightness, lightness, "Lightness value");
-  same(colour.toRGB(), new RGB(255, 255, 255), "Implicitly opaque RGB value");
+  same(colour.toRGB(), new RGB(255, 255, 255), "RGB value");
   same(colour.toRGB(opacity = 1), new RGB(255, 255, 255, opacity), "Explicitly opaque RGB value");
   same(colour.toRGB(opacity = 0.9), new RGB(255, 255, 255, opacity), "Explicitly translucent RGB value");
 });
