@@ -3111,8 +3111,34 @@ class HSB
     "hsb(" + [@hue, @saturation, @brightness] + ")"
 
   toRGB: (opacity) ->
-    hsl = new HSL(@hue, @saturation, @brightness / 2)
-    hsl.toRGB(opacity)
+    chroma = @brightness * @saturation
+    segment = @hue / 60 # Hexagon segment
+    second = chroma * (1 - Math.abs((segment % 2) - 1)) # Second largest RGB colour component
+    red = green = blue = 0
+    if segment?
+      if 0 <= segment < 1
+        red = chroma
+        green = second
+      else if 1 <= segment < 2
+        red = second
+        green = chroma
+      else if 2 <= segment < 3
+        green = chroma
+        blue = second
+      else if 3 <= segment < 4
+        green = second
+        blue = chroma
+      else if 4 <= segment < 5
+        red = second
+        blue = chroma
+      else if 5 <= segment < 6
+        red = chroma
+        blue = second
+    m = @brightness - chroma
+    red += m
+    green += m
+    blue += m
+    new RGB(red * 255, green * 255, blue * 255, opacity)
 
 class HSL
   constructor: (hue, saturation, lightness) ->
@@ -3124,35 +3150,34 @@ class HSL
     "hsl(" + [@hue, @saturation, @lightness] + ")"
 
   toRGB: (opacity) ->
-    hue = @hue
-    saturation = @saturation
-    lightness = @lightness
-    if @hue > 1 or @saturation > 1 or @lightness > 1
-      hue /= 360
-      saturation /= 100
-      lightness /= 100
-    if !saturation
-      rgbChannels = { red: lightness, blue: lightness, green: lightness }
+    if @lightness <= 0.5
+      chroma = 2 * @lightness * @saturation
     else
-      if lightness < 0.5
-        t2 = lightness * (1 + saturation)
-      else
-        t2 = lightness + saturation - lightness * saturation
-      t1 = 2 * lightness - t2
-      rgbChannels = { red: 0, green: 1, blue: 2 }
-      for channel, value of rgbChannels
-        t3 = hue + 1 / 3 * -(value - 1)
-        t3 < 0 and t3++
-        t3 > 1 and t3--
-        if t3 * 6 < 1
-          rgbChannels[channel] = t1 + (t2 - t1) * 6 * t3
-        else if t3 * 2 < 1
-          rgbChannels[channel] = t2
-        else if t3 * 3 < 2
-          rgbChannels[channel] = t1 + (t2 - t1) * (2 / 3 - t3) * 6
-        else
-          rgbChannels[channel] = t1
-    rgbChannels.red *= 255
-    rgbChannels.green *= 255
-    rgbChannels.blue *= 255
-    return new RGB(rgbChannels.red, rgbChannels.green, rgbChannels.blue, opacity)
+      chroma = (2 - 2 * @lightness) * @saturation
+    segment = @hue / 60 # Hexagon segment
+    second = chroma * (1 - Math.abs((segment % 2) - 1)) # Second largest RGB colour component
+    red = green = blue = 0
+    if segment?
+      if 0 <= segment < 1
+        red = chroma
+        green = second
+      else if 1 <= segment < 2
+        red = second
+        green = chroma
+      else if 2 <= segment < 3
+        green = chroma
+        blue = second
+      else if 3 <= segment < 4
+        green = second
+        blue = chroma
+      else if 4 <= segment < 5
+        red = second
+        blue = chroma
+      else if 5 <= segment < 6
+        red = chroma
+        blue = second
+    m = @lightness - (chroma / 2)
+    red += m
+    green += m
+    blue += m
+    new RGB(red * 255, green * 255, blue * 255, opacity)
