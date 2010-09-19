@@ -2,7 +2,7 @@ module("HSL");
 
 // Black
 
-test("black", function() {
+test("pure black", function() {
   colour = new HSL(hue = 0, saturation = 0, lightness = 0);
   equals(colour.hue, hue, "Hue value");
   equals(colour.saturation, saturation, "Saturation value");
