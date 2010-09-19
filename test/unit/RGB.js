@@ -279,3 +279,19 @@ test("Explicitly translucent white", function() {
   same(colour.toHSB(), new HSB(0, 0, 1), "HSB value");
   same(colour.toHSL(), new HSL(0, 0, 1), "HSL value");
 });
+
+// Rounding
+
+test("Values with a fraction below 0.5 are rounded down", function() {
+  colour = new RGB(red = 100.25, green = 100.25, blue = 100.25);
+  equals(colour.red, Math.round(red), "Red value rounded down");
+  equals(colour.green, Math.round(green), "Green value rounded down");
+  equals(colour.blue, Math.round(blue), "Blue value rounded down");
+})
+
+test("Values with a fraction on or above 0.5 are rounded up", function() {
+  colour = new RGB(red = 100.5, green = 100.5, blue = 100.5);
+  equals(colour.red, Math.round(red), "Red value rounded up");
+  equals(colour.green, Math.round(green), "Green value rounded up");
+  equals(colour.blue, Math.round(blue), "Blue value rounded up");
+})

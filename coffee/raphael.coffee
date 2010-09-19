@@ -3025,9 +3025,9 @@ class RGB
 
   # TODO: Should correct to integers in range 0-255 / 0-1
   constructor: (red, green, blue, opacity) ->
-    @red = red
-    @green = green
-    @blue = blue
+    @red = Math.round(red)
+    @green = Math.round(green)
+    @blue = Math.round(blue)
     @opacity = if isFinite(opacity) then opacity else 1
 
   toString: ->
