@@ -3181,3 +3181,11 @@ class HSL
     green += m
     blue += m
     new RGB(red * 255, green * 255, blue * 255, opacity)
+
+# Built in modulus function deals with negative numbers incorrectly.
+# For example:
+#   -1 % 6 incorrectly gives -1
+# but
+#   (-1).mod(6) correctly gives 5
+Number::mod = (n) ->
+  ((this % n) + n) % n
