@@ -3020,6 +3020,8 @@ Raphael = (->
   if oldRaphael.was then (window.Raphael = R) else (Raphael = R)
 )()
 
+# Stores red, green and blue values to nearest integer.
+# Max, min and chroma are initially calculated to aid later possible conversion to HSB or HSL. We avoid division by 255 until the last minute as usually the division will cancel out the 255s anyway.
 class RGB
   @rg: /^(?=[\da-f]$)/
 
@@ -3029,6 +3031,9 @@ class RGB
     @green = Math.round(green)
     @blue = Math.round(blue)
     @opacity = if isFinite(opacity) then opacity else 1
+    @max = Math.max(@red, @green, @blue)
+    @min = Math.min(@red, @green, @blue)
+    @chroma = @max - @min
 
   toString: ->
     this.hex()
@@ -3047,59 +3052,34 @@ class RGB
     else
       "#" + (16777216 | @blue | (@green << 8) | (@red << 16)).toString(16).slice(1)
 
+  hue: ->
+    if !@_hue?
+      if @chroma == 0
+        @_hue = 0
+      else if @max == @red
+        @_hue = ((@green - @blue) / @chroma).mod(6)
+      else if @max == @green
+        @_hue = ((@blue - @red) / @chroma) + 2
+      else if @max == @blue
+        @_hue = ((@red - @green) / @chroma) + 4
+      @_hue = Math.abs(@_hue) * 60
+    @_hue
+
   toHSB: ->
-    red = @red
-    green = @green
-    blue = @blue
-    if red > 1 or green > 1 or blue > 1
-      red /= 255
-      green /= 255
-      blue /= 255
-    max = Math.max(red, green, blue)
-    min = Math.min(red, green, blue)
-    brightness = max
-    if min == max
-      return new HSB(0, 0, max)
-    else
-      delta = max - min
-      saturation = delta / max
-      if red == max
-        hue = (green - blue) / delta
-      else if green == max
-        hue = 2 + ((blue - red) / delta)
-      else
-        hue = 4 + ((red - green) / delta)
-      hue /= 6
-      hue < 0 and hue++
-      hue > 1 and hue--
-    new HSB(hue, saturation, brightness)
+    saturation = if @chroma == 0 then 0 else @chroma / @max
+    @hsb ?= new HSB(@hue(), saturation, @max / 255)
 
   toHSL: ->
-    red = @red
-    green = @green
-    blue = @blue
-    if red > 1 or green > 1 or blue > 1
-      red /= 255
-      green /= 255
-      blue /= 255
-    max = Math.max(red, green, blue)
-    min = Math.min(red, green, blue)
-    lightness = (max + min) / 2
-    if min == max
-      return new HSL(0, 0, lightness)
-    else
-      delta = max - min
-      saturation = if lightness < 0.5 then delta / (max + min) else delta / (2 - max - min)
-      if red == max
-        hue = (green - blue) / delta
-      else if green == max
-        hue = 2 + ((blue - red) / delta)
+    if !@hsl?
+      lightness = (@max + @min) / 2
+      if @chroma == 0
+        saturation = 0
+      else if lightness < 127.5
+        saturation = (255 * @chroma) / (2 * lightness)
       else
-        hue = 4 + ((red - green) / delta)
-      hue /= 6
-      hue < 0 and hue++
-      hue > 1 and hue--
-    new HSL(hue, saturation, lightness)
+        saturation = (255 * @chroma) / (510 - 2 * lightness)
+      @hsl = new HSL(@hue(), saturation / 255, lightness / 255)
+    @hsl
 
 class HSB
   constructor: (hue, saturation, brightness) ->
