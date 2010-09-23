@@ -286,6 +286,18 @@ var QUnit = {
 		push(expected !== actual, actual, expected, message);
 	},
 
+	rgbEqual: function(actual, expected, message) {
+		push(expected.red == actual.red && expected.green == actual.green && expected.blue == actual.blue, actual, expected, message);
+	},
+
+	hsbEqual: function(actual, expected, message) {
+		push(expected.hue.toFixed(10) == actual.hue.toFixed(10) && expected.saturation.toFixed(13) == actual.saturation.toFixed(13) && expected.brightness.toFixed(13) == actual.brightness.toFixed(13), actual, expected, message);
+	},
+
+	hslEqual: function(actual, expected, message) {
+		push(expected.hue.toFixed(10) == actual.hue.toFixed(10) && expected.saturation.toFixed(13) == actual.saturation.toFixed(13) && expected.lightness.toFixed(13) == actual.lightness.toFixed(13), actual, expected, message);
+	},
+
 	raises: function(fn,  message) {
 		try {
 			fn();
