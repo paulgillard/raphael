@@ -87,39 +87,6 @@ Raphael = (->
       (type == "array" and Array.isArray and Array.isArray(object)) ||
       Object.prototype.toString.call(object).slice(8, -1).toLowerCase() == type
 
-  # colour utilities
-  toHex = (color) ->
-    if this.type() == "VML"
-      # http://dean.edwards.name/weblog/2009/10/convert-any-colour-value-to-hex-in-msie/
-      trim = /^\s+|\s+$/g
-      try
-        docum = new ActiveXObject("htmlfile")
-        docum.write("<body>")
-        docum.close()
-        bod = docum.body
-      catch error
-        bod = createPopup().document.body
-      range = bod.createTextRange()
-      toHex = functionCacher((color) ->
-        try
-          bod.style.color = String(color).replace(trim, "")
-          value = range.queryCommandValue("ForeColor")
-          value = ((value & 255) << 16) | (value & 65280) | ((value & 16711680) >>> 16)
-          return "#" + ("000000" + value.toString(16)).slice(-6)
-        catch error
-          return "none"
-      )
-    else
-      i = document.createElement("i")
-      i.title = "Rapha\xebl Colour Picker"
-      i.style.display = "none"
-      document.body.appendChild(i)
-      toHex = functionCacher((color) ->
-        i.style.color = color
-        document.defaultView.getComputedStyle(i, "").getPropertyValue("color")
-      )
-    toHex(color)
-
   R.angle = (x1, y1, x2, y2, x3, y3) ->
     if x3 == null
       x = x1 - x2
@@ -165,95 +132,6 @@ Raphael = (->
   R.setWindow = (newwin) ->
     win = newwin
     doc = win.document
-
-  # TODO: This should go on the string prototype
-  R.getRGB = (colour) ->
-    if !colour or !!((colour = String(colour)).indexOf("-") + 1)
-      return new RGB(-1, -1, -1).isError()
-    if colour == "none"
-      return new RGB(-1, -1, -1).isNone() # TODO: Could this be say black with zero opacity?
-    if !R.hsrg.hasOwnProperty(colour.toLowerCase().substring(0, 2)) and !colour.charAt() == "#"
-      colour = this.toHex(colour)
-    colourRegExp = /^\s*(#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)|hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)\s*$/i
-    commaSpaces = /\s*,\s*/
-    rgb = colour.match(colourRegExp)
-    if rgb?
-      # #[a-f\d]{6}
-      # 
-      # #a13f2c
-      if rgb[1]
-        return new RGB(parseInt(rgb[1].substring(1, 3), 16), parseInt(rgb[1].substring(3, 5), 16), parseInt(rgb[1].substring(5), 16))
-      # (#[a-f\d]{3})
-      # 
-      # #a2f
-      if rgb[2]
-        return new RGB(parseInt((t = rgb[2].charAt(1)) + t, 16), parseInt((t = rgb[2].charAt(2)) + t, 16), parseInt((t = rgb[2].charAt(3)) + t, 16))
-      # rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)
-      # 
-      # rgb(0.3, 0.4, 0.9)
-      # rgba(0.3, 0.4, 0.9, 0.2)
-      # rgb(30%, 40%, 90%)
-      # rgba(30%, 40%, 90%, 20%)
-      if rgb[3]
-        values = rgb[3].split(commaSpaces)
-        red = parseFloat(values[0])
-        red *= 2.55 if values[0].slice(-1) == "%"
-        green = parseFloat(values[1])
-        green *= 2.55 if values[1].slice(-1) == "%"
-        blue = parseFloat(values[2])
-        blue *= 2.55 if values[2].slice(-1) == "%"
-        opacity = parseFloat(values[3]) if rgb[0].toLowerCase().slice(0, 4) == "rgba"
-        opacity /= 100 if values[3] and values[3].slice(-1) == "%"
-        return new RGB(red, green, blue, opacity)
-      # hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\)
-      # 
-      # hsb(30deg, 0.8, 0.7, 0.2)
-      # hsb(30°, 0.8, 0.7, 0.2)
-      # hsb(3.3%, 80%, 70%, 20%)
-      # hsb(30°, 80%, 70%, 20%)
-      # hsb(30deg, 80%, 70%, 20%)
-      # hsba(30deg, 0.8, 0.7, 0.2)
-      # hsba(30°, 0.8, 0.7, 0.2)
-      # hsba(3.3%, 80%, 70%, 20%)
-      # hsba(30°, 80%, 70%, 20%)
-      # hsba(30deg, 80%, 70%, 20%)
-      if rgb[4]
-        values = rgb[4].split(commaSpaces)
-        hue = parseFloat(values[0])
-        hue *= 2.55 if values[0].slice(-1) == "%"
-        saturation = parseFloat(values[1])
-        saturation *= 2.55 if values[1].slice(-1) == "%"
-        brightness = parseFloat(values[2])
-        brightness *= 2.55 if values[2].slice(-1) == "%"
-        hue /= 360 if values[0].slice(-3) == "deg" or values[0].slice(-1) == "\xb0"
-        opacity = parseFloat(values[3]) if rgb[0].toLowerCase().slice(0, 4) == "hsba"
-        opacity /= 100 if values[3] and values[3].slice(-1) == "%"
-        return new HSB(hue, saturation, brightness).toRGB(opacity)
-      # hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+(?:%?\s*,\s*[\d\.]+)?)%?\s*\))\s*$/i
-      # 
-      # hsl(30deg, 0.8, 0.7)
-      # hsl(30°, 0.8, 0.7)
-      # hsla(30deg, 0.8, 0.7, 0.2)
-      # hsla(30°, 0.8, 0.7, 0.2)
-      # hsl(8.3%, 80%, 70%)
-      # hsl(30°, 80%, 70%)
-      # hsl(30deg, 80%, 70%)
-      # hsla(8.3%, 80%, 70%, 20%)
-      # hsla(30°, 80%, 70%, 20%)
-      # hsla(30deg, 80%, 70%, 20%)
-      if rgb[5]
-        values = rgb[5].split(commaSpaces)
-        hue = parseFloat(values[0])
-        hue *= 2.55 if values[0].slice(-1) == "%"
-        saturation = parseFloat(values[1])
-        saturation *= 2.55 if values[1].slice(-1) == "%"
-        lightness = parseFloat(values[2])
-        lightness *= 2.55 if values[2].slice(-1) == "%"
-        hue /= 360 if values[0].slice(-3) == "deg" or values[0].slice(-1) == "\xb0"
-        opacity = parseFloat(values[3]) if rgb[0].toLowerCase().slice(0, 4) == "hsla"
-        opacity /= 100 if values[3] and values[3].slice(-1) == "%"
-        return new HSL(hue, saturation, lightness).toRGB(opacity)
-    new RGB(-1, -1, -1).isError()
 
   R._path2string = ->
     this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
@@ -3006,6 +2884,127 @@ Raphael = (->
   
   if oldRaphael.was then (window.Raphael = R) else (Raphael = R)
 )()
+
+class Colour
+  constructor: (colour) ->
+    if !colour or !!((colour = String(colour)).indexOf("-") + 1)
+      return new RGB(-1, -1, -1).isError()
+    if colour == "none"
+      return new RGB(-1, -1, -1).isNone() # TODO: Could this be say black with zero opacity?
+    start = colour.toLowerCase().substring(0, 2)
+    if start != "hs" and start != "rg" and !colour.charAt() != "#"
+      colour = Colour.toHex(colour)
+    colourRegExp = /^\s*((#[a-f\d]{6})|(#[a-f\d]{3})|rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+%?\s*(?:,\s*[\d\.]+)?)%?\s*\)|hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+%?\s*(?:,\s*[\d\.]+)?)%?\s*\)|hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+%?\s*(?:,\s*[\d\.]+)?)%?\s*\))\s*$/i
+    commaSpaces = /\s*,\s*/
+    colour = colour.match(colourRegExp)
+    if colour?
+      # #[a-f\d]{6}
+      #
+      # #a13f2c
+      if colour[2]
+        return new RGB(parseInt(colour[2].substring(1, 3), 16), parseInt(colour[2].substring(3, 5), 16), parseInt(colour[2].substring(5), 16))
+      # (#[a-f\d]{3})
+      #
+      # #a2f
+      if colour[3]
+        return new RGB(parseInt((t = colour[3].charAt(1)) + t, 16), parseInt((t = colour[3].charAt(2)) + t, 16), parseInt((t = colour[3].charAt(3)) + t, 16))
+      # rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+%?\s*(?:,\s*[\d\.]+)?)%?\s*\)
+      #
+      # rgb(0.3, 0.4, 0.9)
+      # rgba(0.3, 0.4, 0.9, 0.2)
+      # rgb(30%, 40%, 90%)
+      # rgba(30%, 40%, 90%, 20%)
+      if colour[4]
+        values = colour[4].split(commaSpaces)
+        red = parseFloat(values[0])
+        red *= 2.55 if values[0].slice(-1) == "%"
+        green = parseFloat(values[1])
+        green *= 2.55 if values[1].slice(-1) == "%"
+        blue = parseFloat(values[2])
+        blue *= 2.55 if values[2].slice(-1) == "%"
+        opacity = parseFloat(values[3]) if colour[1].toLowerCase().slice(0, 4) == "rgba"
+        opacity /= 100 if values[3] and values[3].slice(-1) == "%"
+        return new RGB(red, green, blue, opacity)
+      # hsba?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+%?\s*(?:,\s*[\d\.]+)?)%?\s*\)
+      #
+      # hsb(30deg, 0.8, 0.7)
+      # hsb(30°, 0.8, 0.7,)
+      # hsb(3.3%, 80%, 70%)
+      # hsb(30°, 80%, 70%)
+      # hsb(30deg, 80%, 70%)
+      # hsba(30deg, 0.8, 0.7, 0.2)
+      # hsba(30°, 0.8, 0.7, 0.2)
+      # hsba(3.3%, 80%, 70%, 20%)
+      # hsba(30°, 80%, 70%, 20%)
+      # hsba(30deg, 80%, 70%, 20%)
+      if colour[5]
+        values = colour[5].split(commaSpaces)
+        hue = parseFloat(values[0])
+        hue *= 3.6 if values[0].slice(-1) == "%"
+        saturation = parseFloat(values[1])
+        saturation /= 100 if values[1].slice(-1) == "%"
+        brightness = parseFloat(values[2])
+        brightness /= 100 if values[2].slice(-1) == "%"
+        opacity = parseFloat(values[3]) if colour[1].toLowerCase().slice(0, 4) == "hsba"
+        opacity /= 100 if values[3] and values[3].slice(-1) == "%"
+        return new HSB(hue, saturation, brightness)
+      # hsla?\(\s*([\d\.]+(?:deg|\xb0|%)?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+%?\s*(?:,\s*[\d\.]+)?)%?\s*\))\s*$/i
+      #
+      # hsl(30deg, 0.8, 0.7)
+      # hsl(30°, 0.8, 0.7)
+      # hsla(30deg, 0.8, 0.7, 0.2)
+      # hsla(30°, 0.8, 0.7, 0.2)
+      # hsl(8.3%, 80%, 70%)
+      # hsl(30°, 80%, 70%)
+      # hsl(30deg, 80%, 70%)
+      # hsla(8.3%, 80%, 70%, 20%)
+      # hsla(30°, 80%, 70%, 20%)
+      # hsla(30deg, 80%, 70%, 20%)
+      if colour[6]
+        values = colour[6].split(commaSpaces)
+        hue = parseFloat(values[0])
+        hue *= 3.6 if values[0].slice(-1) == "%"
+        saturation = parseFloat(values[1])
+        saturation /= 100 if values[1].slice(-1) == "%"
+        lightness = parseFloat(values[2])
+        lightness /= 100 if values[2].slice(-1) == "%"
+        opacity = parseFloat(values[3]) if colour[1].toLowerCase().slice(0, 4) == "hsla"
+        opacity /= 100 if values[3] and values[3].slice(-1) == "%"
+        return new HSL(hue, saturation, lightness)
+    new RGB(-1, -1, -1).isError()
+
+# TODO: SVG browsers return e.g. rgb(255, 255, 255) not e.g. #ffffff so toHex is a bit misleading
+Colour.toHex = (color) ->
+  if Raphael.type == "VML"
+    # http://dean.edwards.name/weblog/2009/10/convert-any-colour-value-to-hex-in-msie/
+    trim = /^\s+|\s+$/g
+    try
+      docum = new ActiveXObject("htmlfile")
+      docum.write("<body>")
+      docum.close()
+      bod = docum.body
+    catch error
+      bod = createPopup().document.body
+    range = bod.createTextRange()
+    toHex = functionCacher((color) ->
+      try
+        bod.style.color = String(color).replace(trim, "")
+        value = range.queryCommandValue("ForeColor")
+        value = ((value & 255) << 16) | (value & 65280) | ((value & 16711680) >>> 16)
+        return "#" + ("000000" + value.toString(16)).slice(-6)
+      catch error
+        return "none"
+    )
+  else
+    i = document.createElement("i")
+    i.title = "Rapha\xebl Colour Picker"
+    i.style.display = "none"
+    document.body.appendChild(i)
+    toHex = functionCacher((color) ->
+      i.style.color = color
+      document.defaultView.getComputedStyle(i, "").getPropertyValue("color")
+    )
+  toHex(color)
 
 # Stores red, green and blue values to nearest integer.
 # Max, min and chroma are initially calculated to aid later possible conversion to HSB or HSL. We avoid division by 255 until the last minute as usually the division will cancel out the 255s anyway.
