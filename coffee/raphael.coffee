@@ -2910,8 +2910,8 @@ class Colour
         return new RGB(parseInt((t = colour[3].charAt(1)) + t, 16), parseInt((t = colour[3].charAt(2)) + t, 16), parseInt((t = colour[3].charAt(3)) + t, 16))
       # rgba?\(\s*([\d\.]+%?\s*,\s*[\d\.]+%?\s*,\s*[\d\.]+%?\s*(?:,\s*[\d\.]+)?)%?\s*\)
       #
-      # rgb(0.3, 0.4, 0.9)
-      # rgba(0.3, 0.4, 0.9, 0.2)
+      # rgb(231, 34, 12)
+      # rgba(231, 34, 12)
       # rgb(30%, 40%, 90%)
       # rgba(30%, 40%, 90%, 20%)
       if colour[4]
