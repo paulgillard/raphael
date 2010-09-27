@@ -255,19 +255,6 @@ Raphael = (->
         return new HSL(hue, saturation, lightness).toRGB(opacity)
     new RGB(-1, -1, -1).isError()
 
-  R.getColor = (value) ->
-    start = @getColor.start = @getColor.start || new HSB(0, 1, value || 0.75)
-    rgb = start.toRGB()
-    start.hue += 0.075
-    if start.hue > 1
-      start.hue = 0
-      start.saturation -= .2
-      @getColor.start = new HSB(0, 1, start.brightness) if start.saturation <= 0
-    rgb.hex()
-
-  R.getColor.reset = ->
-      delete @start
-
   R._path2string = ->
     this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
  
@@ -3081,6 +3068,13 @@ class RGB
       @hsl = new HSL(@hue(), saturation / 255, lightness / 255)
     @hsl
 
+class RGBSequence
+  constructor: (brightness) ->
+    @hsbSequence = new HSBSequence();
+
+  next: ->
+    @hsbSequence.next().toRGB();
+
 class HSB
   constructor: (hue, saturation, brightness) ->
     @hue = hue
@@ -3119,6 +3113,22 @@ class HSB
     green += m
     blue += m
     new RGB(red * 255, green * 255, blue * 255, opacity)
+
+class HSBSequence
+  constructor: (brightness) ->
+    @brightness = brightness || 0.75
+
+  next: ->
+    if @colour?
+      @colour.hue += 27
+      if @colour.hue >= 360
+        @colour.hue = 0
+        @colour.saturation -= 0.2
+        if @colour.saturation <= 0
+          @colour.saturation = 1
+      @colour = new HSB(@colour.hue, @colour.saturation, @colour.brightness)
+    else
+      @colour = new HSB(0, 1, @brightness)
 
 class HSL
   constructor: (hue, saturation, lightness) ->
