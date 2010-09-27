@@ -590,10 +590,10 @@ test("Turquoise", function() {
 });
 
 test("Aquamarine", function() {
-  colour = new HSB(153.076923076923, 0.380487804878049, 0.803921568627451);
-  rgbEqual(colour.toRGB(), new RGB(127, 205, 170), "RGB conversion");
+  colour = new HSB(159.84375, 0.501960784313726, 1);
+  rgbEqual(colour.toRGB(), new RGB(127, 255, 212), "RGB conversion");
   hsbEqual(colour.toRGB().toHSB(), colour, "RGB conversion and back again");
-  //hslEqual(colour.toHSL(), new HSL(153.076923076923, 0.438202247191011, 0.650980392156863), "HSL conversion");
+  //hslEqual(colour.toHSL(), new HSL(159.84375, 1, 0.749019607843137), "HSL conversion");
   //hsbEqual(colour.toHSL().toHSB(), colour, "HSL conversion and back again");
 });
 
