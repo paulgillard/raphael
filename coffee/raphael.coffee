@@ -550,7 +550,7 @@ Raphael = (->
     for value, i in gradient
       dot = {}
       par = gradient[i].match(/^([^:]*):?([\d\.]*)/)
-      dot.color = R.getRGB(par[1])
+      dot.color = new Colour(par[1]).toRGB()
       return null if (dot.color.error)
       dot.color = dot.color.hex()
       dot.offset = par[2] + "%" if par[2]
@@ -903,7 +903,7 @@ Raphael = (->
               o.pattern = el
               updatePosition(o) if o.pattern
             else
-              clr = R.getRGB(value)
+              clr = new Colour(value).toRGB()
               if !clr.error
                 delete params.gradient
                 delete attrs.gradient
@@ -922,7 +922,7 @@ Raphael = (->
                   $(node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
                 node.setAttribute(att, clr.hex())
           when "stroke"
-            clr = R.getRGB(value)
+            clr = new Colour(value).toRGB()
             node.setAttribute(att, clr.hex())
             if clr.hasOwnProperty("opacity")
               $(node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
@@ -1424,7 +1424,7 @@ Raphael = (->
         newfill = false
         newfill = fill = createNode("fill") if !fill
         if "fill-opacity" in params or "opacity" in params
-          opacity = ((+a["fill-opacity"] + 1 or 2) - 1) * ((+a.opacity + 1 or 2) - 1) * ((+R.getRGB(params.fill).o + 1 or 2) - 1)
+          opacity = ((+a["fill-opacity"] + 1 or 2) - 1) * ((+a.opacity + 1 or 2) - 1) * ((+new Colour(params.fill).toRGB().o + 1 or 2) - 1)
           opacity = Math.min(Math.max(opacity, 0), 1)
           fill.opacity = opacity
         fill.on = true if params.fill
@@ -1436,10 +1436,10 @@ Raphael = (->
             fill.src = isURL[1]
             fill.type = "tile"
           else
-            fill.color = R.getRGB(params.fill).hex()
+            fill.color = new Colour(params.fill).toRGB().hex()
             fill.src = ""
             fill.type = "solid"
-            if R.getRGB(params.fill).error and (res.type in { circle: 1, ellipse: 1 } or String(params.fill).charAt() != "r") and addGradientFill(res, params.fill)
+            if new Colour(params.fill).toRGB().error and (res.type in { circle: 1, ellipse: 1 } or String(params.fill).charAt() != "r") and addGradientFill(res, params.fill)
               a.fill = "none"
         node.appendChild(fill) if newfill
         stroke = node.getElementsByTagName("stroke") and node.getElementsByTagName("stroke")[0]
@@ -1448,7 +1448,7 @@ Raphael = (->
         if (params.stroke && params.stroke != "none") or params["stroke-width"] or params["stroke-opacity"] != null or params["stroke-dasharray"] or params["stroke-miterlimit"] or params["stroke-linejoin"] or params["stroke-linecap"]
           stroke.on = true
         stroke.on = false if params.stroke == "none" or stroke.on == null or params.stroke == 0 or params["stroke-width"] == 0
-        strokeColor = R.getRGB(params.stroke)
+        strokeColor = new Colour(params.stroke).toRGB()
         stroke.color = strokeColor.hex() if stroke.on and params.stroke
         opacity = ((+a["stroke-opacity"] + 1 or 2) - 1) * ((+a.opacity + 1 or 2) - 1) * ((+strokeColor.o + 1 or 2) - 1)
         width = (parseFloat(params["stroke-width"]) or 1) * 0.75
@@ -2597,8 +2597,8 @@ Raphael = (->
           when "number"
             diff[attr] = (to[attr] - from[attr]) / ms
           when "colour"
-            from[attr] = R.getRGB(from[attr])
-            toColour = R.getRGB(to[attr])
+            from[attr] = new Colour(from[attr]).toRGB()
+            toColour = new Colour(to[attr]).toRGB()
             diff[attr] = new RGB((toColour.red - from[attr].red) / ms, (toColour.green - from[attr].green) / ms, (toColour.blue - from[attr].blue) / ms)
           when "path"
             pathes = pathToCurve(from[attr], to[attr])
