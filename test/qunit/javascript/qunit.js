@@ -287,15 +287,27 @@ var QUnit = {
 	},
 
 	rgbEqual: function(actual, expected, message) {
-		push(expected.red == actual.red && expected.green == actual.green && expected.blue == actual.blue, actual, expected, message);
+		push(expected.red.toFixed(12) == actual.red.toFixed(12) && expected.green.toFixed(12) == actual.green.toFixed(12) && expected.blue.toFixed(12) == actual.blue.toFixed(12), actual, expected, message);
+	},
+
+	rgbNotEqual: function(actual, expected, message) {
+		push(expected.red.toFixed(12) != actual.red.toFixed(12) || expected.green.toFixed(12) != actual.green.toFixed(12) || expected.blue.toFixed(12) != actual.blue.toFixed(12), actual, expected, message);
 	},
 
 	hsbEqual: function(actual, expected, message) {
-		push(expected.hue.toFixed(10) == actual.hue.toFixed(10) && expected.saturation.toFixed(13) == actual.saturation.toFixed(13) && expected.brightness.toFixed(13) == actual.brightness.toFixed(13), actual, expected, message);
+		push(expected.hue.toFixed(10) == actual.hue.toFixed(10) && expected.saturation.toFixed(12) == actual.saturation.toFixed(12) && expected.brightness.toFixed(12) == actual.brightness.toFixed(12), actual, expected, message);
+	},
+
+	hsbNotEqual: function(actual, expected, message) {
+		push(expected.hue.toFixed(10) != actual.hue.toFixed(10) || expected.saturation.toFixed(12) != actual.saturation.toFixed(12) || expected.brightness.toFixed(12) != actual.brightness.toFixed(12), actual, expected, message);
 	},
 
 	hslEqual: function(actual, expected, message) {
-		push(expected.hue.toFixed(10) == actual.hue.toFixed(10) && expected.saturation.toFixed(13) == actual.saturation.toFixed(13) && expected.lightness.toFixed(13) == actual.lightness.toFixed(13), actual, expected, message);
+		push(expected.hue.toFixed(10) == actual.hue.toFixed(10) && expected.saturation.toFixed(12) == actual.saturation.toFixed(12) && expected.lightness.toFixed(12) == actual.lightness.toFixed(12), actual, expected, message);
+	},
+
+	hslNotEqual: function(actual, expected, message) {
+		push(expected.hue.toFixed(10) != actual.hue.toFixed(10) || expected.saturation.toFixed(12) != actual.saturation.toFixed(12) || expected.lightness.toFixed(12) != actual.lightness.toFixed(12), actual, expected, message);
 	},
 
 	raises: function(fn,  message) {

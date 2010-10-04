@@ -3013,9 +3013,9 @@ class RGB
 
   # TODO: Should correct to integers in range 0-255 / 0-1
   constructor: (red, green, blue, opacity) ->
-    @red = Math.round(red)
-    @green = Math.round(green)
-    @blue = Math.round(blue)
+    @red = red
+    @green = green
+    @blue = blue
     @opacity = if isFinite(opacity) then opacity else 1
     @max = Math.max(@red, @green, @blue)
     @min = Math.min(@red, @green, @blue)
@@ -3036,7 +3036,7 @@ class RGB
     if @none
       'none'
     else
-      "#" + (16777216 | @blue | (@green << 8) | (@red << 16)).toString(16).slice(1)
+      "#" + (16777216 | Math.round(@blue) | (Math.round(@green) << 8) | (Math.round(@red) << 16)).toString(16).slice(1)
 
   hue: ->
     if !@_hue?

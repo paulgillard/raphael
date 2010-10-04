@@ -34,6 +34,13 @@ test("Instantiation of explicitly transparent colour", function() {
   equals(colour.opacity, opacity, "Opacity value");
 });
 
+test("Instantiation of fractional colour", function() {
+  colour = new RGB(red = 1.23, green = 134.43, blue = 302.34);
+  equals(colour.red, red, "Red value");
+  equals(colour.green, green, "Green value");
+  equals(colour.blue, blue, "Blue value");
+});
+
 // Colours
 
 test("White", function() {
@@ -1226,16 +1233,17 @@ test("Salmon", function() {
 
 // Rounding
 
-test("Values with a fraction below 0.5 are rounded down", function() {
-  colour = new RGB(red = 100.25, green = 100.25, blue = 100.25);
-  equals(colour.red, Math.round(red), "Red value rounded down");
-  equals(colour.green, Math.round(green), "Green value rounded down");
-  equals(colour.blue, Math.round(blue), "Blue value rounded down");
-})
-
-test("Values with a fraction on or above 0.5 are rounded up", function() {
-  colour = new RGB(red = 100.5, green = 100.5, blue = 100.5);
-  equals(colour.red, Math.round(red), "Red value rounded up");
-  equals(colour.green, Math.round(green), "Green value rounded up");
-  equals(colour.blue, Math.round(blue), "Blue value rounded up");
+test("Hex value of colour with fractional values", function() {
+  colour = new RGB(red = 100.493, green = 0, blue = 0);
+  equals(colour.hex(), new RGB(Math.round(red), Math.round(green), Math.round(blue)).hex(), "Red value rounded down");
+  colour = new RGB(red = 100.503, green = 0, blue = 0);
+  equals(colour.hex(), new RGB(Math.round(red), Math.round(green), Math.round(blue)).hex(), "Red value rounded up");
+  colour = new RGB(red = 0, green = 302.210, blue = 0);
+  equals(colour.hex(), new RGB(Math.round(red), Math.round(green), Math.round(blue)).hex(), "Green value rounded down");
+  colour = new RGB(red = 0, green = 302.5, blue = 0);
+  equals(colour.hex(), new RGB(Math.round(red), Math.round(green), Math.round(blue)).hex(), "Green value rounded up");
+  colour = new RGB(red = 0, green = 0, blue = 0.24);
+  equals(colour.hex(), new RGB(Math.round(red), Math.round(green), Math.round(blue)).hex(), "Blue value rounded down");
+  colour = new RGB(red = 0, green = 0, blue = 0.92);
+  equals(colour.hex(), new RGB(Math.round(red), Math.round(green), Math.round(blue)).hex(), "Blue value rounded up");
 })

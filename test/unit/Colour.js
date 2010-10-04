@@ -552,12 +552,12 @@ test("RGBA values", function() {
 
 test("RGB percentages", function() {
   // Blue should be 230 but suffers floating point error
-  rgbEqual(new Colour("rgb(30%, 40%, 90%)"), new RGB(77, 102, 229), "Correctly parsed");
+  rgbEqual(new Colour("rgb(30%, 40%, 90%)"), new RGB(255 * 0.3, 255 * 0.4, 255 * 0.9), "Correctly parsed");
 });
 
 test("RGBA percentages", function() {
   // Blue should be 230 but suffers floating point error
-  rgbEqual(new Colour("rgba(30%, 40%, 90%, 0.785)"), new RGB(77, 102, 229, 0.785), "Correctly parsed");
+  rgbEqual(new Colour("rgba(30%, 40%, 90%, 0.785)"), new RGB(255 * 0.3, 255 * 0.4, 255 * 0.9, 0.785), "Correctly parsed");
 });
 
 // Instantiation of RGB values
@@ -572,12 +572,12 @@ test("RGBA values", function() {
 
 test("RGB percentages", function() {
   // Blue should be 230 but suffers floating point error
-  rgbEqual(new Colour("rgb(30%, 40%, 90%)"), new RGB(77, 102, 229), "Correctly parsed");
+  rgbEqual(new Colour("rgb(30%, 40%, 90%)"), new RGB(255 * 0.3, 255 * 0.4, 255 * 0.9), "Correctly parsed");
 });
 
 test("RGBA percentages", function() {
   // Blue should be 230 but suffers floating point error
-  rgbEqual(new Colour("rgba(30%, 40%, 90%, 0.785)"), new RGB(77, 102, 229, 0.785), "Correctly parsed");
+  rgbEqual(new Colour("rgba(30%, 40%, 90%, 0.785)"), new RGB(255 * 0.3, 255 * 0.4, 255 * 0.9, 0.785), "Correctly parsed");
 });
 
 // Instantiation of HSB values
