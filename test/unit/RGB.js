@@ -41,6 +41,13 @@ test("Instantiation of fractional colour", function() {
   equals(colour.blue, blue, "Blue value");
 });
 
+// Conversion to self
+
+test("Conversion to RGB returns same value", function() {
+  colour = new RGB(50, 100, 150);
+  equal(colour.toRGB(), colour, "RGB conversion")
+})
+
 // Colours
 
 test("White", function() {

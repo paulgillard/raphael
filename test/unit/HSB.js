@@ -9,6 +9,20 @@ test("Instantiation", function() {
   equals(colour.brightness, brightness, "Brightness value");
 });
 
+// Conversion to self
+
+test("Conversion to HSB returns same value", function() {
+  colour = new HSB(0.2, 0, 1);
+  equal(colour.toHSB(), colour, "HSB conversion")
+})
+
+// HSL conversion not implemented and should return undefined
+
+test("HSL conversion returns undefined", function() {
+  colour = new HSB(0.5, 0.2, 1);
+  equal(colour.toHSL(), undefined, "HSL conversion");
+});
+
 // RGB conversion with opacity
 
 test("RGB conversion with opacity", function() {

@@ -2973,6 +2973,15 @@ class Colour
         return new HSL(hue, saturation, lightness)
     new RGB(-1, -1, -1).isError()
 
+  toRGB: ->
+    this
+
+  toHSB: ->
+    this
+
+  toHSL: ->
+    this
+
 # TODO: SVG browsers return e.g. rgb(255, 255, 255) not e.g. #ffffff so toHex is a bit misleading
 Colour.toHex = (color) ->
   if Raphael.type == "VML"
@@ -3008,7 +3017,7 @@ Colour.toHex = (color) ->
 
 # Stores red, green and blue values to nearest integer.
 # Max, min and chroma are initially calculated to aid later possible conversion to HSB or HSL. We avoid division by 255 until the last minute as usually the division will cancel out the 255s anyway.
-class RGB
+class RGB extends Colour
   @rg: /^(?=[\da-f]$)/
 
   # TODO: Should correct to integers in range 0-255 / 0-1
@@ -3074,7 +3083,7 @@ class RGBSequence
   next: ->
     @hsbSequence.next().toRGB();
 
-class HSB
+class HSB extends Colour
   constructor: (hue, saturation, brightness) ->
     @hue = hue
     @saturation = saturation
@@ -3082,6 +3091,9 @@ class HSB
 
   toString: ->
     "hsb(" + [@hue, @saturation, @brightness] + ")"
+
+  toHSL: ->
+    undefined
 
   toRGB: (opacity) ->
     chroma = @brightness * @saturation
@@ -3129,7 +3141,7 @@ class HSBSequence
     else
       @colour = new HSB(0, 1, @brightness)
 
-class HSL
+class HSL extends Colour
   constructor: (hue, saturation, lightness) ->
     @hue = hue
     @saturation = saturation
@@ -3137,6 +3149,9 @@ class HSL
 
   toString: ->
     "hsl(" + [@hue, @saturation, @lightness] + ")"
+
+  toHSB: ->
+    undefined
 
   toRGB: (opacity) ->
     if @lightness <= 0.5
