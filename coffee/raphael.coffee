@@ -2885,6 +2885,13 @@ Raphael = (->
   if oldRaphael.was then (window.Raphael = R) else (Raphael = R)
 )()
 
+class Paper
+  @svgNamespace: "http://www.w3.org/2000/svg"
+  @xLinkNamespace: "http://www.w3.org/1999/xlink"
+
+  constructor :->
+    @customAttributes = {}
+
 class Colour
   constructor: (colour) ->
     if !colour or !!((colour = String(colour)).indexOf("-") + 1)
