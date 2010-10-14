@@ -9,6 +9,25 @@ test("Instantiation", function() {
   equals(colour.lightness, lightness, "Lightness value");
 });
 
+test("Instantiation with varying hues", function() {
+  colour = new HSL(-190, 1, 1);
+  equals(colour.hue, 170, "Hue value");
+  colour = new HSL(-34, 1, 1);
+  equals(colour.hue, 326, "Hue value");
+  colour = new HSL(0, 1, 1);
+  equals(colour.hue, 0, "Hue value");
+  colour = new HSL(58, 1, 1);
+  equals(colour.hue, 58, "Hue value");
+  colour = new HSL(289, 1, 1);
+  equals(colour.hue, 289, "Hue value");
+  colour = new HSL(360, 1, 1);
+  equals(colour.hue, 0, "Hue value");
+  colour = new HSL(391, 1, 1);
+  equals(colour.hue, 31, "Hue value");
+  colour = new HSL(382934, 1, 1);
+  equals(colour.hue, 254, "Hue value");
+});
+
 // Conversion to self
 
 test("Conversion to HSL returns same value", function() {

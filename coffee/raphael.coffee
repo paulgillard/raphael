@@ -3085,7 +3085,7 @@ class RGBSequence
 
 class HSB extends Colour
   constructor: (hue, saturation, brightness) ->
-    @hue = hue
+    @hue = hue.mod(360)
     @saturation = saturation
     @brightness = brightness
 
@@ -3143,7 +3143,7 @@ class HSBSequence
 
 class HSL extends Colour
   constructor: (hue, saturation, lightness) ->
-    @hue = hue
+    @hue = hue.mod(360)
     @saturation = saturation
     @lightness = lightness
 
