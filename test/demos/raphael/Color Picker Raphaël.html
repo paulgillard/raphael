@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en"><head>
+
+    
+        <meta http-equiv="Content-Type" content="text/html; 
+charset=UTF-8">
+        <title>Color Picker — Raphaël</title>
+        <style type="text/css" media="screen">
+            body {
+                background: #333;
+                color: #999;
+                font: 300 100.01%/1.2 "Segoe UI", "Helvetica Neue", Helvetica, "Arial Unicode", Arial, sans-serif;
+                margin: 0 30px;
+            }
+            #content {
+                width: 640px;
+                height: 480px;
+                position: relative;
+            }
+            h1 {
+                font-weight: 300;
+                font-size: 3em;
+                position: absolute;
+                right: 10px;
+                bottom: 50px;
+            }
+            p {
+                font-size: 2em;
+            }
+            #benefits {
+                margin-top: 350px;
+            }
+            #copy a {
+                color: #666;
+                text-decoration: none;
+            }
+            #picker2 {
+                width: 300px;
+                position: absolute;
+                top: 250px;
+                left: 50%;
+                margin-left: -150px;
+            }
+            #benefits {
+                margin-bottom: 0;
+            }
+            #output {
+                background: #eee;
+                position: absolute;
+                font-size: 30px;
+                bottom: 10px;
+                left: 10px;
+                font-family: monospace;
+                margin-top: -20px;
+            }
+            #copy {
+                position: absolute;
+                right: 10px;
+                bottom: 10px;
+                margin: 0;
+                font-size: .6em;
+                color: #666;
+            }
+        </style>
+        <script src="../../../raphael152.js" type="text/javascript" charset="utf-8"></script>
+        <script src="Color%20Picker%20Rapha%C3%ABl_files/colorpicker.js" type="text/javascript" charset="utf-8"></script>
+        <script src="Color%20Picker%20Rapha%C3%ABl_files/colorwheel.js" type="text/javascript" charset="utf-8"></script>
+        <script type="text/javascript">
+        window.onload = function () {
+            var out = document.getElementById("output"),
+                reg = /^#(.)\1(.)\2(.)\3$/;
+            
+            // this is where colorpicker created
+            var cp = Raphael.colorpicker(40, 20, 300, "#eee");
+            var cp2 = Raphael.colorwheel(360, 20, 300, "#eee");
+            
+            out.onkeyup = function () {
+                cp.color(this.value);
+                cp2.color(this.value);
+            };
+            // assigning onchange event handler
+            cp.onchange = function (clr) {
+                out.value = clr.replace(reg, "#$1$2$3");
+                cp2.color(clr);
+                out.style.background = clr;
+                out.style.color = Raphael.rgb2hsb(clr).b < .5 ? "#fff" : "#000";
+            };
+            cp2.onchange = function (clr) {
+                out.value = clr.replace(reg, "#$1$2$3");
+                cp.color(clr);
+                out.style.background = clr;
+                out.style.color = Raphael.rgb2hsb(clr).b < .5 ? "#fff" : "#000";
+            };
+            // that’s it. Too easy
+        };
+        </script>
+    </head><body>
+        <div id="content">
+            <h1 id="h1">Color Picker</h1>
+            <input id="output" value="#eee" type="text">
+            <p id="copy">
+                Powered by <a href="http://raphaeljs.com/">Raphaël</a>
+            </p>
+        </div>
+        <div id="picker2"></div></body></html>

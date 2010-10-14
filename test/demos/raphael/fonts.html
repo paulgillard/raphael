@@ -1,0 +1,57 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en"><head>
+
+    
+        <meta http-equiv="Content-Type" content="text/html; 
+charset=UTF-8">
+        <title>Raphaël · Fonts</title>
+        <link rel="stylesheet" href="fonts_files/demo.css" 
+type="text/css" media="screen">
+        <link rel="stylesheet" href="fonts_files/demo-print.css" 
+type="text/css" media="print">
+        <script src="../../../raphael152.js" type="text/javascript" charset="utf-8"></script>
+        <script src="fonts_files/font.js" type="text/javascript" charset="utf-8"></script>
+        <script type="text/javascript" charset="utf-8">
+            window.onload = function () {
+                var r = Raphael("holder", 640, 480),
+                    fonts = [0, r.getFont("1"), r.getFont("2"), r.getFont("3"), r.getFont("whoa")],
+                    custom = r.print(70, 150, "Custom fonts", fonts[4], 60).attr({fill: "#fff"}),
+                    aseasyas = r.print(50, 240, "As easy as", fonts[4], 60).attr({fill: "#fff"}),
+                    nums = [r.print(450, 240, "1", fonts[1], 60).attr({fill: "#fff"}), r.print(500, 240, "2", fonts[2], 60).attr({fill: "#fff"}), r.print(550, 240, "3", fonts[3], 60).attr({fill: "#fff"})],
+                    i = 2, times = 3;
+
+                for (var i = 0, ii = aseasyas.length; i < ii; i++) {
+                    aseasyas[i].animate({fill: Raphael.getColor()}, 2000);
+                }
+                nums[0].animate({fill: Raphael.getColor()}, 2000);
+                nums[1].animate({fill: Raphael.getColor()}, 2000);
+                nums[2].animate({fill: Raphael.getColor()}, 2000, function () {
+                    aseasyas.animate({rotation: 360}, 1000);
+                    var scale = [nums[0][0].scale(), nums[1][0].scale(), nums[2][0].scale()];
+                    nums[0].animate({scale: ".6 .6"}, 500, function () {
+                        nums[0].animate({scale: [scale[0].x, scale[0].y]}, 1000);
+                        nums[1].animate({scale: ".6 .6"}, 500, function () {
+                            nums[1].animate({scale: [scale[1].x, scale[1].y]}, 1000);
+                            nums[2].animate({scale: ".6 .6"}, 500, function () {
+                                nums[2].animate({scale: [scale[2].x, scale[2].y]}, 1000);
+                                custom.animate({opacity: .4}, 500);
+                            });
+                        });
+                    });
+                });
+                
+            };
+        </script>
+    </head><body>
+        <div id="holder"></div>
+        <p id="copy">Demo of <a href="http://raphaeljs.com/">Raphaël</a>—JavaScript
+ Vector Library</p>
+        <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+            </script><script src="fonts_files/ga.js" type="text/javascript"></script>
+            <script type="text/javascript">
+            var pageTracker = _gat._getTracker("UA-616618-3");
+            pageTracker._trackPageview();
+        </script>
+    </body></html>
