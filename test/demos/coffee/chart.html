@@ -49,9 +49,10 @@ type="text/css" media="print">
                     }
                     return path;
                 }
+                var colours = new RGBSequence();
                 for (var i = 0; i < 12; i++) {
                     values[i] = randomPath(30, i);
-                    clr[i] = Raphael.getColor(1);
+                    clr[i] = colours.next();
                 }
                 c.attr({path: values[0], stroke: clr[0]});
                 bg.attr({path: values[0] + "L590,250 10,250z", fill: clr[0]});

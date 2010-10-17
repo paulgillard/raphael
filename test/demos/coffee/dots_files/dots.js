@@ -38,7 +38,7 @@ $(function () {
             var R = data[o] && Math.min(Math.round(Math.sqrt(data[o] / Math.PI) * 4), max);
             if (R) {
                 (function (dx, dy, R, value) {
-                    var color = new HSB((1 - R / max) * .5, 1, .75);
+                    var color = new HSB((1 - R / max) * 180, 1, .75);
                     var dt = r.circle(dx + 60 + R, dy + 10, R).attr({stroke: "none", fill: color.toString()});
                     if (R < 6) {
                         var bg = r.circle(dx + 60 + R, dy + 10, 6).attr({stroke: "none", fill: "#000", opacity: .4}).hide();

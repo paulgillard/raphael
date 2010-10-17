@@ -32,7 +32,7 @@ media="print">
                         a = (90 - alpha) * Math.PI / 180,
                         x = 300 + R * Math.cos(a),
                         y = 300 - R * Math.sin(a),
-                        color = "hsb(".concat(Math.round(R) / 200, ",", value / total, ", .75)"),
+                        color = "hsb(".concat(Math.round(R) / 200 * 360, ",", value / total, ", .75)"),
                         path;
                     if (total == value) {
                         path = [["M", 300, 300 - R], ["A", R, R, 0, 1, 1, 299.99, 300 - R]];
@@ -56,7 +56,7 @@ media="print">
                 R -= 40;
                 drawMarks(R, 12);
                 var mon = r.path().attr(param).attr({arc: [0, 12, R]});
-                var color = new HSB(15 / 200, 1, .75).toRGB()
+                var color = new HSB(15 / 200 * 360, 1, .75).toRGB();
                 var pm = r.circle(300, 300, 16).attr({stroke: "none", fill: color.hex()});
                 html[5].style.color = color.hex();
 
@@ -68,7 +68,7 @@ media="print">
                         d.setDate(-1);
                         total = d.getDate();
                     }
-                    var color = "hsb(".concat(Math.round(R) / 200, ",", value / total, ", .75)");
+                    var color = new HSB(Math.round(R) / 200 * 360, value / total, 0.75);
                     if (init) {
                         hand.animate({arc: [value, total, R]}, 900, ">");
                     } else {
@@ -82,7 +82,7 @@ media="print">
                         }
                     }
                     html[id].innerHTML = (value < 10 ? "0" : "") + value;
-                    html[id].style.color = Raphael.getRGB(color).hex;
+                    html[id].style.color = color.toRGB().hex();
                 }
 
                 function drawMarks(R, total) {
@@ -93,7 +93,7 @@ media="print">
                         d.setDate(-1);
                         total = d.getDate();
                     }
-                    var color = "hsb(".concat(Math.round(R) / 200, ", 1, .75)"),
+                    var color = new HSB(Math.round(R) / 200 * 360, 1, 0.75),
                         out = r.set();
                     for (var value = 0; value < total; value++) {
                         var alpha = 360 / total * value,

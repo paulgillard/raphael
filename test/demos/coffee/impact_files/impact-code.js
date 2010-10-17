@@ -65,10 +65,11 @@ var process = function (json) {
             r.text(x + 25, h + 10, dtext).attr({"font": '9px "Arial"', stroke: "none", fill: "#aaa"});
             x += 100;
         }
-        var c = 0;
+        var c = 0,
+            colours = new RGBSequence();
         for (var i in pathes) {
             labels[i] = r.set();
-            var clr = Raphael.getColor();
+            var clr = colours.next();
             pathes[i].p = r.path().attr({fill: clr, stroke: clr});
             var path = "M".concat(pathes[i].f[0][0], ",", pathes[i].f[0][1], "L", pathes[i].f[0][0] + 50, ",", pathes[i].f[0][1]);
             var th = Math.round(pathes[i].f[0][1] + (pathes[i].b[pathes[i].b.length - 1][1] - pathes[i].f[0][1]) / 2 + 3);

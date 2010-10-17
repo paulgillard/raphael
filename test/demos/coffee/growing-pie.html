@@ -23,7 +23,7 @@ media="print">
 
                 r.customAttributes.segment = function (x, y, r, a1, a2) {
                     var flag = (a2 - a1) > 180,
-                        clr = (a2 - a1) / 360;
+                        clr = (a2 - a1);
                     a1 = (a1 % 360) * Math.PI / 180;
                     a2 = (a2 % 360) * Math.PI / 180;
                     return {

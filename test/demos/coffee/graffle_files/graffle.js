@@ -80,8 +80,9 @@ window.onload = function () {
                     r.rect(290, 180, 60, 40, 2),
                     r.ellipse(450, 100, 20, 20)
                 ];
+    var colours = new HSBSequence()
     for (var i = 0, ii = shapes.length; i < ii; i++) {
-        var color = Raphael.getColor();
+        var color = colours.next();
         shapes[i].attr({fill: color, stroke: color, "fill-opacity": 0, "stroke-width": 2, cursor: "move"});
         shapes[i].drag(move, dragger, up);
     }

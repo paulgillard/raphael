@@ -32,7 +32,7 @@ Raphael.fn.pieChart = function (cx, cy, r, values, labels, stroke) {
             angle += angleplus;
             chart.push(p);
             chart.push(txt);
-            start += .1;
+            start += 36;
         };
     for (var i = 0, ii = values.length; i < ii; i++) {
         total += values[i];

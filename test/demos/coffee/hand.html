@@ -14,8 +14,9 @@ type="text/css" media="print">
             window.onload = function () {
                 var r = Raphael("holder", 640, 480);
                 var angle = 0;
+                var hourColours = new RGBSequence();
                 while (angle < 360) {
-                    var color = Raphael.getColor();
+                    var color = hourColours.next();
                     (function (a, c) {
                         r.circle(320, 450, 20).attr({stroke: c, fill: c, rotation: a + " 320 240", "fill-opacity": .4}).click(function () {
                             s.animate({rotation: a + " 320 240", stroke: c}, 2000, "bounce");
@@ -27,12 +28,12 @@ type="text/css" media="print">
                     })(angle, color);
                     angle += 30;
                 }
-                Raphael.getColor.reset();
+                var armColour = new RGBSequence();
                 var s = r.set();
                 s.push(r.path("M320,240c-50,100,50,110,0,190").attr({fill: "none", "stroke-width": 2}));
                 s.push(r.circle(320, 450, 20).attr({fill: "none", "stroke-width": 2}));
                 s.push(r.circle(320, 240, 5).attr({fill: "none", "stroke-width": 10}));
-                s.attr({stroke: Raphael.getColor()});
+                s.attr({stroke: armColour.next()});
             };
         </script>
     </head><body>
