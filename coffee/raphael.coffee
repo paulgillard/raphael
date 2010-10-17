@@ -48,7 +48,7 @@ Raphael = (->
     a.key - b.key
 
   oldRaphael =
-    was: Object.prototype.hasOwnProperty.call(window, "Raphael")
+    was: Object.prototype.hasOwnProperty.call(window, "Raphael") && window.Raphael
     is: window.Raphael
 
   class R
