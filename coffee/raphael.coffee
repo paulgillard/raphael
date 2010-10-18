@@ -248,6 +248,17 @@ if RaphaelNew.type == "SVG"
       @attrs = { cx: x || 0, cy: y || 0, r: r || 0, fill: "none", stroke: "#000000" }
       $(el, @attrs)
       this
+
+  class Rectangle extends Element
+    constructor: (svg, x, y, w, h, r) ->
+      @type = "rect"
+      el = $(@type)
+      super(el, svg)
+      svg.canvas.appendChild(el) if svg.canvas
+      @attrs = { x: x || 0, y: y || 0, width: w || 0, height: h || 0, r: r || 0, rx: r || 0, ry: r || 0, fill: "none", stroke: "#000000" }
+      $(el, @attrs)
+      this
+
 else
   class Element extends RaphaelNew
     constructor: (node, group, vml) ->
@@ -510,6 +521,20 @@ else
       @setBox({ x: x - r, y: y - r, width: r * 2, height: r * 2 })
       vml.canvas.appendChild(g)
       this
+
+  class Rectangle extends Element
+    constructor: (vml, x, y, w, h, r) ->
+      path = rectPath(x, y, w, h, r)
+      res = vml.path(path)
+      a = res.attrs
+      res.X = a.x = x
+      res.Y = a.y = y
+      res.W = a.width = w
+      res.H = a.height = h
+      a.r = r
+      a.path = path
+      res.type = "rect"
+      res
 
 Raphael = (->
   separator = /[, ]+/
@@ -1479,15 +1504,6 @@ Raphael = (->
       dif = a.y - (bb.y + bb.height / 2)
       $(node, { y: a.y + dif }) if dif and R.is(dif, "finite")
 
-    theRect = (svg, x, y, w, h, r) ->
-      el = $("rect")
-      svg.canvas.appendChild(el) if svg.canvas
-      res = new Element(el, svg)
-      res.attrs = { x: x, y: y, width: w, height: h, r: r || 0, rx: r || 0, ry: r || 0, fill: "none", stroke: "#000" }
-      res.type = "rect"
-      $(el, res.attrs)
-      res
-
     theEllipse = (svg, x, y, rx, ry) ->
       el = $("ellipse")
       svg.canvas.appendChild(el) if svg.canvas
@@ -1830,19 +1846,6 @@ Raphael = (->
       else
         R.format("M{0},{1}l{2},0,0,{3},{4},0z", x, y, w, h, -w)
 
-    R::theRect = (vml, x, y, w, h, r) ->
-      path = rectPath(x, y, w, h, r)
-      res = vml.path(path)
-      a = res.attrs
-      res.X = a.x = x
-      res.Y = a.y = y
-      res.W = a.width = w
-      res.H = a.height = h
-      a.r = r
-      a.path = path
-      res.type = "rect"
-      res
-
     R::theEllipse = (vml, x, y, rx, ry) ->
       g = createNode("group")
       o = createNode("oval")
@@ -2123,7 +2126,7 @@ Raphael = (->
     new Circle(this, x, y, r)
 
   Paper::rect = (x, y, w, h, r) ->
-    theRect(this, x || 0, y || 0, w || 0, h || 0, r || 0)
+    new Rectangle(this, x, y, w, h, r)
 
   Paper::ellipse = (x, y, rx, ry) ->
     theEllipse(this, x || 0, y || 0, rx || 0, ry || 0)
