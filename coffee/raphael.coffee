@@ -27,6 +27,490 @@ class Paper
   constructor :->
     @customAttributes = {}
 
+class RaphaelNew
+  @version: '1.5.2'
+  @_oid: 0
+  @type: if window.SVGAngle or document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") then "SVG" else "VML"
+
+  is: (object, type) ->
+    type: String.prototype.toLowerCase.call(type)
+    if type == "finite"
+      return !isnan.hasOwnProperty(+object)
+    (type == "null" and object == null) ||
+    (type == typeof object) ||
+    (type == "object" and object == Object(object)) ||
+    (type == "array" and Array.isArray and Array.isArray(object)) ||
+    Object.prototype.toString.call(object).slice(8, -1).toLowerCase() == type
+
+if RaphaelNew.type == "SVG"
+  $ = (el, attr) ->
+    if attr
+      for name, value of attr
+        el.setAttribute(name, String(value))
+    else
+      el = document.createElementNS(Paper.svgNamespace, el)
+      el.style.webkitTapHighlightColor = "rgba(0,0,0,0)"
+      el
+
+  class Element extends RaphaelNew
+    constructor: (node, svg) ->
+      X = 0
+      Y = 0
+      this[0] = node
+      @id = RaphaelNew._oid++
+      @node = node
+      node.R = this
+      @paper = svg
+      @attrs = this.attrs || {}
+      @transformations = [] # rotate, translate, scale
+      @_ =
+        tx: 0
+        ty: 0
+        rt: { deg: 0, cx: 0, cy: 0 }
+        sx: 1
+        sy: 1
+      svg.bottom = this if !svg.bottom
+      @prev = svg.top
+      svg.top.next = this if svg.top
+      svg.top = this
+      @next = null
+
+    rotate: (deg, cx, cy) ->
+      if @removed
+        return this
+      if !deg?
+        if @_.rt.cx
+          return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(" ")
+        return @_.rt.deg
+      bbox = this.getBBox()
+      deg = String(deg).split(separator)
+      if deg.length - 1
+        cx = parseFloat(deg[1])
+        cy = parseFloat(deg[2])
+      deg = parseFloat(deg[0])
+      if cx != null and cx != false
+        @_.rt.deg = deg
+      else
+        @_.rt.deg += deg
+      cx = null if !cy?
+      @_.rt.cx = cx
+      @_.rt.cy = cy
+      cx = if !cx? then bbox.x + bbox.width / 2 else cx
+      cy = if !cy? then bbox.y + bbox.height / 2 else cy
+      if @_.rt.deg
+        @transformations[0] = R.format("rotate({0} {1} {2})", @_.rt.deg, cx, cy)
+        $(this.clip, { transform: R.format("rotate({0} {1} {2})", -@_.rt.deg, cx, cy) }) if @clip
+      else
+        @transformations[0] = ""
+        $(this.clip, { transform: '' }) if @clip
+      $(this.node, { transform: @transformations.join(" ") })
+      this
+
+    hide: ->
+      this.node.style.display = "none" if !@removed
+      this
+
+    show: ->
+      this.node.style.display = "" if !@removed
+      this
+
+    remove: ->
+      if @removed
+        return
+      tear(this, @paper)
+      @node.parentNode.removeChild(@node)
+      for i in this
+        delete this[i]
+      @removed = true
+
+    getBBox: ->
+      return this if @removed
+      if @type == "path"
+        return pathDimensions(@attrs.path)
+      if @node.style.display == "none"
+        this.show()
+        hide = true
+      bbox = {}
+      try
+        bbox = @node.getBBox()
+      catch error
+        # Firefox 3.0.x plays badly here
+      finally
+        bbox = bbox || {}
+      if @type == "text"
+        bbox = { x: bbox.x, y: Infinity, width: 0, height: 0 }
+        for i in [0..@node.getNumberOfChars() - 1]
+          bb = @node.getExtentOfChar(i)
+          bbox.y = bb.y if bb.y < bbox.y
+          bbox.height = bb.y + bb.height - bbox.y if bb.y + bb.height - bbox.y > bbox.height
+          bbox.width = bb.x + bb.width - bbox.x if bb.x + bb.width - bbox.x > bbox.width
+      this.hide() if hide
+      bbox
+
+    attr: (name, value) ->
+      return this if @removed
+      if !name?
+        res = {}
+        for i of @attrs
+          res[i] = @attrs[i]
+        res.rotation = this.rotate() if @_.rt.deg
+        res.scale = this.scale() if @_.sx != 1 || @_.sy != 1
+        if res.gradient and res.fill == "none"
+          if res.fill = res.gradient
+            delete res.gradient
+        return res
+      if !value? and @is(name, "string")
+        if name == "translation"
+          return translate.call(this)
+        if name == "rotation"
+          return this.rotate()
+        if name == "scale"
+          return this.scale()
+        if name == "fill" and @attrs.fill == "none" and @attrs.gradient
+          return @attrs.gradient
+        return @attrs[name]
+      if !value? and @is(name, "array")
+        values = {}
+        for j of name
+          values[name[j]] = @attr(name[j])
+        return values
+      if value?
+        params = {}
+        params[name] = value
+      else if name? and @is(name, "object")
+        params = name
+      for key of @paper.customAttributes
+        if params.hasOwnProperty(key) and @is(@paper.customAttributes[key], "function")
+          par = @paper.customAttributes[key].apply(this, [].concat(params[key]))
+          @attrs[key] = params[key]
+          for subkey of par
+            params[subkey] = par[subkey]
+      setFillAndStroke(this, params)
+      this
+
+    toFront: ->
+      return this if @removed
+      this.node.parentNode.appendChild(this.node)
+      svg = this.paper
+      svg.top != this && tofront(this, svg)
+      this
+
+    toBack: ->
+      return this if @removed
+      if @node.parentNode.firstChild != @node
+        @node.parentNode.insertBefore(@node, @node.parentNode.firstChild)
+        toback(this, @paper)
+        svg = @paper
+      this
+
+    insertAfter: (element) ->
+      return this if @removed
+      node = element.node || element[element.length - 1].node
+      if node.nextSibling
+        node.parentNode.insertBefore(@node, node.nextSibling)
+      else
+        node.parentNode.appendChild(@node)
+      insertafter(this, element, @paper)
+      this
+
+    insertBefore: (element) ->
+      return this if @removed
+      node = element.node || element[0].node
+      node.parentNode.insertBefore(@node, node)
+      insertbefore(this, element, @paper)
+      this
+
+    blur: (size) ->
+      # Experimental. No Safari support. Use it on your own risk.
+      if +size != 0
+        fltr = $("filter")
+        blur = $("feGaussianBlur")
+        @attrs.blur = size
+        fltr.id = createUUID()
+        $(blur, { stdDeviation: +size || 1.5 })
+        fltr.appendChild(blur)
+        @paper.defs.appendChild(fltr)
+        @_blur = fltr
+        $(@node, { filter: "url(#" + fltr.id + ")" })
+      else
+        if @_blur
+          @_blur.parentNode.removeChild(@_blur)
+          delete @_blur
+          delete @attrs.blur
+        @node.removeAttribute("filter")
+
+  class Circle extends Element
+    constructor: (svg, x, y, r) ->
+      @type = "circle"
+      el = $(@type)
+      super(el, svg)
+      svg.canvas.appendChild(el) if svg.canvas
+      @attrs = { cx: x || 0, cy: y || 0, r: r || 0, fill: "none", stroke: "#000000" }
+      $(el, @attrs)
+      this
+else
+  class Element extends RaphaelNew
+    constructor: (node, group, vml) ->
+      Rotation = 0
+      RotX = 0
+      RotY = 0
+      Scale = 1
+      @[0] = node
+      @id = R._oid++
+      @node = node
+      node.R = this
+      @X = 0
+      @Y = 0
+      @attrs = {}
+      @Group = group
+      @paper = vml
+      @_ =
+        tx: 0
+        ty: 0
+        rt: { deg: 0 }
+        sx: 1
+        sy: 1
+      vml.bottom = this if !vml.bottom
+      @prev = vml.top
+      vml.top.next = this if vml.top
+      vml.top = this
+      @next = null
+
+    rotate: (deg, cx, cy) ->
+      return this if this.removed
+      if !deg?
+        if @_.rt.cx
+          return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(" ")
+        return @_.rt.deg
+      deg = String(deg).split(separator)
+      if deg.length - 1
+        cx = parseFloat(deg[1])
+        cy = parseFloat(deg[2])
+      deg = parseFloat(deg[0])
+      if cx?
+        @_.rt.deg = deg
+      else
+        @_.rt.deg += deg
+      cx = null if !cy?
+      @_.rt.cx = cx
+      @_.rt.cy = cy
+      this.setBox(@attrs, cx, cy)
+      this.Group.style.rotation = @_.rt.deg
+      # gradient fix for rotation. TODO
+      # var fill = (this.shape || this.node).getElementsByTagName("fill");
+      # fill = fill[0] || {};
+      # var b = ((360 - this._.rt.deg) - 270) % 360;
+      # !R.is(fill.angle, "undefined") && (fill.angle = b);
+      this
+
+    setBox: (params, cx, cy) ->
+      return this if this.removed
+      gs = this.Group.style
+      os = (@shape and @shape.style) || @node.style
+      params ?= {}
+      for i of params
+        @attrs[i] = params[i]
+      cx ?= @_.rt.cx
+      cy ?= @_.rt.cy
+      attr = this.attrs
+      switch this.type
+        when "circle"
+          x = attr.cx - attr.r
+          y = attr.cy - attr.r
+          w = h = attr.r * 2
+        when "ellipse"
+          x = attr.cx - attr.rx
+          y = attr.cy - attr.ry
+          w = attr.rx * 2
+          h = attr.ry * 2
+        when "image"
+          x = +attr.x
+          y = +attr.y
+          w = attr.width || 0
+          h = attr.height || 0
+        when "text"
+          @textpath.v = ["m", Math.round(attr.x), ", ", Math.round(attr.y - 2), "l", Math.round(attr.x) + 1, ", ", Math.round(attr.y - 2)].join("")
+          x = attr.x - Math.round(this.W / 2)
+          y = attr.y - this.H / 2
+          w = @W
+          h = @H
+        when "rect", "path"
+          if !@attrs.path
+            x = 0
+            y = 0
+            w = @paper.width
+            h = @paper.height
+          else
+            dim = pathDimensions(@attrs.path)
+            x = dim.x
+            y = dim.y
+            w = dim.width
+            h = dim.height
+        else
+          x = 0
+          y = 0
+          w = @paper.width
+          h = @paper.height
+      cx ?= x + w / 2
+      cy ?= y + h / 2
+      left = cx - @paper.width / 2
+      top = cy - @paper.height / 2
+      gs.left != (t = left + "px") and (gs.left = t)
+      gs.top != (t = top + "px") and (gs.top = t)
+      @X = if pathlike.hasOwnProperty(this.type) then -left else x
+      @Y = if pathlike.hasOwnProperty(this.type) then -top else y
+      @W = w
+      @H = h
+      if pathlike.hasOwnProperty(@type)
+        os.left = -left * zoom + "px"
+        os.top = t = -top * zoom + "px"
+      else if @type == "text"
+        os.left = -left + "px"
+        os.top = -top + "px"
+      else
+        gs.width = @paper.width + "px"
+        gs.height = @paper.height + "px"
+        os.left = x - left + "px"
+        os.top = y - top + "px"
+        os.width = w + "px"
+        os.height = h + "px"
+
+    hide: ->
+      @Group.style.display = "none" if !this.removed
+      this
+
+    show: ->
+      @Group.style.display = "block" if !this.removed
+      this
+
+    getBBox: ->
+      return this if @removed
+      if pathlike.hasOwnProperty(@type)
+        return pathDimensions(@attrs.path)
+      x: @X + (@bbx || 0)
+      y: @Y
+      width: @W
+      height: @H
+
+    remove: ->
+      return this if @removed
+      tear(this, @paper)
+      @node.parentNode.removeChild(@node)
+      @Group.parentNode.removeChild(@Group)
+      @shape.parentNode.removeChild(@shape) if @shape
+      for i in this
+        delete @[i]
+      @removed = true
+
+    attr: (name, value) ->
+      return this if @removed
+      if !name?
+        res = {}
+        for i of @attrs
+          res[i] = this.attrs[i];
+        res.rotation = this.rotate() if @_.rt.deg
+        res.scale = this.scale() if @_.sx != 1 || @_.sy != 1
+        if res.gradient and res.fill == "none"
+          if res.fill = res.gradient
+            delete res.gradient
+        return res
+      if !value? and @is(name, "string")
+          if name == "translation"
+            return translate.call(this)
+          if name == "rotation"
+            return this.rotate()
+          if name == "scale"
+            return this.scale()
+          if name == "fill" and @attrs.fill == "none" and @attrs.gradient
+            return @attrs.gradient
+          return @attrs[name]
+      if @attrs and !value? and @is(name, "array")
+        values = {}
+        for i of name
+          values[name[i]] = @attr(name[i])
+        return values
+      if value?
+        params = {}
+        params[name] = value
+      params = name if !value? and @is(name, "object")
+      if params
+        for key of @paper.customAttributes
+          if params.hasOwnProperty(key) and @is(@paper.customAttributes[key], "function")
+            par = @paper.customAttributes[key].apply(this, [].concat(params[key]))
+            @attrs[key] = params[key]
+            for subkey of par
+              params[subkey] = par[subkey]
+        if params.text and @type == "text"
+          @node.string = params.text
+        setFillAndStroke(this, params)
+        if params.gradient && (({ circle: 1, ellipse: 1 }).hasOwnProperty(this.type) || String(params.gradient).charAt() != "r")
+          addGradientFill(this, params.gradient)
+        this.setBox(@attrs) if !pathlike.hasOwnProperty(@type) or @_.rt.deg
+      this
+
+    toFront: ->
+      @Group.parentNode.appendChild(@Group) if !@removed
+      tofront(this, @paper) if @paper.top != this
+      this
+
+    toBack: ->
+      return this if @removed
+      if @Group.parentNode.firstChild != @Group
+        @Group.parentNode.insertBefore(@Group, @Group.parentNode.firstChild)
+        toback(this, @paper)
+      this
+    insertAfter: (element) ->
+      return this if @removed
+      if element.constructor == Set
+        element = element[element.length - 1]
+      if element.Group.nextSibling
+        element.Group.parentNode.insertBefore(@Group, element.Group.nextSibling)
+      else
+        element.Group.parentNode.appendChild(@Group)
+      insertafter(this, element, @paper)
+      this
+
+    insertBefore: (element) ->
+      return this if @removed
+      if element.constructor == Set
+        element = element[0]
+      element.Group.parentNode.insertBefore(@Group, element.Group)
+      insertbefore(this, element, @paper)
+      this
+
+    blur: (size) ->
+      blurregexp = /[ ]progid:\S+Blur\([^\)]+\)/g
+      s = @node.runtimeStyle
+      f = s.filter
+      f = f.replace(blurregexp, "")
+      if +size != 0
+        !attrs.blur = size
+        s.filter = f + ' ' + ms + ".Blur(pixelradius=" + (+size || 1.5) + ")"
+        s.margin = R.format("-{0}px 0 0 -{0}px", Math.round(+size || 1.5))
+      else
+        s.filter = f
+        s.margin = 0
+        delete @attrs.blur
+
+  class Circle extends Element
+    constructor: (vml, x, y, r) ->
+      g = createNode("group")
+      o = createNode("oval")
+      ol = o.style
+      g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
+      g.coordsize = coordsize
+      g.coordorigin = vml.coordorigin
+      g.appendChild(o)
+      super(o, g, vml)
+      @type = "circle"
+      setFillAndStroke(this, { stroke: "#000000", fill: "none" })
+      @attrs.cx = x
+      @attrs.cy = y
+      @attrs.r = r
+      @setBox({ x: x - r, y: y - r, width: r * 2, height: r * 2 })
+      vml.canvas.appendChild(g)
+      this
+
 Raphael = (->
   separator = /[, ]+/
   elements = { circle: 1, rect: 1, path: 1, ellipse: 1, text: 1, image: 1 }
@@ -657,15 +1141,6 @@ Raphael = (->
       throw new Error("Rapha\xebl: you are calling to method \u201c" + methodname + "\u201d of removed object")
 
   if R.type == "SVG"
-    $ = (el, attr) ->
-      if attr
-        for name, value of attr
-          el.setAttribute(name, String(value))
-      else
-        el = document.createElementNS(Paper.svgNamespace, el)
-        el.style.webkitTapHighlightColor = "rgba(0,0,0,0)"
-        el
-
     R::toString = ->
       "Your browser supports SVG.\nYou are running Rapha\xebl " + this.version
 
@@ -1003,202 +1478,6 @@ Raphael = (->
       bb = el.getBBox()
       dif = a.y - (bb.y + bb.height / 2)
       $(node, { y: a.y + dif }) if dif and R.is(dif, "finite")
-
-    class Element
-      constructor: (node, svg) ->
-        X = 0
-        Y = 0
-        this[0] = node
-        @id = R._oid++
-        @node = node
-        node.R = this
-        @paper = svg
-        @attrs = this.attrs || {}
-        @transformations = [] # rotate, translate, scale
-        @_ = 
-          tx: 0
-          ty: 0
-          rt: { deg: 0, cx: 0, cy: 0 }
-          sx: 1
-          sy: 1
-        svg.bottom = this if !svg.bottom
-        @prev = svg.top
-        svg.top.next = this if svg.top
-        svg.top = this
-        @next = null
-
-      rotate: (deg, cx, cy) ->
-        if @removed
-          return this
-        if !deg?
-          if @_.rt.cx
-            return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(" ")
-          return @_.rt.deg
-        bbox = this.getBBox()
-        deg = String(deg).split(separator)
-        if deg.length - 1
-          cx = parseFloat(deg[1])
-          cy = parseFloat(deg[2])
-        deg = parseFloat(deg[0])
-        if cx != null and cx != false
-          @_.rt.deg = deg
-        else
-          @_.rt.deg += deg
-        cx = null if !cy?
-        @_.rt.cx = cx
-        @_.rt.cy = cy
-        cx = if !cx? then bbox.x + bbox.width / 2 else cx
-        cy = if !cy? then bbox.y + bbox.height / 2 else cy
-        if @_.rt.deg
-          @transformations[0] = R.format("rotate({0} {1} {2})", @_.rt.deg, cx, cy)
-          $(this.clip, { transform: R.format("rotate({0} {1} {2})", -@_.rt.deg, cx, cy) }) if @clip
-        else
-          @transformations[0] = ""
-          $(this.clip, { transform: '' }) if @clip
-        $(this.node, { transform: @transformations.join(" ") })
-        this
-
-      hide: ->
-        this.node.style.display = "none" if !@removed
-        this
-
-      show: ->
-        this.node.style.display = "" if !@removed
-        this
-
-      remove: ->
-        if @removed
-          return
-        tear(this, @paper)
-        @node.parentNode.removeChild(@node)
-        for i in this
-          delete this[i]
-        @removed = true
-
-      getBBox: ->
-        return this if @removed
-        if @type == "path"
-          return pathDimensions(@attrs.path)
-        if @node.style.display == "none"
-          this.show()
-          hide = true
-        bbox = {}
-        try
-          bbox = @node.getBBox()
-        catch error
-          # Firefox 3.0.x plays badly here
-        finally
-          bbox = bbox || {}
-        if @type == "text"
-          bbox = { x: bbox.x, y: Infinity, width: 0, height: 0 }
-          for i in [0..@node.getNumberOfChars() - 1]
-            bb = @node.getExtentOfChar(i)
-            bbox.y = bb.y if bb.y < bbox.y
-            bbox.height = bb.y + bb.height - bbox.y if bb.y + bb.height - bbox.y > bbox.height
-            bbox.width = bb.x + bb.width - bbox.x if bb.x + bb.width - bbox.x > bbox.width
-        this.hide() if hide
-        bbox
-
-      attr: (name, value) ->
-        return this if @removed
-        if !name?
-          res = {}
-          for i of @attrs
-            res[i] = @attrs[i]
-          res.rotation = this.rotate() if @_.rt.deg
-          res.scale = this.scale() if @_.sx != 1 || @_.sy != 1
-          if res.gradient and res.fill == "none"
-            if res.fill = res.gradient
-              delete res.gradient
-          return res
-        if !value? and R.is(name, "string")
-          if name == "translation"
-            return translate.call(this)
-          if name == "rotation"
-            return this.rotate()
-          if name == "scale"
-            return this.scale()
-          if name == "fill" and @attrs.fill == "none" and @attrs.gradient
-            return @attrs.gradient
-          return @attrs[name]
-        if !value? and R.is(name, "array")
-          values = {}
-          for j of name
-            values[name[j]] = @attr(name[j])
-          return values
-        if value?
-          params = {}
-          params[name] = value
-        else if name? and R.is(name, "object")
-          params = name
-        for key of @paper.customAttributes
-          if params.hasOwnProperty(key) and R.is(@paper.customAttributes[key], "function")
-            par = @paper.customAttributes[key].apply(this, [].concat(params[key]))
-            @attrs[key] = params[key]
-            for subkey of par
-              params[subkey] = par[subkey]
-        setFillAndStroke(this, params)
-        this
-
-      toFront: ->
-        return this if @removed
-        this.node.parentNode.appendChild(this.node)
-        svg = this.paper
-        svg.top != this && tofront(this, svg)
-        this
-
-      toBack: ->
-        return this if @removed
-        if @node.parentNode.firstChild != @node
-          @node.parentNode.insertBefore(@node, @node.parentNode.firstChild)
-          toback(this, @paper)
-          svg = @paper
-        this
-
-      insertAfter: (element) ->
-        return this if @removed
-        node = element.node || element[element.length - 1].node
-        if node.nextSibling
-          node.parentNode.insertBefore(@node, node.nextSibling)
-        else
-          node.parentNode.appendChild(@node)
-        insertafter(this, element, @paper)
-        this
-
-      insertBefore: (element) ->
-        return this if @removed
-        node = element.node || element[0].node
-        node.parentNode.insertBefore(@node, node)
-        insertbefore(this, element, @paper)
-        this
-
-      blur: (size) ->
-        # Experimental. No Safari support. Use it on your own risk.
-        if +size != 0
-          fltr = $("filter")
-          blur = $("feGaussianBlur")
-          @attrs.blur = size
-          fltr.id = createUUID()
-          $(blur, { stdDeviation: +size || 1.5 })
-          fltr.appendChild(blur)
-          @paper.defs.appendChild(fltr)
-          @_blur = fltr
-          $(@node, { filter: "url(#" + fltr.id + ")" })
-        else
-          if @_blur
-            @_blur.parentNode.removeChild(@_blur)
-            delete @_blur
-            delete @attrs.blur
-          @node.removeAttribute("filter")
-
-    theCircle = (svg, x, y, r) ->
-      el = $("circle")
-      svg.canvas.appendChild(el) if svg.canvas
-      res = new Element(el, svg)
-      res.attrs = { cx: x, cy: y, r: r, fill: "none", stroke: "#000" }
-      res.type = "circle"
-      $(el, res.attrs)
-      res
 
     theRect = (svg, x, y, w, h, r) ->
       el = $("rect")
@@ -1545,267 +1824,6 @@ Raphael = (->
             fill.angle = (270 - angle) % 360
         1
 
-    class Element
-      constructor: (node, group, vml) ->
-        Rotation = 0
-        RotX = 0
-        RotY = 0
-        Scale = 1
-        @[0] = node
-        @id = R._oid++
-        @node = node
-        node.R = this
-        @X = 0
-        @Y = 0
-        @attrs = {}
-        @Group = group
-        @paper = vml
-        @_ =
-          tx: 0
-          ty: 0
-          rt: { deg: 0 }
-          sx: 1
-          sy: 1
-        vml.bottom = this if !vml.bottom
-        @prev = vml.top
-        vml.top.next = this if vml.top
-        vml.top = this
-        @next = null
-
-      rotate: (deg, cx, cy) ->
-        return this if this.removed
-        if !deg?
-          if @_.rt.cx
-            return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(" ")
-          return @_.rt.deg
-        deg = String(deg).split(separator)
-        if deg.length - 1
-          cx = parseFloat(deg[1])
-          cy = parseFloat(deg[2])
-        deg = parseFloat(deg[0])
-        if cx?
-          @_.rt.deg = deg
-        else
-          @_.rt.deg += deg
-        cx = null if !cy?
-        @_.rt.cx = cx
-        @_.rt.cy = cy
-        this.setBox(@attrs, cx, cy)
-        this.Group.style.rotation = @_.rt.deg
-        # gradient fix for rotation. TODO
-        # var fill = (this.shape || this.node).getElementsByTagName("fill");
-        # fill = fill[0] || {};
-        # var b = ((360 - this._.rt.deg) - 270) % 360;
-        # !R.is(fill.angle, "undefined") && (fill.angle = b);
-        this
-  
-      setBox: (params, cx, cy) ->
-        return this if this.removed
-        gs = this.Group.style
-        os = (@shape and @shape.style) || @node.style
-        params ?= {}
-        for i of params
-          @attrs[i] = params[i]
-        cx ?= @_.rt.cx
-        cy ?= @_.rt.cy
-        attr = this.attrs
-        switch this.type
-          when "circle"
-            x = attr.cx - attr.r
-            y = attr.cy - attr.r
-            w = h = attr.r * 2
-          when "ellipse"
-            x = attr.cx - attr.rx
-            y = attr.cy - attr.ry
-            w = attr.rx * 2
-            h = attr.ry * 2
-          when "image"
-            x = +attr.x
-            y = +attr.y
-            w = attr.width || 0
-            h = attr.height || 0
-          when "text"
-            @textpath.v = ["m", Math.round(attr.x), ", ", Math.round(attr.y - 2), "l", Math.round(attr.x) + 1, ", ", Math.round(attr.y - 2)].join("")
-            x = attr.x - Math.round(this.W / 2)
-            y = attr.y - this.H / 2
-            w = @W
-            h = @H
-          when "rect", "path"
-            if !@attrs.path
-              x = 0
-              y = 0
-              w = @paper.width
-              h = @paper.height
-            else
-              dim = pathDimensions(@attrs.path)
-              x = dim.x
-              y = dim.y
-              w = dim.width
-              h = dim.height
-          else
-            x = 0
-            y = 0
-            w = @paper.width
-            h = @paper.height
-        cx ?= x + w / 2
-        cy ?= y + h / 2
-        left = cx - @paper.width / 2
-        top = cy - @paper.height / 2
-        gs.left != (t = left + "px") and (gs.left = t)
-        gs.top != (t = top + "px") and (gs.top = t)
-        @X = if pathlike.hasOwnProperty(this.type) then -left else x
-        @Y = if pathlike.hasOwnProperty(this.type) then -top else y
-        @W = w
-        @H = h
-        if pathlike.hasOwnProperty(@type)
-          os.left = -left * zoom + "px"
-          os.top = t = -top * zoom + "px"
-        else if @type == "text"
-          os.left = -left + "px"
-          os.top = -top + "px"
-        else
-          gs.width = @paper.width + "px"
-          gs.height = @paper.height + "px"
-          os.left = x - left + "px"
-          os.top = y - top + "px"
-          os.width = w + "px"
-          os.height = h + "px"
-  
-      hide: ->
-        @Group.style.display = "none" if !this.removed
-        this
-  
-      show: ->
-        @Group.style.display = "block" if !this.removed
-        this
-  
-      getBBox: ->
-        return this if @removed
-        if pathlike.hasOwnProperty(@type)
-          return pathDimensions(@attrs.path)
-        x: @X + (@bbx || 0)
-        y: @Y
-        width: @W
-        height: @H
-  
-      remove: ->
-        return this if @removed
-        tear(this, @paper)
-        @node.parentNode.removeChild(@node)
-        @Group.parentNode.removeChild(@Group)
-        @shape.parentNode.removeChild(@shape) if @shape
-        for i in this
-          delete @[i]
-        @removed = true
-  
-      attr: (name, value) ->
-        return this if @removed
-        if !name?
-          res = {}
-          for i of @attrs
-            res[i] = this.attrs[i];
-          res.rotation = this.rotate() if @_.rt.deg
-          res.scale = this.scale() if @_.sx != 1 || @_.sy != 1
-          if res.gradient and res.fill == "none"
-            if res.fill = res.gradient
-              delete res.gradient
-          return res
-        if !value? and R.is(name, "string")
-            if name == "translation"
-              return translate.call(this)
-            if name == "rotation"
-              return this.rotate()
-            if name == "scale"
-              return this.scale()
-            if name == "fill" and @attrs.fill == "none" and @attrs.gradient
-              return @attrs.gradient
-            return @attrs[name]
-        if @attrs and !value? and R.is(name, "array")
-          values = {}
-          for i of name
-            values[name[i]] = @attr(name[i])
-          return values
-        if value?
-          params = {}
-          params[name] = value
-        params = name if !value? and R.is(name, "object")
-        if params
-          for key of @paper.customAttributes
-            if params.hasOwnProperty(key) and R.is(@paper.customAttributes[key], "function")
-              par = @paper.customAttributes[key].apply(this, [].concat(params[key]))
-              @attrs[key] = params[key]
-              for subkey of par
-                params[subkey] = par[subkey]
-          if params.text and @type == "text"
-            @node.string = params.text
-          setFillAndStroke(this, params)
-          if params.gradient && (({ circle: 1, ellipse: 1 }).hasOwnProperty(this.type) || String(params.gradient).charAt() != "r")
-            addGradientFill(this, params.gradient)
-          this.setBox(@attrs) if !pathlike.hasOwnProperty(@type) or @_.rt.deg
-        this
-  
-      toFront: ->
-        @Group.parentNode.appendChild(@Group) if !@removed
-        tofront(this, @paper) if @paper.top != this
-        this
-  
-      toBack: ->
-        return this if @removed
-        if @Group.parentNode.firstChild != @Group
-          @Group.parentNode.insertBefore(@Group, @Group.parentNode.firstChild)
-          toback(this, @paper)
-        this
-      insertAfter: (element) ->
-        return this if @removed
-        if element.constructor == Set
-          element = element[element.length - 1]
-        if element.Group.nextSibling
-          element.Group.parentNode.insertBefore(@Group, element.Group.nextSibling)
-        else
-          element.Group.parentNode.appendChild(@Group)
-        insertafter(this, element, @paper)
-        this
-
-      insertBefore: (element) ->
-        return this if @removed
-        if element.constructor == Set
-          element = element[0]
-        element.Group.parentNode.insertBefore(@Group, element.Group)
-        insertbefore(this, element, @paper)
-        this
-
-      blur: (size) ->
-        blurregexp = /[ ]progid:\S+Blur\([^\)]+\)/g
-        s = @node.runtimeStyle
-        f = s.filter
-        f = f.replace(blurregexp, "")
-        if +size != 0
-          !attrs.blur = size
-          s.filter = f + ' ' + ms + ".Blur(pixelradius=" + (+size || 1.5) + ")"
-          s.margin = R.format("-{0}px 0 0 -{0}px", Math.round(+size || 1.5))
-        else
-          s.filter = f
-          s.margin = 0
-          delete @attrs.blur
-
-    R::theCircle = (vml, x, y, r) ->
-      g = createNode("group")
-      o = createNode("oval")
-      ol = o.style
-      g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
-      g.coordsize = coordsize
-      g.coordorigin = vml.coordorigin
-      g.appendChild(o)
-      res = new Element(o, g, vml)
-      res.type = "circle"
-      setFillAndStroke(res, { stroke: "#000", fill: "none" })
-      res.attrs.cx = x
-      res.attrs.cy = y
-      res.attrs.r = r
-      res.setBox({ x: x - r, y: y - r, width: r * 2, height: r * 2 })
-      vml.canvas.appendChild(g)
-      res
-
     R::rectPath = (x, y, w, h, r) ->
       if r
         R.format("M{0},{1}l{2},0a{3},{3},0,0,1,{3},{3}l0,{5}a{3},{3},0,0,1,{4},{3}l{6},0a{3},{3},0,0,1,{4},{4}l0,{7}a{3},{3},0,0,1,{3},{4}z", x + r, y, w - r * 2, r, -r, h - r * 2, r * 2 - w, r * 2 - h)
@@ -2102,7 +2120,7 @@ Raphael = (->
     R.unmousemove(dragMove).unmouseup(dragUp) if !drag.length
 
   Paper::circle = (x, y, r) ->
-    theCircle(this, x || 0, y || 0, r || 0)
+    new Circle(this, x || 0, y || 0, r || 0)
 
   Paper::rect = (x, y, w, h, r) ->
     theRect(this, x || 0, y || 0, w || 0, h || 0, r || 0)
