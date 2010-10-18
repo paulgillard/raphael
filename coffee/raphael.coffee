@@ -269,6 +269,17 @@ if RaphaelNew.type == "SVG"
       $(el, @attrs)
       this
 
+  class Image extends Element
+    constructor: (svg, src, x, y, w, h) ->
+      @type = "image"
+      el = $(@type)
+      $(el, { x: x, y: y, width: w, height: h, preserveAspectRatio: "none" })
+      el.setAttributeNS(Paper.xLinkNamespace, "href", src)
+      svg.canvas.appendChild(el) if svg.canvas
+      super(el, svg)
+      @attrs = { x: x || 0, y: y || 0, width: w || 0, height: h || 0, src: src || "about:blank" }
+      this
+
 else
   class Element extends RaphaelNew
     constructor: (node, group, vml) ->
@@ -563,6 +574,26 @@ else
       res.attrs.rx = rx
       res.attrs.ry = ry
       res.setBox({ x: x - rx, y: y - ry, width: rx * 2, height: ry * 2 })
+      vml.canvas.appendChild(g)
+      res
+
+  class Image extends Element
+    constructor: (vml, src, x, y, w, h) ->
+      g = createNode("group")
+      o = createNode("image")
+      g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
+      g.coordsize = coordsize
+      g.coordorigin = vml.coordorigin
+      o.src = src
+      g.appendChild(o)
+      res = new Element(o, g, vml)
+      res.type = "image"
+      res.attrs.src = src
+      res.attrs.x = x
+      res.attrs.y = y
+      res.attrs.w = w
+      res.attrs.h = h
+      res.setBox({ x: x, y: y, width: w, height: h })
       vml.canvas.appendChild(g)
       res
 
@@ -1534,16 +1565,6 @@ Raphael = (->
       dif = a.y - (bb.y + bb.height / 2)
       $(node, { y: a.y + dif }) if dif and R.is(dif, "finite")
 
-    theImage = (svg, src, x, y, w, h) ->
-      el = $("image")
-      $(el, { x: x, y: y, width: w, height: h, preserveAspectRatio: "none" })
-      el.setAttributeNS(Paper.xLinkNamespace, "href", src)
-      svg.canvas.appendChild(el) if svg.canvas
-      res = new Element(el, svg)
-      res.attrs = { x: x, y: y, width: w, height: h, src: src }
-      res.type = "image"
-      res
-
     theText = (svg, x, y, text) ->
       el = $("text")
       $(el, { x: x, y: y, "text-anchor": "middle" })
@@ -1867,25 +1888,6 @@ Raphael = (->
       else
         R.format("M{0},{1}l{2},0,0,{3},{4},0z", x, y, w, h, -w)
 
-    R::theImage = (vml, src, x, y, w, h) ->
-      g = createNode("group")
-      o = createNode("image")
-      g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
-      g.coordsize = coordsize
-      g.coordorigin = vml.coordorigin
-      o.src = src
-      g.appendChild(o)
-      res = new Element(o, g, vml)
-      res.type = "image"
-      res.attrs.src = src
-      res.attrs.x = x
-      res.attrs.y = y
-      res.attrs.w = w
-      res.attrs.h = h
-      res.setBox({ x: x, y: y, width: w, height: h })
-      vml.canvas.appendChild(g)
-      res
-
     R::theText = (vml, x, y, text) ->
       g = createNode("group")
       el = createNode("shape")
@@ -2138,7 +2140,7 @@ Raphael = (->
     thePath(R.format.apply(R, arguments), this)
 
   Paper::image = (src, x, y, w, h) -> 
-    theImage(this, src || "about:blank", x || 0, y || 0, w || 0, h || 0)
+    new Image(this, src, x, y, w, h)
 
   Paper::text = (x, y, text) ->
     theText(this, x || 0, y || 0, String(text))
