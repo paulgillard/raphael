@@ -292,6 +292,15 @@ if RaphaelNew.type == "SVG"
       # setFillAndStroke(this, @attrs) # TEMPORARY
       this
 
+  class Path extends Element
+    constructor: (svg, pathString) ->
+      @type = "path"
+      el = $(@type)
+      svg.canvas.appendChild(el) if svg.canvas
+      super(el, svg)
+      # setFillAndStroke(p, { fill: "none", stroke: "#000", path: pathString }) # TEMPORARY
+      this
+
 else
   class Element extends RaphaelNew
     constructor: (node, group, vml) ->
@@ -642,6 +651,29 @@ else
       res.setBox()
       vml.canvas.appendChild(g)
       res
+
+  class Path extends Element
+    constructor: (vml, pathString) ->
+      g = createNode("group")
+      g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
+      g.coordsize = vml.coordsize
+      g.coordorigin = vml.coordorigin
+      el = createNode("shape")
+      ol = el.style
+      ol.width = vml.width + "px"
+      ol.height = vml.height + "px"
+      el.coordsize = coordsize
+      el.coordorigin = vml.coordorigin
+      g.appendChild(el)
+      p = new Element(el, g, vml)
+      attr = { fill: "none", stroke: "#000" }
+      attr.path = pathString if pathString
+      p.type = "path"
+      p.path = []
+      p.Path = ""
+      setFillAndStroke(p, attr)
+      vml.canvas.appendChild(g)
+      p
 
 Raphael = (->
   separator = /[, ]+/
@@ -1276,14 +1308,6 @@ Raphael = (->
     R::toString = ->
       "Your browser supports SVG.\nYou are running Rapha\xebl " + this.version
 
-    thePath = (pathString, SVG) ->
-      el = $("path")
-      SVG.canvas.appendChild(el) if SVG.canvas
-      p = new Element(el, SVG)
-      p.type = "path"
-      setFillAndStroke(p, { fill: "none", stroke: "#000", path: pathString })
-      p
-
     addGradientFill = (o, gradient, SVG) ->
       type = "linear"
       fx = fy = 0.5
@@ -1703,28 +1727,6 @@ Raphael = (->
     R::toString = ->
       "Your browser doesn\u2019t support SVG. Falling down to VML.\nYou are running Rapha\xebl " + @version
 
-    thePath = (pathString, vml) ->
-      g = createNode("group")
-      g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
-      g.coordsize = vml.coordsize
-      g.coordorigin = vml.coordorigin
-      el = createNode("shape")
-      ol = el.style
-      ol.width = vml.width + "px"
-      ol.height = vml.height + "px"
-      el.coordsize = coordsize
-      el.coordorigin = vml.coordorigin
-      g.appendChild(el)
-      p = new Element(el, g, vml)
-      attr = { fill: "none", stroke: "#000" }
-      attr.path = pathString if pathString
-      p.type = "path"
-      p.path = []
-      p.Path = ""
-      setFillAndStroke(p, attr)
-      vml.canvas.appendChild(g)
-      p
-
     setFillAndStroke = (o, params) ->
       o.attrs = o.attrs || {}
       node = o.node
@@ -2140,7 +2142,7 @@ Raphael = (->
 
   Paper::path = (pathString) ->
     pathString += "" if pathString and !R.is(pathString, "string") and !R.is(pathString[0], "array")
-    thePath(R.format.apply(R, arguments), this)
+    new Path(this, R.format.apply(R, arguments))
 
   Paper::image = (src, x, y, w, h) -> 
     new Image(this, src, x, y, w, h)
