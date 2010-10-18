@@ -20,6 +20,13 @@ functionCacher = (expensiveFunction, scope, postprocessor) ->
     if postprocessor? then return postprocessor(cache[args]) else return cache[args]
   return cachedFunction
 
+class Paper
+  @svgNamespace: "http://www.w3.org/2000/svg"
+  @xLinkNamespace: "http://www.w3.org/1999/xlink"
+
+  constructor :->
+    @customAttributes = {}
+
 Raphael = (->
   separator = /[, ]+/
   elements = { circle: 1, rect: 1, path: 1, ellipse: 1, text: 1, image: 1 }
@@ -648,14 +655,6 @@ Raphael = (->
   removed = (methodname) ->
     ->
       throw new Error("Rapha\xebl: you are calling to method \u201c" + methodname + "\u201d of removed object")
-  
-  # Extends R?
-  class Paper
-    @svgNamespace: "http://www.w3.org/2000/svg"
-    @xLinkNamespace: "http://www.w3.org/1999/xlink"
-
-    constructor :->
-      @customAttributes = {}
 
   if R.type == "SVG"
     $ = (el, attr) ->
@@ -2884,13 +2883,6 @@ Raphael = (->
   
   if oldRaphael.was then (window.Raphael = R) else (Raphael = R)
 )()
-
-class Paper
-  @svgNamespace: "http://www.w3.org/2000/svg"
-  @xLinkNamespace: "http://www.w3.org/1999/xlink"
-
-  constructor :->
-    @customAttributes = {}
 
 class Colour
   constructor: (colour) ->
