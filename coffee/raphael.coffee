@@ -31,6 +31,7 @@ class RaphaelNew
   @version: '1.5.2'
   @_oid: 0
   @type: if window.SVGAngle or document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") then "SVG" else "VML"
+  @availableAttrs: { blur: 0, "clip-rect": "0 0 1e9 1e9", cursor: "default", cx: 0, cy: 0, fill: "#fff", "fill-opacity": 1, font: '10px "Arial"', "font-family": '"Arial"', "font-size": "10", "font-style": "normal", "font-weight": 400, gradient: 0, height: 0, href: "http://Rjs.com/", opacity: 1, path: "M0,0", r: 0, rotation: 0, rx: 0, ry: 0, scale: "1 1", src: "", stroke: "#000", "stroke-dasharray": "", "stroke-linecap": "butt", "stroke-linejoin": "butt", "stroke-miterlimit": 0, "stroke-opacity": 1, "stroke-width": 1, target: "_blank", "text-anchor": "middle", title: "R", translation: "0 0", width: 0, x: 0, y: 0 }
 
   is: (object, type) ->
     type: String.prototype.toLowerCase.call(type)
@@ -278,6 +279,17 @@ if RaphaelNew.type == "SVG"
       svg.canvas.appendChild(el) if svg.canvas
       super(el, svg)
       @attrs = { x: x || 0, y: y || 0, width: w || 0, height: h || 0, src: src || "about:blank" }
+      this
+
+  class Text extends Element
+    constructor: (svg, text, x, y) ->
+      @type = "text"
+      el = $(@type)
+      $(el, { x: x, y: y, "text-anchor": "middle" })
+      svg.canvas.appendChild(el) if svg.canvas
+      super(el, svg)
+      @attrs = { x: x || 0, y: y || 0, "text-anchor": "middle", text: text, font: RaphaelNew.availableAttrs.font, stroke: "none", fill: "#000000" }
+      # setFillAndStroke(this, @attrs) # TEMPORARY
       this
 
 else
@@ -594,6 +606,40 @@ else
       res.attrs.w = w
       res.attrs.h = h
       res.setBox({ x: x, y: y, width: w, height: h })
+      vml.canvas.appendChild(g)
+      res
+
+  class Text extends Element
+    constructor: (vml, text, x, y) ->
+      g = createNode("group")
+      el = createNode("shape")
+      ol = el.style
+      path = createNode("path")
+      ps = path.style
+      o = createNode("textpath")
+      g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
+      g.coordsize = coordsize
+      g.coordorigin = vml.coordorigin
+      path.v = R.format("m{0},{1}l{2},{1}", Math.round(x * 10), Math.round(y * 10), Math.round(x * 10) + 1)
+      path.textpathok = true
+      ol.width = vml.width
+      ol.height = vml.height
+      o.string = String(text)
+      o.on = true
+      el.appendChild(o)
+      el.appendChild(path)
+      g.appendChild(el)
+      res = new Element(o, g, vml)
+      res.shape = el
+      res.textpath = path
+      res.type = "text"
+      res.attrs.text = text
+      res.attrs.x = x
+      res.attrs.y = y
+      res.attrs.w = 1
+      res.attrs.h = 1
+      setFillAndStroke(res, { font: RaphaelNew.availableAttrs.font, stroke: "none", fill: "#000" })
+      res.setBox()
       vml.canvas.appendChild(g)
       res
 
@@ -1565,16 +1611,6 @@ Raphael = (->
       dif = a.y - (bb.y + bb.height / 2)
       $(node, { y: a.y + dif }) if dif and R.is(dif, "finite")
 
-    theText = (svg, x, y, text) ->
-      el = $("text")
-      $(el, { x: x, y: y, "text-anchor": "middle" })
-      svg.canvas.appendChild(el) if svg.canvas
-      res = new Element(el, svg)
-      res.attrs = { x: x, y: y, "text-anchor": "middle", text: text, font: availableAttrs.font, stroke: "none", fill: "#000" }
-      res.type = "text"
-      setFillAndStroke(res, res.attrs)
-      res
-
     setSize = (width, height) ->
       @width = width || @width
       @height = height || @height
@@ -1888,39 +1924,6 @@ Raphael = (->
       else
         R.format("M{0},{1}l{2},0,0,{3},{4},0z", x, y, w, h, -w)
 
-    R::theText = (vml, x, y, text) ->
-      g = createNode("group")
-      el = createNode("shape")
-      ol = el.style
-      path = createNode("path")
-      ps = path.style
-      o = createNode("textpath")
-      g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
-      g.coordsize = coordsize
-      g.coordorigin = vml.coordorigin
-      path.v = R.format("m{0},{1}l{2},{1}", Math.round(x * 10), Math.round(y * 10), Math.round(x * 10) + 1)
-      path.textpathok = true
-      ol.width = vml.width
-      ol.height = vml.height
-      o.string = String(text)
-      o.on = true
-      el.appendChild(o)
-      el.appendChild(path)
-      g.appendChild(el)
-      res = new Element(o, g, vml)
-      res.shape = el
-      res.textpath = path
-      res.type = "text"
-      res.attrs.text = text
-      res.attrs.x = x
-      res.attrs.y = y
-      res.attrs.w = 1
-      res.attrs.h = 1
-      setFillAndStroke(res, { font: availableAttrs.font, stroke: "none", fill: "#000" })
-      res.setBox()
-      vml.canvas.appendChild(g)
-      res
-
     R::setSize = (width, height) ->
       cs = this.canvas.style
       width += "px" if width == +width
@@ -2143,7 +2146,7 @@ Raphael = (->
     new Image(this, src, x, y, w, h)
 
   Paper::text = (x, y, text) ->
-    theText(this, x || 0, y || 0, String(text))
+    new Text(this, String(text), x, y)
 
   Paper::set = (itemsArray) ->
     itemsArray = Array.prototype.splice.call(arguments, 0, arguments.length) if arguments.length > 1
