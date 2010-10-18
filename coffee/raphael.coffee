@@ -2120,7 +2120,7 @@ Raphael = (->
     R.unmousemove(dragMove).unmouseup(dragUp) if !drag.length
 
   Paper::circle = (x, y, r) ->
-    new Circle(this, x || 0, y || 0, r || 0)
+    new Circle(this, x, y, r)
 
   Paper::rect = (x, y, w, h, r) ->
     theRect(this, x || 0, y || 0, w || 0, h || 0, r || 0)
