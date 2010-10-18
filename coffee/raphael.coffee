@@ -259,6 +259,16 @@ if RaphaelNew.type == "SVG"
       $(el, @attrs)
       this
 
+  class Ellipse extends Element
+    constructor: (svg, x, y, rx, ry) ->
+      @type = "ellipse"
+      el = $(@type)
+      super(el, svg)
+      svg.canvas.appendChild(el) if svg.canvas
+      @attrs = { cx: x || 0, cy: y || 0, rx: rx || 0, ry: ry || 0, fill: "none", stroke: "#000000" }
+      $(el, @attrs)
+      this
+
 else
   class Element extends RaphaelNew
     constructor: (node, group, vml) ->
@@ -534,6 +544,26 @@ else
       a.r = r
       a.path = path
       res.type = "rect"
+      res
+
+  class Ellipse extends Element
+    constructor: (vml, x, y, rx, ry) ->
+      g = createNode("group")
+      o = createNode("oval")
+      ol = o.style
+      g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
+      g.coordsize = coordsize
+      g.coordorigin = vml.coordorigin
+      g.appendChild(o)
+      res = new Element(o, g, vml)
+      res.type = "ellipse"
+      setFillAndStroke(res, {stroke: "#000"})
+      res.attrs.cx = x
+      res.attrs.cy = y
+      res.attrs.rx = rx
+      res.attrs.ry = ry
+      res.setBox({ x: x - rx, y: y - ry, width: rx * 2, height: ry * 2 })
+      vml.canvas.appendChild(g)
       res
 
 Raphael = (->
@@ -1504,15 +1534,6 @@ Raphael = (->
       dif = a.y - (bb.y + bb.height / 2)
       $(node, { y: a.y + dif }) if dif and R.is(dif, "finite")
 
-    theEllipse = (svg, x, y, rx, ry) ->
-      el = $("ellipse")
-      svg.canvas.appendChild(el) if svg.canvas
-      res = new Element(el, svg)
-      res.attrs = { cx: x, cy: y, rx: rx, ry: ry, fill: "none", stroke: "#000" }
-      res.type = "ellipse"
-      $(el, res.attrs)
-      res
-
     theImage = (svg, src, x, y, w, h) ->
       el = $("image")
       $(el, { x: x, y: y, width: w, height: h, preserveAspectRatio: "none" })
@@ -1846,25 +1867,6 @@ Raphael = (->
       else
         R.format("M{0},{1}l{2},0,0,{3},{4},0z", x, y, w, h, -w)
 
-    R::theEllipse = (vml, x, y, rx, ry) ->
-      g = createNode("group")
-      o = createNode("oval")
-      ol = o.style
-      g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
-      g.coordsize = coordsize
-      g.coordorigin = vml.coordorigin
-      g.appendChild(o)
-      res = new Element(o, g, vml)
-      res.type = "ellipse"
-      setFillAndStroke(res, {stroke: "#000"})
-      res.attrs.cx = x
-      res.attrs.cy = y
-      res.attrs.rx = rx
-      res.attrs.ry = ry
-      res.setBox({ x: x - rx, y: y - ry, width: rx * 2, height: ry * 2 })
-      vml.canvas.appendChild(g)
-      res
-
     R::theImage = (vml, src, x, y, w, h) ->
       g = createNode("group")
       o = createNode("image")
@@ -2129,7 +2131,7 @@ Raphael = (->
     new Rectangle(this, x, y, w, h, r)
 
   Paper::ellipse = (x, y, rx, ry) ->
-    theEllipse(this, x || 0, y || 0, rx || 0, ry || 0)
+    new Ellipse(this, x, y, rx, ry)
 
   Paper::path = (pathString) ->
     pathString += "" if pathString and !R.is(pathString, "string") and !R.is(pathString[0], "array")
