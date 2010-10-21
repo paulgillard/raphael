@@ -81,3 +81,14 @@ to get the latter i need:
 if (rcx > cx) == posx then 1 else -1
 
 This might not be an error. I remember reading about the Perl? like statement 1 < a < 3. Is this the same type of thing?
+
+---------------
+
+if !@is(@attrs.opacity, "undefined")
+  if @is(params.opacity, "undefined")
+    $(@node, { opacity: @attrs.opacity })
+
+should be able to do
+
+if !@is(@attrs.opacity, "undefined") and @is(params.opacity, "undefined")
+  $(@node, { opacity: @attrs.opacity })

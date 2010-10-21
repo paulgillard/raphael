@@ -31,7 +31,25 @@ class RaphaelNew
   @version: '1.5.2'
   @_oid: 0
   @type: if window.SVGAngle or document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") then "SVG" else "VML"
+  @separator: /[, ]+/
+  @elements: { circle: 1, rect: 1, path: 1, ellipse: 1, text: 1, image: 1 }
+  @events: ["click", "dblclick", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup", "touchstart", "touchmove", "touchend", "orientationchange", "touchcancel", "gesturestart", "gesturechange", "gestureend"]
   @availableAttrs: { blur: 0, "clip-rect": "0 0 1e9 1e9", cursor: "default", cx: 0, cy: 0, fill: "#fff", "fill-opacity": 1, font: '10px "Arial"', "font-family": '"Arial"', "font-size": "10", "font-style": "normal", "font-weight": 400, gradient: 0, height: 0, href: "http://Rjs.com/", opacity: 1, path: "M0,0", r: 0, rotation: 0, rx: 0, ry: 0, scale: "1 1", src: "", stroke: "#000", "stroke-dasharray": "", "stroke-linecap": "butt", "stroke-linejoin": "butt", "stroke-miterlimit": 0, "stroke-opacity": 1, "stroke-width": 1, target: "_blank", "text-anchor": "middle", title: "R", translation: "0 0", width: 0, x: 0, y: 0 }
+  @availableAnimAttrs: { along: "along", blur: "number", "clip-rect": "csv", cx: "number", cy: "number", fill: "colour", "fill-opacity": "number", "font-size": "number", height: "number", opacity: "number", path: "path", r: "number", rotation: "csv", rx: "number", ry: "number", scale: "csv", stroke: "colour", "stroke-opacity": "number", "stroke-width": "number", translation: "csv", width: "number", x: "number", y: "number" }
+  @ISURL: /^url\(['"]?([^\)]+?)['"]?\)$/i
+  @radial_gradient: /^r(?:\(([^,]+?)\s*,\s*([^\)]+?)\))?/
+  @isnan: { "NaN": 1, "Infinity": 1, "-Infinity": 1 }
+  @bezierrg: /^(?:cubic-)?bezier\(([^,]+),([^,]+),([^,]+),([^\)]+)\)/
+  @ms: " progid:DXImageTransform.Microsoft"
+  @animKeyFrames: /^(from|to|\d+%?)$/
+  @commaSpaces: /\s*,\s*/
+  @hsrg: { hs: 1, rg:  1}
+  @p2s: /,?([achlmqrstvxz]),?/gi
+  @pathCommand: /([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig
+  @pathValues: /(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig
+  @radial_gradient: /^r(?:\(([^,]+?)\s*,\s*([^\)]+?)\))?/
+  @supportsTouch: "createTouch" in document
+  @touchMap: { mousedown: "touchstart", mousemove: "touchmove", mouseup: "touchend" }
 
   is: (object, type) ->
     type: String.prototype.toLowerCase.call(type)
@@ -42,6 +60,15 @@ class RaphaelNew
     (type == "object" and object == Object(object)) ||
     (type == "array" and Array.isArray and Array.isArray(object)) ||
     Object.prototype.toString.call(object).slice(8, -1).toLowerCase() == type
+
+  format: (token, params) ->
+    formatrg = /\{(\d+)\}/g
+    args = if @is(params, "array") then [0].concat(params) else arguments
+    if token and @is(token, "string") and args.length - 1
+      token = token.replace(formatrg, (str, i) ->
+        if !args[++i]? then '' else args[i]
+    )
+    token or ""
 
 if RaphaelNew.type == "SVG"
   $ = (el, attr) ->
@@ -84,7 +111,7 @@ if RaphaelNew.type == "SVG"
           return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(" ")
         return @_.rt.deg
       bbox = this.getBBox()
-      deg = String(deg).split(separator)
+      deg = String(deg).split(RaphaelNew.separator)
       if deg.length - 1
         cx = parseFloat(deg[1])
         cy = parseFloat(deg[2])
@@ -99,8 +126,8 @@ if RaphaelNew.type == "SVG"
       cx = if !cx? then bbox.x + bbox.width / 2 else cx
       cy = if !cy? then bbox.y + bbox.height / 2 else cy
       if @_.rt.deg
-        @transformations[0] = R.format("rotate({0} {1} {2})", @_.rt.deg, cx, cy)
-        $(this.clip, { transform: R.format("rotate({0} {1} {2})", -@_.rt.deg, cx, cy) }) if @clip
+        @transformations[0] = @format("rotate({0} {1} {2})", @_.rt.deg, cx, cy)
+        $(this.clip, { transform: @format("rotate({0} {1} {2})", -@_.rt.deg, cx, cy) }) if @clip
       else
         @transformations[0] = ""
         $(this.clip, { transform: '' }) if @clip
@@ -186,7 +213,7 @@ if RaphaelNew.type == "SVG"
           @attrs[key] = params[key]
           for subkey of par
             params[subkey] = par[subkey]
-      setFillAndStroke(this, params)
+      @setFillAndStroke(params)
       this
 
     toFront: ->
@@ -240,6 +267,247 @@ if RaphaelNew.type == "SVG"
           delete @attrs.blur
         @node.removeAttribute("filter")
 
+    setFillAndStroke: (params) ->
+      dasharray = "": [0], "none": [0], "-": [3, 1], ".": [1, 1], "-.": [3, 1, 1, 1], "-..": [3, 1, 1, 1, 1, 1], ". ": [1, 3], "- ": [4, 3], "--": [8, 3], "- .": [4, 3, 1, 3],  "--.": [8, 3, 1, 3], "--..": [8, 3, 1, 3, 1, 3]
+      rot = @rotate()
+      addDashes = (o, value) ->
+        value = dasharray[String.prototype.toLowerCase.call(value)]
+        if value
+          width = o.attrs["stroke-width"] || "1"
+          butt = { round: width, square: width, butt: 0 }[o.attrs["stroke-linecap"] || params["stroke-linecap"]] || 0
+          dashes = []
+          i = value.length
+          while i -= 1
+            dashes[i] = value[i] * width + (if i % 2 then 1 else -1) * butt
+          $(@node, { "stroke-dasharray": dashes.join(",") })
+      rot = params.rotation if params.hasOwnProperty("rotation")
+      rotxy = String(rot).split(RaphaelNew.separator)
+      if !(rotxy.length - 1)
+        rotxy = null
+      else
+        rotxy[1] = +rotxy[1]
+        rotxy[2] = +rotxy[2]
+      @rotate(0, true) if parseFloat(rot)
+      # TODO: name is same as value
+      for att, name of params
+        if !RaphaelNew.availableAttrs.hasOwnProperty(att)
+          continue
+        value = params[att]
+        @attrs[att] = value
+        switch att
+          when "blur"
+            @blur(value)
+          when "rotation"
+            @rotate(value, true)
+          when "href", "title", "target"
+            pn = @node.parentNode
+            if String.prototype.toLowerCase.call(pn.tagName) != "a"
+              hl = $("a")
+              pn.insertBefore(hl, @node)
+              hl.appendChild(@node)
+              pn = hl
+            if att == "target" and value == "blank"
+              pn.setAttributeNS(Paper.xLinkNamespace, "show", "new")
+            else
+              pn.setAttributeNS(Paper.xLinkNamespace, att, value)
+          when "cursor"
+            @node.style.cursor = value
+          when "clip-rect"
+            rect = String(value).split(RaphaelNew.separator)
+            if rect.length == 4
+              @clip && @clip.parentNode.parentNode.removeChild(@clip.parentNode)
+              el = $("clipPath")
+              rc = $("rect")
+              el.id = createUUID()
+              $(rc,
+                  x: rect[0]
+                  y: rect[1]
+                  width: rect[2]
+                  height: rect[3]
+              )
+              el.appendChild(rc)
+              @paper.defs.appendChild(el)
+              $(@node, { "clip-path": "url(#" + el.id + ")" })
+              @clip = rc
+            if !value
+              clip = document.getElementById(@node.getAttribute("clip-path").replace(/(^url\(#|\)$)/g, ""))
+              clip.parentNode.removeChild(clip) if clip
+              $(@node, "clip-path": "")
+              delete @clip
+          when "path"
+            if (@type == "path")
+              $(@node, { d: if value then @attrs.path = pathToAbsolute(value) else "M0,0" })
+          when "width"
+            @node.setAttribute(att, value)
+            if @attrs.fx
+              value = -@attrs.x - (@attrs.width || 0)
+              rotxy[1] += value - @attrs['x'] if rotxy
+              @node.setAttribute('x', value)
+              updatePosition(this) if @pattern
+          when "x"
+            if @attrs.fx
+              value = -@attrs.x - (@attrs.width || 0)
+            rotxy[1] += value - @attrs[att] if rotxy
+            @node.setAttribute(att, value)
+            updatePosition(this) if @pattern
+          when "rx"
+            if @type != "rect"
+              @node.setAttribute(att, value)
+              updatePosition(this) if @pattern
+          when "cx"
+            rotxy[1] += value - @attrs[att] if rotxy
+            @node.setAttribute(att, value)
+            updatePosition(this) if @pattern
+          when "height"
+            @node.setAttribute(att, value)
+            if @attrs.fy
+              value = -@attrs.y - (@attrs.height || 0)
+              rotxy[2] += value - @attrs['y'] if rotxy
+              @node.setAttribute('y', value)
+              updatePosition(this) if @pattern
+          when "y"
+            if @attrs.fy
+              value = -@attrs.y - (@attrs.height || 0)
+            rotxy[2] += value - @attrs[att] if rotxy
+            @node.setAttribute(att, value)
+            updatePosition(this) if @pattern
+          when "ry"
+            if @type != "rect"
+              @node.setAttribute(att, value)
+              updatePosition(this) if @pattern
+          when "cy"
+            rotxy[2] += value - @attrs[att] if rotxy
+            @node.setAttribute(att, value)
+            updatePosition(this) if @pattern
+          when "r"
+            if @type == "rect"
+                $(@node, { rx: value, ry: value })
+            else
+                @node.setAttribute(att, value)
+          when "src"
+            if @type == "image"
+              @node.setAttributeNS(Paper.xLinkNamespace, "href", value)
+          when "stroke-width"
+            @node.style.strokeWidth = value
+            # Need following line for Firefox
+            @node.setAttribute(att, value)
+            if @attrs["stroke-dasharray"]
+              addDashes(this, @attrs["stroke-dasharray"])
+          when "stroke-dasharray"
+            addDashes(this, value)
+          when "translation"
+            xy = String(value).split(RaphaelNew.separator)
+            xy[0] = +xy[0] || 0
+            xy[1] = +xy[1] || 0
+            if rotxy
+              rotxy[1] += xy[0]
+              rotxy[2] += xy[1]
+            translate.call(this, xy[0], xy[1])
+          when "scale"
+            xy = String(value).split(RaphaelNew.separator)
+            @scale(+xy[0] || 1, +xy[1] || +xy[0] || 1, (if isNaN(parseFloat(xy[2])) then null else +xy[2]), (if isNaN(parseFloat(xy[3])) then null else +xy[3]))
+          when "fill"
+            isURL = String(value).match(RaphaelNew.ISURL)
+            if isURL
+              el = $("pattern")
+              ig = $("image")
+              el.id = createUUID()
+              $(el, { x: 0, y: 0, patternUnits: "userSpaceOnUse", height: 1, width: 1 })
+              $(ig, { x: 0, y: 0 })
+              ig.setAttributeNS(Paper.xLinkNamespace, "href", isURL[1])
+              el.appendChild(ig)
+
+              img = document.createElement("img")
+              img.style.cssText = "position:absolute;left:-9999em;top-9999em"
+              img.onload = ->
+                $(el, { width: this.offsetWidth, height: this.offsetHeight })
+                $(ig, { width: this.offsetWidth, height: this.offsetHeight })
+                document.body.removeChild(this)
+                @paper.safari()
+              document.body.appendChild(img)
+              img.src = isURL[1]
+              @paper.defs.appendChild(el)
+              @node.style.fill = "url(#" + el.id + ")"
+              $(@node, { fill: "url(#" + el.id + ")" })
+              @pattern = el
+              updatePosition(o) if @pattern
+            else
+              clr = new Colour(value).toRGB()
+              if !clr.error
+                delete params.gradient
+                delete @attrs.gradient
+                if !@is(@attrs.opacity, "undefined")
+                  if @is(params.opacity, "undefined")
+                    $(@node, { opacity: @attrs.opacity })
+                if !@is(@attrs["fill-opacity"], "undefined") and @is(params["fill-opacity"], "undefined")
+                  $(@node, { "fill-opacity": @attrs["fill-opacity"] })
+                if clr.hasOwnProperty("opacity")
+                  $(@node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
+                @node.setAttribute(att, clr.hex())
+              else if (({ circle: 1, ellipse: 1 }).hasOwnProperty(@type) || String(value).charAt() != "r") && addGradientFill(@node, value, @paper)
+                @attrs.gradient = value
+                @attrs.fill = "none"
+              else
+                if clr.hasOwnProperty("opacity")
+                  $(@node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
+                @node.setAttribute(att, clr.hex())
+          when "stroke"
+            clr = new Colour(value).toRGB()
+            @node.setAttribute(att, clr.hex())
+            if clr.hasOwnProperty("opacity")
+              $(@node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
+          when "gradient"
+            if ({ circle: 1, ellipse: 1 }).hasOwnProperty(@type) || String(value).charAt() != "r"
+              addGradientFill(@node, value, @paper)
+          when "opacity"
+            if @attrs.gradient and @attrs.hasOwnProperty("stroke-opacity")
+              $(@node, { "stroke-opacity": if value > 1 then value / 100 else value })
+            if @attrs.gradient
+              gradient = document.getElementById(@node.getAttribute("fill").replace(/^url\(#|\)$/g, ""))
+              if gradient
+                stops = gradient.getElementsByTagName("stop")
+                stops[stops.length - 1].setAttribute("stop-opacity", value)
+            else
+              cssrule = att.replace(/(\-.)/g, (w) ->
+                String.prototype.toUpperCase.call(w.substring(1))
+              )
+              @node.style[cssrule] = value
+              # Need following line for Firefox
+              @node.setAttribute(att, value)
+          when "fill-opacity"
+            if @attrs.gradient
+              gradient = document.getElementById(@node.getAttribute("fill").replace(/^url\(#|\)$/g, ""))
+              if gradient
+                stops = gradient.getElementsByTagName("stop")
+                stops[stops.length - 1].setAttribute("stop-opacity", value)
+            else
+              cssrule = att.replace(/(\-.)/g, (w) ->
+                String.prototype.toUpperCase.call(w.substring(1))
+              )
+              @node.style[cssrule] = value
+              # Need following line for Firefox
+              @node.setAttribute(att, value)
+          when "font-size"
+            value = parseInt(value, 10) + "px"
+            cssrule = att.replace(/(\-.)/g, (w) ->
+              String.prototype.toUpperCase.call(w.substring(1))
+            )
+            @node.style[cssrule] = value
+            # Need following line for Firefox
+            @node.setAttribute(att, value)
+          else
+            cssrule = att.replace(/(\-.)/g, (w) ->
+              String.prototype.toUpperCase.call(w.substring(1))
+            )
+            @node.style[cssrule] = value
+            # Need following line for Firefox
+            @node.setAttribute(att, value)
+      tuneText(this, params)
+      if rotxy
+        @rotate(rotxy.join(" "))
+      else
+        @rotate(rot, true) if parseFloat(rot)
+
   class Circle extends Element
     constructor: (svg, x, y, r) ->
       @type = "circle"
@@ -289,7 +557,7 @@ if RaphaelNew.type == "SVG"
       svg.canvas.appendChild(el) if svg.canvas
       super(el, svg)
       @attrs = { x: x || 0, y: y || 0, "text-anchor": "middle", text: text, font: RaphaelNew.availableAttrs.font, stroke: "none", fill: "#000000" }
-      # setFillAndStroke(this, @attrs) # TEMPORARY
+      @setFillAndStroke(@attrs)
       this
 
   class Path extends Element
@@ -298,7 +566,7 @@ if RaphaelNew.type == "SVG"
       el = $(@type)
       svg.canvas.appendChild(el) if svg.canvas
       super(el, svg)
-      # setFillAndStroke(p, { fill: "none", stroke: "#000", path: pathString }) # TEMPORARY
+      @setFillAndStroke({ fill: "none", stroke: "#000", path: pathString })
       this
 
 else
@@ -335,7 +603,7 @@ else
         if @_.rt.cx
           return [@_.rt.deg, @_.rt.cx, @_.rt.cy].join(" ")
         return @_.rt.deg
-      deg = String(deg).split(separator)
+      deg = String(deg).split(RaphaelNew.separator)
       if deg.length - 1
         cx = parseFloat(deg[1])
         cy = parseFloat(deg[2])
@@ -495,7 +763,7 @@ else
               params[subkey] = par[subkey]
         if params.text and @type == "text"
           @node.string = params.text
-        setFillAndStroke(this, params)
+        @setFillAndStroke(params)
         if params.gradient && (({ circle: 1, ellipse: 1 }).hasOwnProperty(this.type) || String(params.gradient).charAt() != "r")
           addGradientFill(this, params.gradient)
         this.setBox(@attrs) if !pathlike.hasOwnProperty(@type) or @_.rt.deg
@@ -539,11 +807,151 @@ else
       if +size != 0
         !attrs.blur = size
         s.filter = f + ' ' + ms + ".Blur(pixelradius=" + (+size || 1.5) + ")"
-        s.margin = R.format("-{0}px 0 0 -{0}px", Math.round(+size || 1.5))
+        s.margin = @format("-{0}px 0 0 -{0}px", Math.round(+size || 1.5))
       else
         s.filter = f
         s.margin = 0
         delete @attrs.blur
+
+    setFillAndStroke: (params) ->
+      @attrs = @attrs || {}
+      newpath = (params.x != @attrs.x or params.y != @attrs.y or params.width != @attrs.width or params.height != @attrs.height or params.r != @attrs.r) and @type == "rect"
+      res = this
+
+      for att of params
+        @attrs[att] = params[att]
+      if newpath
+        @attrs.path = rectPath(@attrs.x, @attrs.y, @attrs.width, @attrs.height, @attrs.r)
+        @X = @attrs.x
+        @Y = @attrs.y
+        @W = @attrs.width
+        @H = @attrs.height
+      @node.href = params.href if params.href
+      @node.title = params.title if params.title
+      @node.target = params.target if params.target
+      @node.style.cursor = params.cursor if params.cursor
+      @blur(params.blur) if "blur" in params
+      if params.path and @type == "path" or newpath
+        @node.path = path2vml(@attrs.path)
+      if params.rotation != null
+        @rotate(params.rotation, true)
+      if params.translation
+        xy = String(params.translation).split(RaphaelNew.separator)
+        translate.call(this, xy[0], xy[1])
+        if @_.rt.cx != null
+          @_.rt.cx +=+ xy[0]
+          @_.rt.cy +=+ xy[1]
+          @setBox(@attrs, xy[0], xy[1])
+      if params.scale
+        xy = String(params.scale).split(RaphaelNew.separator)
+        @scale(+xy[0] or 1, +xy[1] or +xy[0] or 1, +xy[2] or null, +xy[3] or null)
+      if "clip-rect" in params
+        rect = String(params["clip-rect"]).split(RaphaelNew.separator)
+        if rect.length == 4
+          rect[2] = +rect[2] + (+rect[0])
+          rect[3] = +rect[3] + (+rect[1])
+          div = @node.clipRect or document.createElement("div")
+          dstyle = div.style
+          group = @node.parentNode
+          dstyle.clip = @format("rect({1}px {2}px {3}px {0}px)", rect)
+          if !@node.clipRect
+            dstyle.position = "absolute"
+            dstyle.top = 0
+            dstyle.left = 0
+            dstyle.width = @paper.width + "px"
+            dstyle.height = @paper.height + "px"
+            group.parentNode.insertBefore(div, group)
+            div.appendChild(group)
+            @node.clipRect = div
+        if !params["clip-rect"]
+          @node.clipRect.style.clip = "" if @node.clipRect
+      if @type == "image" and params.src
+        @node.src = params.src
+      if @type == "image" and params.opacity
+        @node.filterOpacity = ms + ".Alpha(opacity=" + (params.opacity * 100) + ")"
+        @node.stylefilter = (@node.filterMatrix or "") + (@node.filterOpacity or "")
+      @node.style.font = params.font if params.font
+      @node.style.fontFamily = '"' + params["font-family"].split(",")[0].replace(/^['"]+|['"]+$/g, "") + '"' if params["font-family"]
+      @node.style.fontSize = params["font-size"] if params["font-size"]
+      @node.style.fontWeight = params["font-weight"] if params["font-weight"]
+      @node.style.fontStyle = params["font-style"] if params["font-style"]
+      if params.opacity != null or params["stroke-width"] != null or params.fill != null or params.stroke != null or params["stroke-width"] != null or params["stroke-opacity"] != null or params["fill-opacity"] != null or params["stroke-dasharray"] != null or params["stroke-miterlimit"] != null or params["stroke-linejoin"] != null or params["stroke-linecap"] != null
+        @node = @shape or @node
+        fill = @node.getElementsByTagName("fill") && @node.getElementsByTagName("fill")[0]
+        newfill = false
+        newfill = fill = createNode("fill") if !fill
+        if "fill-opacity" in params or "opacity" in params
+          opacity = ((+@attrs["fill-opacity"] + 1 or 2) - 1) * ((+@attrs.opacity + 1 or 2) - 1) * ((+new Colour(params.fill).toRGB().o + 1 or 2) - 1)
+          opacity = Math.min(Math.max(opacity, 0), 1)
+          fill.opacity = opacity
+        fill.on = true if params.fill
+        if fill.on == null or params.fill == "none"
+          fill.on = false
+        if fill.on and params.fill
+          isURL = params.fill.match(RaphaelNew.ISURL)
+          if isURL
+            fill.src = isURL[1]
+            fill.type = "tile"
+          else
+            fill.color = new Colour(params.fill).toRGB().hex()
+            fill.src = ""
+            fill.type = "solid"
+            if new Colour(params.fill).toRGB().error and (res.type in { circle: 1, ellipse: 1 } or String(params.fill).charAt() != "r") and addGradientFill(res, params.fill)
+              @attrs.fill = "none"
+        @node.appendChild(fill) if newfill
+        stroke = @node.getElementsByTagName("stroke") and @node.getElementsByTagName("stroke")[0]
+        newstroke = false
+        newstroke = stroke = createNode("stroke") if !stroke
+        if (params.stroke && params.stroke != "none") or params["stroke-width"] or params["stroke-opacity"] != null or params["stroke-dasharray"] or params["stroke-miterlimit"] or params["stroke-linejoin"] or params["stroke-linecap"]
+          stroke.on = true
+        stroke.on = false if params.stroke == "none" or stroke.on == null or params.stroke == 0 or params["stroke-width"] == 0
+        strokeColor = new Colour(params.stroke).toRGB()
+        stroke.color = strokeColor.hex() if stroke.on and params.stroke
+        opacity = ((+@attrs["stroke-opacity"] + 1 or 2) - 1) * ((+@attrs.opacity + 1 or 2) - 1) * ((+strokeColor.o + 1 or 2) - 1)
+        width = (parseFloat(params["stroke-width"]) or 1) * 0.75
+        opacity = Math.min(Math.max(opacity, 0), 1)
+        width = @attrs["stroke-width"] if params["stroke-width"] == null
+        stroke.weight = width if params["stroke-width"]
+        opacity *= width if width and width < 1
+        stroke.weight = 1 if opacity
+        stroke.opacity = opacity
+        stroke.joinstyle = params["stroke-linejoin"] or "miter" if params["stroke-linejoin"]
+        stroke.miterlimit = params["stroke-miterlimit"] or 8
+        if params["stroke-linecap"]
+          stroke.endcap = if params["stroke-linecap"] == "butt" then "flat" else if params["stroke-linecap"] == "square" then "square" else "round"
+        if params["stroke-dasharray"]
+          dasharray = { "-": "shortdash", ".": "shortdot", "-.": "shortdashdot", "-..": "shortdashdotdot", ". ": "dot", "- ": "dash", "--": "longdash", "- .": "dashdot", "--.": "longdashdot", "--..": "longdashdotdot" }
+          stroke.dashstyle = if dasharray.hasOwnProperty(params["stroke-dasharray"]) then dasharray[params["stroke-dasharray"]] else ""
+        @node.appendChild(stroke) if newstroke
+      if res.type == "text"
+        s = res.paper.span.style
+        s.font = @attrs.font if @attrs.font
+        s.fontFamily = @attrs["font-family"] if @attrs["font-family"]
+        s.fontSize = @attrs["font-size"] if @attrs["font-size"]
+        s.fontWeight = @attrs["font-weight"] if @attrs["font-weight"]
+        s.fontStyle = @attrs["font-style"] if @attrs["font-style"]
+        leftAngle = "<"
+        ampersand = "&"
+        leftAngleRE = /#{leftAngle}/g
+        ampersandRE = /#{ampersand}/g
+        br = "br"
+        brtag = "<#{br}>"
+        res.paper.span.innerHTML = String(res.node.string).replace(leftAngleRE, "&#60;").replace(ampersandRE, "&#38;").replace(/\n/g, brtag) if res.node.string
+        res.W = @attrs.w = res.paper.span.offsetWidth
+        res.H = @attrs.h = res.paper.span.offsetHeight
+        res.X = @attrs.x
+        res.Y = @attrs.y + Math.round(res.H / 2)
+
+        # text-anchor emulation
+        switch @attrs["text-anchor"]
+          when "start"
+            res.node.style["v-text-align"] = "left"
+            res.bbx = Math.round(res.W / 2)
+          when "end"
+            res.node.style["v-text-align"] = "right"
+            res.bbx = -Math.round(res.W / 2)
+          else
+            res.node.style["v-text-align"] = "center"
 
   class Circle extends Element
     constructor: (vml, x, y, r) ->
@@ -556,7 +964,7 @@ else
       g.appendChild(o)
       super(o, g, vml)
       @type = "circle"
-      setFillAndStroke(this, { stroke: "#000000", fill: "none" })
+      @setFillAndStroke({ stroke: "#000000", fill: "none" })
       @attrs.cx = x
       @attrs.cy = y
       @attrs.r = r
@@ -589,7 +997,7 @@ else
       g.appendChild(o)
       res = new Element(o, g, vml)
       res.type = "ellipse"
-      setFillAndStroke(res, {stroke: "#000"})
+      @setFillAndStroke({stroke: "#000"})
       res.attrs.cx = x
       res.attrs.cy = y
       res.attrs.rx = rx
@@ -629,7 +1037,7 @@ else
       g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
       g.coordsize = coordsize
       g.coordorigin = vml.coordorigin
-      path.v = R.format("m{0},{1}l{2},{1}", Math.round(x * 10), Math.round(y * 10), Math.round(x * 10) + 1)
+      path.v = @format("m{0},{1}l{2},{1}", Math.round(x * 10), Math.round(y * 10), Math.round(x * 10) + 1)
       path.textpathok = true
       ol.width = vml.width
       ol.height = vml.height
@@ -647,7 +1055,7 @@ else
       res.attrs.y = y
       res.attrs.w = 1
       res.attrs.h = 1
-      setFillAndStroke(res, { font: RaphaelNew.availableAttrs.font, stroke: "none", fill: "#000" })
+      @setFillAndStroke({ font: RaphaelNew.availableAttrs.font, stroke: "none", fill: "#000" })
       res.setBox()
       vml.canvas.appendChild(g)
       res
@@ -671,12 +1079,11 @@ else
       p.type = "path"
       p.path = []
       p.Path = ""
-      setFillAndStroke(p, attr)
+      @setFillAndStroke(attr)
       vml.canvas.appendChild(g)
       p
 
 Raphael = (->
-  separator = /[, ]+/
   elements = { circle: 1, rect: 1, path: 1, ellipse: 1, text: 1, image: 1 }
   events = ["click", "dblclick", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup", "touchstart", "touchmove", "touchend", "orientationchange", "touchcancel", "gesturestart", "gesturechange", "gestureend"]
   availableAttrs = { blur: 0, "clip-rect": "0 0 1e9 1e9", cursor: "default", cx: 0, cy: 0, fill: "#fff", "fill-opacity": 1, font: '10px "Arial"', "font-family": '"Arial"', "font-size": "10", "font-style": "normal", "font-weight": 400, gradient: 0, height: 0, href: "http://Rjs.com/", opacity: 1, path: "M0,0", r: 0, rotation: 0, rx: 0, ry: 0, scale: "1 1", src: "", stroke: "#000", "stroke-dasharray": "", "stroke-linecap": "butt", "stroke-linejoin": "butt", "stroke-miterlimit": 0, "stroke-opacity": 1, "stroke-width": 1, target: "_blank", "text-anchor": "middle", title: "R", translation: "0 0", width: 0, x: 0, y: 0 }
@@ -1366,248 +1773,6 @@ Raphael = (->
       bbox = o.getBBox()
       $(o.pattern, { patternTransform: R.format("translate({0},{1})", bbox.x, bbox.y) })
 
-    setFillAndStroke = (o, params) ->
-      dasharray = "": [0], "none": [0], "-": [3, 1], ".": [1, 1], "-.": [3, 1, 1, 1], "-..": [3, 1, 1, 1, 1, 1], ". ": [1, 3], "- ": [4, 3], "--": [8, 3], "- .": [4, 3, 1, 3],  "--.": [8, 3, 1, 3], "--..": [8, 3, 1, 3, 1, 3]
-      node = o.node
-      attrs = o.attrs
-      rot = o.rotate()
-      addDashes = (o, value) ->
-        value = dasharray[String.prototype.toLowerCase.call(value)]
-        if value
-          width = o.attrs["stroke-width"] || "1"
-          butt = { round: width, square: width, butt: 0 }[o.attrs["stroke-linecap"] || params["stroke-linecap"]] || 0
-          dashes = []
-          i = value.length
-          while i -= 1
-            dashes[i] = value[i] * width + (if i % 2 then 1 else -1) * butt
-          $(node, { "stroke-dasharray": dashes.join(",") })
-      rot = params.rotation if params.hasOwnProperty("rotation")
-      rotxy = String(rot).split(separator)
-      if !(rotxy.length - 1)
-        rotxy = null
-      else
-        rotxy[1] = +rotxy[1]
-        rotxy[2] = +rotxy[2]
-      o.rotate(0, true) if parseFloat(rot)
-      # TODO: name is same as value
-      for att, name of params
-        if !availableAttrs.hasOwnProperty(att)
-          continue
-        value = params[att]
-        attrs[att] = value
-        switch att
-          when "blur"
-            o.blur(value)
-          when "rotation"
-            o.rotate(value, true)
-          when "href", "title", "target"
-            pn = node.parentNode
-            if String.prototype.toLowerCase.call(pn.tagName) != "a"
-              hl = $("a")
-              pn.insertBefore(hl, node)
-              hl.appendChild(node)
-              pn = hl
-            if att == "target" and value == "blank"
-              pn.setAttributeNS(Paper.xLinkNamespace, "show", "new")
-            else
-              pn.setAttributeNS(Paper.xLinkNamespace, att, value)
-          when "cursor"
-            node.style.cursor = value
-          when "clip-rect"
-            rect = String(value).split(separator)
-            if rect.length == 4
-              o.clip && o.clip.parentNode.parentNode.removeChild(o.clip.parentNode)
-              el = $("clipPath")
-              rc = $("rect")
-              el.id = createUUID()
-              $(rc,
-                  x: rect[0]
-                  y: rect[1]
-                  width: rect[2]
-                  height: rect[3]
-              )
-              el.appendChild(rc)
-              o.paper.defs.appendChild(el)
-              $(node, { "clip-path": "url(#" + el.id + ")" })
-              o.clip = rc
-            if !value
-              clip = document.getElementById(node.getAttribute("clip-path").replace(/(^url\(#|\)$)/g, ""))
-              clip.parentNode.removeChild(clip) if clip
-              $(node, "clip-path": "")
-              delete o.clip
-          when "path"
-            if (o.type == "path")
-              $(node, { d: if value then attrs.path = pathToAbsolute(value) else "M0,0" })
-          when "width"
-            node.setAttribute(att, value)
-            if attrs.fx
-              value = -attrs.x - (attrs.width || 0)
-              rotxy[1] += value - attrs['x'] if rotxy
-              node.setAttribute('x', value)
-              updatePosition(o) if o.pattern
-          when "x"
-            if attrs.fx
-              value = -attrs.x - (attrs.width || 0)
-            rotxy[1] += value - attrs[att] if rotxy
-            node.setAttribute(att, value)
-            updatePosition(o) if o.pattern
-          when "rx"
-            if o.type != "rect"
-              node.setAttribute(att, value)
-              updatePosition(o) if o.pattern
-          when "cx"
-            rotxy[1] += value - attrs[att] if rotxy
-            node.setAttribute(att, value)
-            updatePosition(o) if o.pattern
-          when "height"
-            node.setAttribute(att, value)
-            if attrs.fy
-              value = -attrs.y - (attrs.height || 0)
-              rotxy[2] += value - attrs['y'] if rotxy
-              node.setAttribute('y', value)
-              updatePosition(o) if o.pattern
-          when "y"
-            if attrs.fy
-              value = -attrs.y - (attrs.height || 0)
-            rotxy[2] += value - attrs[att] if rotxy
-            node.setAttribute(att, value)
-            updatePosition(o) if o.pattern
-          when "ry"
-            if o.type != "rect"
-              node.setAttribute(att, value)
-              updatePosition(o) if o.pattern
-          when "cy"
-            rotxy[2] += value - attrs[att] if rotxy
-            node.setAttribute(att, value)
-            updatePosition(o) if o.pattern
-          when "r"
-            if o.type == "rect"
-                $(node, { rx: value, ry: value })
-            else
-                node.setAttribute(att, value)
-          when "src"
-            if o.type == "image"
-              node.setAttributeNS(Paper.xLinkNamespace, "href", value)
-          when "stroke-width"
-            node.style.strokeWidth = value
-            # Need following line for Firefox
-            node.setAttribute(att, value)
-            if attrs["stroke-dasharray"]
-              addDashes(o, attrs["stroke-dasharray"])
-          when "stroke-dasharray"
-            addDashes(o, value)
-          when "translation"
-            xy = String(value).split(separator)
-            xy[0] = +xy[0] || 0
-            xy[1] = +xy[1] || 0
-            if rotxy
-              rotxy[1] += xy[0]
-              rotxy[2] += xy[1]
-            translate.call(o, xy[0], xy[1])
-          when "scale"
-            xy = String(value).split(separator)
-            o.scale(+xy[0] || 1, +xy[1] || +xy[0] || 1, (if isNaN(parseFloat(xy[2])) then null else +xy[2]), (if isNaN(parseFloat(xy[3])) then null else +xy[3]))
-          when "fill"
-            isURL = String(value).match(ISURL)
-            if isURL
-              el = $("pattern")
-              ig = $("image")
-              el.id = createUUID()
-              $(el, { x: 0, y: 0, patternUnits: "userSpaceOnUse", height: 1, width: 1 })
-              $(ig, { x: 0, y: 0 })
-              ig.setAttributeNS(Paper.xLinkNamespace, "href", isURL[1])
-              el.appendChild(ig)
-
-              img = document.createElement("img")
-              img.style.cssText = "position:absolute;left:-9999em;top-9999em"
-              img.onload = ->
-                $(el, { width: this.offsetWidth, height: this.offsetHeight })
-                $(ig, { width: this.offsetWidth, height: this.offsetHeight })
-                document.body.removeChild(this)
-                o.paper.safari()
-              document.body.appendChild(img)
-              img.src = isURL[1]
-              o.paper.defs.appendChild(el)
-              node.style.fill = "url(#" + el.id + ")"
-              $(node, { fill: "url(#" + el.id + ")" })
-              o.pattern = el
-              updatePosition(o) if o.pattern
-            else
-              clr = new Colour(value).toRGB()
-              if !clr.error
-                delete params.gradient
-                delete attrs.gradient
-                if !R.is(attrs.opacity, "undefined") and R.is(params.opacity, "undefined")
-                  $(node, { opacity: attrs.opacity })
-                if !R.is(attrs["fill-opacity"], "undefined") and R.is(params["fill-opacity"], "undefined")
-                  $(node, { "fill-opacity": attrs["fill-opacity"] })
-                if clr.hasOwnProperty("opacity")
-                  $(node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
-                node.setAttribute(att, clr.hex())
-              else if (({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r") && addGradientFill(node, value, o.paper)
-                attrs.gradient = value
-                attrs.fill = "none"
-              else
-                if clr.hasOwnProperty("opacity")
-                  $(node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
-                node.setAttribute(att, clr.hex())
-          when "stroke"
-            clr = new Colour(value).toRGB()
-            node.setAttribute(att, clr.hex())
-            if clr.hasOwnProperty("opacity")
-              $(node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
-          when "gradient"
-            if ({ circle: 1, ellipse: 1 }).hasOwnProperty(o.type) || String(value).charAt() != "r"
-              addGradientFill(node, value, o.paper)
-          when "opacity"
-            if attrs.gradient and attrs.hasOwnProperty("stroke-opacity")
-              $(node, { "stroke-opacity": if value > 1 then value / 100 else value })
-            if attrs.gradient
-              gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, ""))
-              if gradient
-                stops = gradient.getElementsByTagName("stop")
-                stops[stops.length - 1].setAttribute("stop-opacity", value)
-            else
-              cssrule = att.replace(/(\-.)/g, (w) ->
-                String.prototype.toUpperCase.call(w.substring(1))
-              )
-              node.style[cssrule] = value
-              # Need following line for Firefox
-              node.setAttribute(att, value)
-          when "fill-opacity"
-            if attrs.gradient
-              gradient = document.getElementById(node.getAttribute("fill").replace(/^url\(#|\)$/g, ""))
-              if gradient
-                stops = gradient.getElementsByTagName("stop")
-                stops[stops.length - 1].setAttribute("stop-opacity", value)
-            else
-              cssrule = att.replace(/(\-.)/g, (w) ->
-                String.prototype.toUpperCase.call(w.substring(1))
-              )
-              node.style[cssrule] = value
-              # Need following line for Firefox
-              node.setAttribute(att, value)
-          when "font-size"
-            value = parseInt(value, 10) + "px"
-            cssrule = att.replace(/(\-.)/g, (w) ->
-              String.prototype.toUpperCase.call(w.substring(1))
-            )
-            node.style[cssrule] = value
-            # Need following line for Firefox
-            node.setAttribute(att, value)
-          else
-            cssrule = att.replace(/(\-.)/g, (w) ->
-              String.prototype.toUpperCase.call(w.substring(1))
-            )
-            node.style[cssrule] = value
-            # Need following line for Firefox
-            node.setAttribute(att, value)
-      tuneText(o, params)
-      if rotxy
-        o.rotate(rotxy.join(" "))
-      else
-        o.rotate(rot, true) if parseFloat(rot)
-
     tuneText = (el, params) ->
       leading = 1.2
       if el.type != "text" || !(params.hasOwnProperty("text") || params.hasOwnProperty("font") || params.hasOwnProperty("font-size") || params.hasOwnProperty("x") || params.hasOwnProperty("y"))
@@ -1727,148 +1892,6 @@ Raphael = (->
     R::toString = ->
       "Your browser doesn\u2019t support SVG. Falling down to VML.\nYou are running Rapha\xebl " + @version
 
-    setFillAndStroke = (o, params) ->
-      o.attrs = o.attrs || {}
-      node = o.node
-      a = o.attrs
-      s = node.style
-      newpath = (params.x != a.x or params.y != a.y or params.width != a.width or params.height != a.height or params.r != a.r) and o.type == "rect"
-      res = o
-
-      for att of params
-        a[att] = params[att]
-      if newpath
-        a.path = rectPath(a.x, a.y, a.width, a.height, a.r)
-        o.X = a.x
-        o.Y = a.y
-        o.W = a.width
-        o.H = a.height
-      node.href = params.href if params.href
-      node.title = params.title if params.title
-      node.target = params.target if params.target
-      s.cursor = params.cursor if params.cursor
-      o.blur(params.blur) if "blur" in params
-      if params.path and o.type == "path" or newpath
-        node.path = path2vml(a.path)
-      if params.rotation != null
-        o.rotate(params.rotation, true)
-      if params.translation
-        xy = String(params.translation).split(separator)
-        translate.call(o, xy[0], xy[1])
-        if o._.rt.cx != null
-          o._.rt.cx +=+ xy[0]
-          o._.rt.cy +=+ xy[1]
-          o.setBox(o.attrs, xy[0], xy[1])
-      if params.scale
-        xy = String(params.scale).split(separator)
-        o.scale(+xy[0] or 1, +xy[1] or +xy[0] or 1, +xy[2] or null, +xy[3] or null)
-      if "clip-rect" in params
-        rect = String(params["clip-rect"]).split(separator)
-        if rect.length == 4
-          rect[2] = +rect[2] + (+rect[0])
-          rect[3] = +rect[3] + (+rect[1])
-          div = node.clipRect or document.createElement("div")
-          dstyle = div.style
-          group = node.parentNode
-          dstyle.clip = R.format("rect({1}px {2}px {3}px {0}px)", rect)
-          if !node.clipRect
-            dstyle.position = "absolute"
-            dstyle.top = 0
-            dstyle.left = 0
-            dstyle.width = o.paper.width + "px"
-            dstyle.height = o.paper.height + "px"
-            group.parentNode.insertBefore(div, group)
-            div.appendChild(group)
-            node.clipRect = div
-        if !params["clip-rect"]
-          node.clipRect.style.clip = "" if node.clipRect
-      if o.type == "image" and params.src
-        node.src = params.src
-      if o.type == "image" and params.opacity
-        node.filterOpacity = ms + ".Alpha(opacity=" + (params.opacity * 100) + ")"
-        s.filter = (node.filterMatrix or "") + (node.filterOpacity or "")
-      s.font = params.font if params.font
-      s.fontFamily = '"' + params["font-family"].split(",")[0].replace(/^['"]+|['"]+$/g, "") + '"' if params["font-family"]
-      s.fontSize = params["font-size"] if params["font-size"]
-      s.fontWeight = params["font-weight"] if params["font-weight"]
-      s.fontStyle = params["font-style"] if params["font-style"]
-      if params.opacity != null or params["stroke-width"] != null or params.fill != null or params.stroke != null or params["stroke-width"] != null or params["stroke-opacity"] != null or params["fill-opacity"] != null or params["stroke-dasharray"] != null or params["stroke-miterlimit"] != null or params["stroke-linejoin"] != null or params["stroke-linecap"] != null
-        node = o.shape or node
-        fill = node.getElementsByTagName("fill") && node.getElementsByTagName("fill")[0]
-        newfill = false
-        newfill = fill = createNode("fill") if !fill
-        if "fill-opacity" in params or "opacity" in params
-          opacity = ((+a["fill-opacity"] + 1 or 2) - 1) * ((+a.opacity + 1 or 2) - 1) * ((+new Colour(params.fill).toRGB().o + 1 or 2) - 1)
-          opacity = Math.min(Math.max(opacity, 0), 1)
-          fill.opacity = opacity
-        fill.on = true if params.fill
-        if fill.on == null or params.fill == "none"
-          fill.on = false
-        if fill.on and params.fill
-          isURL = params.fill.match(ISURL)
-          if isURL
-            fill.src = isURL[1]
-            fill.type = "tile"
-          else
-            fill.color = new Colour(params.fill).toRGB().hex()
-            fill.src = ""
-            fill.type = "solid"
-            if new Colour(params.fill).toRGB().error and (res.type in { circle: 1, ellipse: 1 } or String(params.fill).charAt() != "r") and addGradientFill(res, params.fill)
-              a.fill = "none"
-        node.appendChild(fill) if newfill
-        stroke = node.getElementsByTagName("stroke") and node.getElementsByTagName("stroke")[0]
-        newstroke = false
-        newstroke = stroke = createNode("stroke") if !stroke
-        if (params.stroke && params.stroke != "none") or params["stroke-width"] or params["stroke-opacity"] != null or params["stroke-dasharray"] or params["stroke-miterlimit"] or params["stroke-linejoin"] or params["stroke-linecap"]
-          stroke.on = true
-        stroke.on = false if params.stroke == "none" or stroke.on == null or params.stroke == 0 or params["stroke-width"] == 0
-        strokeColor = new Colour(params.stroke).toRGB()
-        stroke.color = strokeColor.hex() if stroke.on and params.stroke
-        opacity = ((+a["stroke-opacity"] + 1 or 2) - 1) * ((+a.opacity + 1 or 2) - 1) * ((+strokeColor.o + 1 or 2) - 1)
-        width = (parseFloat(params["stroke-width"]) or 1) * 0.75
-        opacity = Math.min(Math.max(opacity, 0), 1)
-        width = a["stroke-width"] if params["stroke-width"] == null
-        stroke.weight = width if params["stroke-width"]
-        opacity *= width if width and width < 1
-        stroke.weight = 1 if opacity
-        stroke.opacity = opacity
-        stroke.joinstyle = params["stroke-linejoin"] or "miter" if params["stroke-linejoin"]
-        stroke.miterlimit = params["stroke-miterlimit"] or 8
-        if params["stroke-linecap"]
-          stroke.endcap = if params["stroke-linecap"] == "butt" then "flat" else if params["stroke-linecap"] == "square" then "square" else "round"
-        if params["stroke-dasharray"]
-          dasharray = { "-": "shortdash", ".": "shortdot", "-.": "shortdashdot", "-..": "shortdashdotdot", ". ": "dot", "- ": "dash", "--": "longdash", "- .": "dashdot", "--.": "longdashdot", "--..": "longdashdotdot" }
-          stroke.dashstyle = if dasharray.hasOwnProperty(params["stroke-dasharray"]) then dasharray[params["stroke-dasharray"]] else ""
-        node.appendChild(stroke) if newstroke
-      if res.type == "text"
-        s = res.paper.span.style
-        s.font = a.font if a.font
-        s.fontFamily = a["font-family"] if a["font-family"]
-        s.fontSize = a["font-size"] if a["font-size"]
-        s.fontWeight = a["font-weight"] if a["font-weight"]
-        s.fontStyle = a["font-style"] if a["font-style"]
-        leftAngle = "<"
-        ampersand = "&"
-        leftAngleRE = /#{leftAngle}/g
-        ampersandRE = /#{ampersand}/g
-        br = "br"
-        brtag = "<#{br}>"
-        res.paper.span.innerHTML = String(res.node.string).replace(leftAngleRE, "&#60;").replace(ampersandRE, "&#38;").replace(/\n/g, brtag) if res.node.string
-        res.W = a.w = res.paper.span.offsetWidth
-        res.H = a.h = res.paper.span.offsetHeight
-        res.X = a.x
-        res.Y = a.y + Math.round(res.H / 2)
-
-        # text-anchor emulation
-        switch a["text-anchor"]
-          when "start"
-            res.node.style["v-text-align"] = "left"
-            res.bbx = Math.round(res.W / 2)
-          when "end"
-            res.node.style["v-text-align"] = "right"
-            res.bbx = -Math.round(res.W / 2)
-          else
-            res.node.style["v-text-align"] = "center"
     addGradientFill = (o, gradient) ->
         o.attrs ?= {}
         attrs = o.attrs
@@ -2640,8 +2663,8 @@ Raphael = (->
                 if j >= 1
                   diff[attr][i][j] = (toPath[i][j] - from[attr][i][j]) / ms
           when "csv"
-            values = String(params[attr]).split(separator)
-            from2 = String(from[attr]).split(separator)
+            values = String(params[attr]).split(RaphaelNew.separator)
+            from2 = String(from[attr]).split(RaphaelNew.separator)
             switch attr
               when "translation"
                 from[attr] = [0, 0]
@@ -2651,10 +2674,10 @@ Raphael = (->
                 diff[attr] = [(values[0] - from[attr][0]) / ms, 0, 0]
               when "scale"
                 params[attr] = values
-                from[attr] = String(from[attr]).split(separator)
+                from[attr] = String(from[attr]).split(RaphaelNew.separator)
                 diff[attr] = [(values[0] - from[attr][0]) / ms, (values[1] - from[attr][1]) / ms, 0, 0]
               when "clip-rect"
-                from[attr] = String(from[attr]).split(separator)
+                from[attr] = String(from[attr]).split(RaphaelNew.separator)
                 diff[attr] = []
                 i = 4
                 while i--
@@ -2878,7 +2901,7 @@ Raphael = (->
     font = @getFont(font) if R.is(font, string)
     if font
       scale = (size or 16) / font.face["units-per-em"]
-      bb = font.face.bbox.split(separator)
+      bb = font.face.bbox.split(RaphaelNew.separator)
       top = +bb[0]
       height = +bb[1] + (if origin == "baseline" then bb[3] - bb[1] + (+font.face.descent) else (bb[3] - bb[1]) / 2)
       for i of letters
@@ -2888,15 +2911,6 @@ Raphael = (->
         out.push(@path(curr.d).attr({ fill: "#000", stroke: "none", translation: [shift, 0] })) if curr and curr.d
       out.scale(scale, scale, top, height).translate(x - top, y - height)
     out
-
-  R.format = (token, params) ->
-    formatrg = /\{(\d+)\}/g
-    args = if R.is(params, "array") then [0].concat(params) else arguments
-    if token and R.is(token, "string") and args.length - 1
-      token = token.replace(formatrg, (str, i) ->
-        if !args[++i]? then '' else args[i]
-    )
-    token or ""
 
   R.ninja = ->
     if oldRaphael.was then (window.Raphael = oldRaphael.is) else delete Raphael
