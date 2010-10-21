@@ -1,2 +1,0 @@
-setFillAndStroke
-  when "path" is tested in path instantiation tests

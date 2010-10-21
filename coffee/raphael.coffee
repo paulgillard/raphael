@@ -734,7 +734,7 @@ if RaphaelNew.type == "SVG"
       el = $(@type)
       svg.canvas.appendChild(el) if svg.canvas
       super(el, svg)
-      @setFillAndStroke({ fill: "none", stroke: "#000", path: pathString })
+      @setFillAndStroke({ fill: "none", stroke: "#000000", path: pathString })
       this
 
 else
