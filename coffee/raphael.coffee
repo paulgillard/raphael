@@ -167,8 +167,9 @@ if RaphaelNew.type == "SVG"
         bbox = bbox || {}
       if @type == "text"
         bbox = { x: bbox.x, y: Infinity, width: 0, height: 0 }
-        for i in [0..@node.getNumberOfChars() - 1]
-          bb = @node.getExtentOfChar(i)
+        index = @node.getNumberOfChars()
+        while index--
+          bb = @node.getExtentOfChar(index)
           bbox.y = bb.y if bb.y < bbox.y
           bbox.height = bb.y + bb.height - bbox.y if bb.y + bb.height - bbox.y > bbox.height
           bbox.width = bb.x + bb.width - bbox.x if bb.x + bb.width - bbox.x > bbox.width
