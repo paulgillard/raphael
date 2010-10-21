@@ -54,7 +54,7 @@ class RaphaelNew
   is: (object, type) ->
     type: String.prototype.toLowerCase.call(type)
     if type == "finite"
-      return !isnan.hasOwnProperty(+object)
+      return !RaphaelNew.isnan.hasOwnProperty(+object)
     (type == "null" and object == null) ||
     (type == typeof object) ||
     (type == "object" and object == Object(object)) ||
@@ -69,6 +69,148 @@ class RaphaelNew
         if !args[++i]? then '' else args[i]
     )
     token or ""
+
+  pathToRelative: (pathArray) ->
+    if (!@is(pathArray, "array") || !@is(pathArray && pathArray[0], "array")) # rough assumption
+      pathArray = @parsePathString(pathArray)
+    res = []
+    x = y = mx = my = start = 0
+    if pathArray[0][0] == "M"
+      mx = x = pathArray[0][1]
+      my = y = pathArray[0][2]
+      start++
+      res.push ["M", x, y]
+    for i of pathArray
+      if i >= start
+        r = res[i] = []
+        path = pathArray[i]
+        if path[0] != String.prototype.toLowerCase.call(path[0])
+          r[0] = String.prototype.toLowerCase.call(path[0])
+          switch r[0]
+            when "a"
+              r[1] = path[1]
+              r[2] = path[2]
+              r[3] = path[3]
+              r[4] = path[4]
+              r[5] = path[5]
+              r[6] = +(path[6] - x).toFixed(3)
+              r[7] = +(path[7] - y).toFixed(3)
+            when "v"
+              r[1] = +(path[1] - y).toFixed(3)
+            else
+              if r[0] =="m"
+                mx = path[1]
+                my = path[2]
+              for j of path
+                if j >= 1
+                  r[j] = +(path[j] - (if j % 2 then x else y)).toFixed(3)
+        else
+          if path[0] == "m"
+            mx = path[1] + x
+            my = path[2] + y
+          for k of path
+            res[i][k] = path[k]
+        len = res[i].length
+        switch res[i][0]
+          when "z"
+            x = mx
+            y = my
+          when "h"
+            x += +res[i][len - 1]
+          when "v"
+            y += +res[i][len - 1]
+          else
+            x += +res[i][len - 2]
+            y += +res[i][len - 1]
+    res.toString = RaphaelNew._path2string
+    res
+
+  pathToAbsolute: (pathArray) ->
+    if (!@is(pathArray, "array") || !@is(pathArray && pathArray[0], "array")) # rough assumption
+      pathArray = @parsePathString(pathArray)
+    res = []
+    x = y = mx = my = start = 0
+    if pathArray[0][0] == "M"
+      mx = x = +pathArray[0][1]
+      my = y = +pathArray[0][2]
+      start++
+      res[0] = ["M", x, y]
+    for i of pathArray
+      if i >= start
+        r = res[i] = []
+        path = pathArray[i]
+        if path[0] != String.prototype.toUpperCase.call(path[0])
+          r[0] = String.prototype.toUpperCase.call(path[0])
+          switch r[0]
+            when "A"
+              r[1] = path[1]
+              r[2] = path[2]
+              r[3] = path[3]
+              r[4] = path[4]
+              r[5] = path[5]
+              r[6] = +(path[6] + x)
+              r[7] = +(path[7] + y)
+            when "V"
+              r[1] = +(path[1] + y)
+            when "H"
+              r[1] = +(path[1] + x)
+            else
+              if r[0] == "M"
+                mx = +path[1] + x
+                my = +path[2] + y
+              for j of path
+                if j >= 1
+                  r[j] = +path[j] + (if j % 2 then x else y)
+        else
+          for k of path
+            res[i][k] = path[k]
+        len = res[i].length
+        switch r[0]
+          when "Z"
+            x = mx
+            y = my
+          when "H"
+            x = r[1]
+          when "V"
+            y = r[1]
+          when "M"
+            x = mx = res[i][len - 2]
+            y = my = res[i][len - 1]
+          else
+            x = res[i][len - 2]
+            y = res[i][len - 1]
+    res.toString = @_path2string
+    res
+
+  _path2string: ->
+    this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
+
+  # TODO: Looks like this should be a Path class
+  parsePathString: (pathString) ->
+    if !pathString?
+      return null
+    paramCounts = { a: 7, c: 6, h: 1, l: 2, m: 2, q: 4, s: 4, t: 2, v: 1, z: 0 }
+    data = []
+    if @is(pathString, "array") and @is(pathString[0], "array")
+      data = this.pathClone(pathString)
+    if !data.length
+      String(pathString).replace(RaphaelNew.pathCommand, ((a, b, c) ->
+        params = []
+        name = String.prototype.toLowerCase.call(b)
+        c.replace(RaphaelNew.pathValues, ((a, b) ->
+          b and params.push(+b)
+        ))
+        if name == "m" and params.length > 2
+          data.push([b].concat(params.splice(0, 2)))
+          name = "1"
+          b = if b == "m" then "l" else "L"
+        while params.length >= paramCounts[name]
+          data.push([b].concat(params.splice(0, paramCounts[name])))
+          if !paramCounts[name]
+            break
+      ))
+    data.toString = @_path2string
+    data
 
 if RaphaelNew.type == "SVG"
   $ = (el, attr) ->
@@ -337,7 +479,7 @@ if RaphaelNew.type == "SVG"
               delete @clip
           when "path"
             if (@type == "path")
-              $(@node, { d: if value then @attrs.path = pathToAbsolute(value) else "M0,0" })
+              $(@node, { d: if value then @attrs.path = @pathToAbsolute(value) else "M0,0" })
           when "width"
             @node.setAttribute(att, value)
             if @attrs.fx
@@ -1220,39 +1362,9 @@ Raphael = (->
   R.setWindow = (newwin) ->
     win = newwin
     doc = win.document
-
-  R._path2string = ->
-    this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
  
   pathCommand = /([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig
   pathValues = /(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig
-  
-  # TODO: Looks like this should be a Path class
-  R.parsePathString = (pathString) ->
-    if !pathString?
-      return null
-    paramCounts = { a: 7, c: 6, h: 1, l: 2, m: 2, q: 4, s: 4, t: 2, v: 1, z: 0 }
-    data = []
-    if R.is(pathString, "array") and R.is(pathString[0], "array")
-      data = this.pathClone(pathString)
-    if !data.length
-      String(pathString).replace(pathCommand, ((a, b, c) ->
-        params = []
-        name = String.prototype.toLowerCase.call(b)
-        c.replace(pathValues, ((a, b) ->
-          b and params.push(+b)
-        ))
-        if name == "m" and params.length > 2
-          data.push([b].concat(params.splice(0, 2)))
-          name = "1"
-          b = if b == "m" then "l" else "L"
-        while params.length >= paramCounts[name]
-          data.push([b].concat(params.splice(0, paramCounts[name])))
-          if !paramCounts[name]
-            break
-      ))
-    data.toString = R._path2string
-    data
   
   R.findDotsAtSegment = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
     t1 = 1 - t
@@ -1302,118 +1414,6 @@ Raphael = (->
       j = -1
       for pathItem in path
         res[i][++j] = pathItem
-    res.toString = R._path2string
-    res
-  
-  pathToRelative = (pathArray) ->
-    if (!R.is(pathArray, "array") || !R.is(pathArray && pathArray[0], "array")) # rough assumption
-      pathArray = R.parsePathString(pathArray)
-    res = []
-    x = y = mx = my = start = 0
-    if pathArray[0][0] == "M"
-      mx = x = pathArray[0][1]
-      my = y = pathArray[0][2]
-      start++
-      res.push ["M", x, y]
-    for i of pathArray
-      if i >= start
-        r = res[i] = []
-        path = pathArray[i]
-        if path[0] != String.prototype.toLowerCase.call(path[0])
-          r[0] = String.prototype.toLowerCase.call(path[0])
-          switch r[0]
-            when "a"
-              r[1] = path[1]
-              r[2] = path[2]
-              r[3] = path[3]
-              r[4] = path[4]
-              r[5] = path[5]
-              r[6] = +(path[6] - x).toFixed(3)
-              r[7] = +(path[7] - y).toFixed(3)
-            when "v"
-              r[1] = +(path[1] - y).toFixed(3)
-            else
-              if r[0] =="m"
-                mx = path[1]
-                my = path[2]
-              for j of path
-                if j >= 1
-                  r[j] = +(path[j] - (if j % 2 then x else y)).toFixed(3)
-        else
-          if path[0] == "m"
-            mx = path[1] + x
-            my = path[2] + y
-          for k of path
-            res[i][k] = path[k]
-        len = res[i].length
-        switch res[i][0]
-          when "z"
-            x = mx
-            y = my
-          when "h"
-            x += +res[i][len - 1]
-          when "v"
-            y += +res[i][len - 1]
-          else
-            x += +res[i][len - 2]
-            y += +res[i][len - 1]
-    res.toString = R._path2string
-    res
-  
-  pathToAbsolute = (pathArray) ->
-    if (!R.is(pathArray, "array") || !R.is(pathArray && pathArray[0], "array")) # rough assumption
-      pathArray = R.parsePathString(pathArray)
-    res = []
-    x = y = mx = my = start = 0
-    if pathArray[0][0] == "M"
-      mx = x = +pathArray[0][1]
-      my = y = +pathArray[0][2]
-      start++
-      res[0] = ["M", x, y]
-    for i of pathArray
-      if i >= start
-        r = res[i] = []
-        path = pathArray[i]
-        if path[0] != String.prototype.toUpperCase.call(path[0])
-          r[0] = String.prototype.toUpperCase.call(path[0])
-          switch r[0]
-            when "A"
-              r[1] = path[1]
-              r[2] = path[2]
-              r[3] = path[3]
-              r[4] = path[4]
-              r[5] = path[5]
-              r[6] = +(path[6] + x)
-              r[7] = +(path[7] + y)
-            when "V"
-              r[1] = +(path[1] + y)
-            when "H"
-              r[1] = +(path[1] + x)
-            else
-              if r[0] == "M"
-                mx = +path[1] + x
-                my = +path[2] + y
-              for j of path
-                if j >= 1
-                  r[j] = +path[j] + (if j % 2 then x else y)
-        else
-          for k of path
-            res[i][k] = path[k]
-        len = res[i].length
-        switch r[0]
-          when "Z"
-            x = mx
-            y = my
-          when "H"
-            x = r[1]
-          when "V"
-            y = r[1]
-          when "M"
-            x = mx = res[i][len - 2]
-            y = my = res[i][len - 1]
-          else
-            x = res[i][len - 2]
-            y = res[i][len - 1]
     res.toString = R._path2string
     res
   
