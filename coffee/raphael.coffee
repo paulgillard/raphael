@@ -502,11 +502,36 @@ if RaphaelNew.type == "SVG"
             @node.style[cssrule] = value
             # Need following line for Firefox
             @node.setAttribute(att, value)
-      tuneText(this, params)
+      @tuneText(params)
       if rotxy
         @rotate(rotxy.join(" "))
       else
         @rotate(rot, true) if parseFloat(rot)
+
+    tuneText: (params) ->
+      leading = 1.2
+      if @type != "text" || !(params.hasOwnProperty("text") || params.hasOwnProperty("font") || params.hasOwnProperty("font-size") || params.hasOwnProperty("x") || params.hasOwnProperty("y"))
+        return
+      fontSize = if @node.firstChild then parseInt(document.defaultView.getComputedStyle(@node.firstChild, "").getPropertyValue("font-size"), 10) else 10
+      if params.hasOwnProperty("text")
+        @attrs.text = params.text
+        while @node.firstChild
+          @node.removeChild(@node.firstChild)
+        texts = String(params.text).split("\n")
+        for value, i in texts
+          if texts[i]
+            tspan = $("tspan")
+            $(tspan, { dy: fontSize * leading, x: @attrs.x }) if i
+            tspan.appendChild(document.createTextNode(texts[i]))
+            @node.appendChild(tspan)
+      else
+        texts = @node.getElementsByTagName("tspan")
+        for i in [0..texts.length - 1]
+          $(texts[i], { dy: fontSize * leading, x: @attrs.x }) if i
+      $(@node, { y: @attrs.y })
+      bb = @getBBox()
+      dif = @attrs.y - (bb.y + bb.height / 2)
+      $(@node, { y: @attrs.y + dif }) if dif and @is(dif, "finite")
 
   class Circle extends Element
     constructor: (svg, x, y, r) ->
@@ -1772,33 +1797,6 @@ Raphael = (->
     updatePosition = (o) ->
       bbox = o.getBBox()
       $(o.pattern, { patternTransform: R.format("translate({0},{1})", bbox.x, bbox.y) })
-
-    tuneText = (el, params) ->
-      leading = 1.2
-      if el.type != "text" || !(params.hasOwnProperty("text") || params.hasOwnProperty("font") || params.hasOwnProperty("font-size") || params.hasOwnProperty("x") || params.hasOwnProperty("y"))
-        return
-      a = el.attrs
-      node = el.node
-      fontSize = if node.firstChild then parseInt(document.defaultView.getComputedStyle(node.firstChild, "").getPropertyValue("font-size"), 10) else 10
-      if params.hasOwnProperty("text")
-        a.text = params.text
-        while node.firstChild
-          node.removeChild(node.firstChild)
-        texts = String(params.text).split("\n")
-        for value, i in texts
-          if texts[i]
-            tspan = $("tspan")
-            $(tspan, { dy: fontSize * leading, x: a.x }) if i
-            tspan.appendChild(document.createTextNode(texts[i]))
-            node.appendChild(tspan)
-      else
-        texts = node.getElementsByTagName("tspan")
-        for i in [0..texts.length - 1]
-          $(texts[i], { dy: fontSize * leading, x: a.x }) if i
-      $(node, { y: a.y })
-      bb = el.getBBox()
-      dif = a.y - (bb.y + bb.height / 2)
-      $(node, { y: a.y + dif }) if dif and R.is(dif, "finite")
 
     setSize = (width, height) ->
       @width = width || @width
