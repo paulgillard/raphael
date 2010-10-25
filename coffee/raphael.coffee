@@ -255,6 +255,140 @@ class Element extends RaphaelNew
     element.prev = this
     @next = element
 
+  x_y: ->
+    @x + ' ' + @y
+
+  resetScale: ->
+    return this if (@removed)
+    @_.sx = 1
+    @_.sy = 1
+    @attrs.scale = "1 1"
+
+  scale: (x, y, cx, cy) ->
+    return this if (@removed)
+    if !x? and !y?
+      return { x: @_.sx, y: @_.sy, toString: @x_y }
+    y ?= x
+    y = x if !+y
+    a = @attrs
+    if x != 0
+      bb = @getBBox()
+      rcx = bb.x + bb.width / 2
+      rcy = bb.y + bb.height / 2
+      kx = Math.abs(x / @_.sx)
+      ky = Math.abs(y / @_.sy)
+      cx = if +cx || cx == 0 then cx else rcx
+      cy = if +cy || cy == 0 then cy else rcy
+      posx = @_.sx > 0
+      posy = @_.sy > 0
+      dirx = ~~(x / Math.abs(x))
+      diry = ~~(y / Math.abs(y))
+      dkx = kx * dirx
+      dky = ky * diry
+      s = @node.style
+      ncx = cx + Math.abs(rcx - cx) * dkx * (if (rcx > cx) == posx then 1 else -1)
+      ncy = cy + Math.abs(rcy - cy) * dky * (if (rcy > cy) == posy then 1 else -1)
+      fr = (if x * dirx > y * diry then ky else kx)
+      switch @type
+        when "rect", "image"
+          neww = a.width * kx
+          newh = a.height * ky
+          @attr(
+            height: newh
+            r: a.r * fr
+            width: neww
+            x: ncx - neww / 2
+            y: ncy - newh / 2
+          )
+        when "circle", "ellipse"
+          @attr(
+            rx: a.rx * kx
+            ry: a.ry * ky
+            r: a.r * fr
+            cx: ncx
+            cy: ncy
+          )
+        when "text"
+          @attr(
+            x: ncx
+            y: ncy
+          )
+        when "path"
+          path = pathToRelative(a.path)
+          skip = true
+          fx = if posx then dkx else kx
+          fy = if posy then dky else ky
+          for value, i in path
+            p = path[i]
+            P0 = String.prototype.toUpperCase.call(p[0])
+            if P0 == "M" and skip
+              continue
+            else
+              skip = false
+            if P0 == "A"
+              p[path[i].length - 2] *= fx
+              p[path[i].length - 1] *= fy
+              p[1] *= kx
+              p[2] *= ky
+              p[5] = +(if dirx + diry then !!+p[5] else !+p[5])
+            else if P0 == "H"
+              for value, j in p
+                if j >= 1
+                  p[j] *= fx
+            else if P0 == "V"
+              for value, j in p
+                if j >= 1
+                  p[j] *= fy
+            else
+              for value, j in p
+                if j >= 1
+                  p[j] *= if j % 2 then fx else fy
+          dim2 = pathDimensions(path)
+          dx = ncx - dim2.x - dim2.width / 2
+          dy = ncy - dim2.y - dim2.height / 2
+          path[0][1] += dx
+          path[0][2] += dy
+          @attr { path: path }
+      # TODO: Array find would be good
+      if (@type == "text" or @type == "image") and (dirx != 1 or diry != 1)
+          if @transformations
+            @transformations[2] = "scale(".concat(dirx, ",", diry, ")")
+            @node.setAttribute("transform", @transformations.join(" "))
+            dx = if dirx == -1 then -a.x - (neww || 0) else a.x
+            dy = if diry == -1 then -a.y - (newh || 0) else a.y
+            @attr { x: dx, y: dy }
+            a.fx = dirx - 1
+            a.fy = diry - 1
+          else
+            @node.filterMatrix = ms + ".Matrix(M11=".concat(dirx, ", M12=0, M21=0, M22=", diry, ", Dx=0, Dy=0, sizingmethod='auto expand', filtertype='bilinear')")
+            s.filter = (@node.filterMatrix || "") + (@node.filterOpacity || "")
+      else
+          if @transformations
+            @transformations[2] = ""
+            @node.setAttribute("transform", @transformations.join(" "))
+            a.fx = 0
+            a.fy = 0
+          else
+            @node.filterMatrix = ""
+            s.filter = (@node.filterMatrix || "") + (@node.filterOpacity || "")
+      a.scale = [x, y, cx, cy].join(" ")
+      @_.sx = x
+      @_.sy = y
+    this
+
+  clone: ->
+    return null if @removed
+    attr = @attr()
+    delete attr.scale
+    delete attr.translation
+    @paper[@type]().attr(attr)
+
+  translate: (x, y) ->
+    this.attr({ translation: x + " " + y })
+
+  toString: ->
+    "Rapha\xebl\u2019s object"
+
 if RaphaelNew.type == "SVG"
   $ = (el, attr) ->
     if attr
@@ -2181,134 +2315,6 @@ Raphael = (->
   Paper::top = Paper.prototype.bottom = null
   Paper::R = R
 
-  Element::x_y = ->
-    this.x + ' ' + this.y
-
-  Element::resetScale = ->
-    return this if (this.removed)
-    @_.sx = 1
-    @_.sy = 1
-    @attrs.scale = "1 1"
-
-  Element::scale = (x, y, cx, cy) ->
-    return this if (this.removed)
-    if !x? and !y?
-      return { x: this._.sx, y: this._.sy, toString: this.x_y }
-    y ?= x
-    y = x if !+y
-    a = @attrs
-    if x != 0
-      bb = this.getBBox()
-      rcx = bb.x + bb.width / 2
-      rcy = bb.y + bb.height / 2
-      kx = Math.abs(x / @_.sx)
-      ky = Math.abs(y / @_.sy)
-      cx = if +cx || cx == 0 then cx else rcx
-      cy = if +cy || cy == 0 then cy else rcy
-      posx = this._.sx > 0
-      posy = this._.sy > 0
-      dirx = ~~(x / Math.abs(x))
-      diry = ~~(y / Math.abs(y))
-      dkx = kx * dirx
-      dky = ky * diry
-      s = @node.style
-      ncx = cx + Math.abs(rcx - cx) * dkx * (if (rcx > cx) == posx then 1 else -1)
-      ncy = cy + Math.abs(rcy - cy) * dky * (if (rcy > cy) == posy then 1 else -1)
-      fr = (if x * dirx > y * diry then ky else kx)
-      switch @type
-        when "rect", "image"
-          neww = a.width * kx
-          newh = a.height * ky
-          @attr(
-            height: newh
-            r: a.r * fr
-            width: neww
-            x: ncx - neww / 2
-            y: ncy - newh / 2
-          )
-        when "circle", "ellipse"
-          @attr(
-            rx: a.rx * kx
-            ry: a.ry * ky
-            r: a.r * fr
-            cx: ncx
-            cy: ncy
-          )
-        when "text"
-          @attr(
-            x: ncx
-            y: ncy
-          )
-        when "path"
-          path = pathToRelative(a.path)
-          skip = true
-          fx = if posx then dkx else kx
-          fy = if posy then dky else ky
-          for value, i in path
-            p = path[i]
-            P0 = String.prototype.toUpperCase.call(p[0])
-            if P0 == "M" and skip
-              continue
-            else
-              skip = false
-            if P0 == "A"
-              p[path[i].length - 2] *= fx
-              p[path[i].length - 1] *= fy
-              p[1] *= kx
-              p[2] *= ky
-              p[5] = +(if dirx + diry then !!+p[5] else !+p[5])
-            else if P0 == "H"
-              for value, j in p
-                if j >= 1
-                  p[j] *= fx
-            else if P0 == "V"
-              for value, j in p
-                if j >= 1
-                  p[j] *= fy
-            else
-              for value, j in p
-                if j >= 1
-                  p[j] *= if j % 2 then fx else fy
-          dim2 = pathDimensions(path)
-          dx = ncx - dim2.x - dim2.width / 2
-          dy = ncy - dim2.y - dim2.height / 2
-          path[0][1] += dx
-          path[0][2] += dy
-          @attr { path: path }
-      # TODO: Array find would be good
-      if (@type == "text" or @type == "image") and (dirx != 1 or diry != 1)
-          if @transformations
-            @transformations[2] = "scale(".concat(dirx, ",", diry, ")")
-            @node.setAttribute("transform", this.transformations.join(" "))
-            dx = if dirx == -1 then -a.x - (neww || 0) else a.x
-            dy = if diry == -1 then -a.y - (newh || 0) else a.y
-            @attr { x: dx, y: dy }
-            a.fx = dirx - 1
-            a.fy = diry - 1
-          else
-            @node.filterMatrix = ms + ".Matrix(M11=".concat(dirx, ", M12=0, M21=0, M22=", diry, ", Dx=0, Dy=0, sizingmethod='auto expand', filtertype='bilinear')")
-            s.filter = (this.node.filterMatrix || "") + (this.node.filterOpacity || "")
-      else
-          if @transformations
-            @transformations[2] = ""
-            @node.setAttribute("transform", this.transformations.join(" "))
-            a.fx = 0
-            a.fy = 0
-          else
-            @node.filterMatrix = ""
-            s.filter = (@node.filterMatrix || "") + (@node.filterOpacity || "")
-      a.scale = [x, y, cx, cy].join(" ")
-      @_.sx = x
-      @_.sy = y
-    this
-
-  Element::clone = ->
-    return null if @removed
-    attr = @attr()
-    delete attr.scale
-    delete attr.translation
-    @paper[@type]().attr(attr)
-
   curveslengths = {}
   getPointAtSegmentLength = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, length) ->
     len = 0
@@ -2747,12 +2753,6 @@ Raphael = (->
     clearTimeout(this._ac)
     delete this._ac
     this
-
-  Element::translate = (x, y) ->
-    this.attr({ translation: x + " " + y })
-
-  Element::toString = ->
-    "Rapha\xebl\u2019s object"
 
   R.ae = animationElements
 
