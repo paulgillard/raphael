@@ -213,6 +213,48 @@ class RaphaelNew
     data
 
 class Element extends RaphaelNew
+  tear: (paper) ->
+    paper.top = @prev if this == paper.top
+    paper.bottom = @next if this == paper.bottom
+    @next.prev = @prev if @next
+    @prev.next = @next if @prev
+
+  toFront: (paper) ->
+    if paper.top == this
+      null
+    else
+      @tear(paper)
+      @next = null
+      @prev = paper.top
+      paper.top.next = this
+      paper.top = this
+
+  toBack: (paper) ->
+    if paper.bottom == this
+      null
+    else
+      @tear(paper)
+      @next = paper.bottom
+      @prev = null
+      paper.bottom.prev = this
+      paper.bottom = this
+
+  insertAfter: (element, paper) ->
+    @tear(paper)
+    paper.top = this if element == paper.top
+    element.next.prev = this if element.next
+    @next = element.next
+    @prev = element
+    element.next = this
+
+  insertBefore: (element, paper) ->
+    @tear(paper)
+    paper.bottom = this if element == paper.bottom
+    element.prev.next = this if element.prev
+    @prev = element.prev
+    element.prev = this
+    @next = element
+
 if RaphaelNew.type == "SVG"
   $ = (el, attr) ->
     if attr
@@ -288,7 +330,7 @@ if RaphaelNew.type == "SVG"
     remove: ->
       if @removed
         return
-      tear(this, @paper)
+      @tear(@paper)
       @node.parentNode.removeChild(@node)
       for i in this
         delete this[i]
@@ -364,14 +406,14 @@ if RaphaelNew.type == "SVG"
       return this if @removed
       this.node.parentNode.appendChild(this.node)
       svg = this.paper
-      svg.top != this && tofront(this, svg)
+      svg.top != this && super(svg)
       this
 
     toBack: ->
       return this if @removed
       if @node.parentNode.firstChild != @node
         @node.parentNode.insertBefore(@node, @node.parentNode.firstChild)
-        toback(this, @paper)
+        super(@paper)
         svg = @paper
       this
 
@@ -382,14 +424,14 @@ if RaphaelNew.type == "SVG"
         node.parentNode.insertBefore(@node, node.nextSibling)
       else
         node.parentNode.appendChild(@node)
-      insertafter(this, element, @paper)
+      super(element, @paper)
       this
 
     insertBefore: (element) ->
       return this if @removed
       node = element.node || element[0].node
       node.parentNode.insertBefore(@node, node)
-      insertbefore(this, element, @paper)
+      super(element, @paper)
       this
 
     blur: (size) ->
@@ -942,7 +984,7 @@ else
 
     remove: ->
       return this if @removed
-      tear(this, @paper)
+      @tear(@paper)
       @node.parentNode.removeChild(@node)
       @Group.parentNode.removeChild(@Group)
       @shape.parentNode.removeChild(@shape) if @shape
@@ -998,15 +1040,16 @@ else
 
     toFront: ->
       @Group.parentNode.appendChild(@Group) if !@removed
-      tofront(this, @paper) if @paper.top != this
+      super(@paper) if @paper.top != this
       this
 
     toBack: ->
       return this if @removed
       if @Group.parentNode.firstChild != @Group
         @Group.parentNode.insertBefore(@Group, @Group.parentNode.firstChild)
-        toback(this, @paper)
+        super(@paper)
       this
+
     insertAfter: (element) ->
       return this if @removed
       if element.constructor == Set
@@ -1015,7 +1058,7 @@ else
         element.Group.parentNode.insertBefore(@Group, element.Group.nextSibling)
       else
         element.Group.parentNode.appendChild(@Group)
-      insertafter(this, element, @paper)
+      super(element, @paper)
       this
 
     insertBefore: (element) ->
@@ -1023,7 +1066,7 @@ else
       if element.constructor == Set
         element = element[0]
       element.Group.parentNode.insertBefore(@Group, element.Group)
-      insertbefore(this, element, @paper)
+      super(element, @paper)
       this
 
     blur: (size) ->
@@ -1800,48 +1843,6 @@ Raphael = (->
             plugins.call(this, con[prop], add[prop])
           else
             con[prop] = add[prop]
-  
-  tear = (el, paper) ->
-    paper.top = el.prev if el == paper.top
-    paper.bottom = el.next if el == paper.bottom
-    el.next.prev = el.prev if el.next
-    el.prev.next = el.next if el.prev
-  
-  tofront = (el, paper) ->
-    if paper.top == el
-      null
-    else
-      tear(el, paper)
-      el.next = null
-      el.prev = paper.top
-      paper.top.next = el
-      paper.top = el
-  
-  toback = (el, paper) ->
-    if paper.bottom == el
-      null
-    else
-      tear(el, paper)
-      el.next = paper.bottom
-      el.prev = null
-      paper.bottom.prev = el
-      paper.bottom = el
-  
-  insertafter = (el, el2, paper) ->
-    tear(el, paper)
-    paper.top = el if el2 == paper.top
-    el2.next.prev = el if el2.next
-    el.next = el2.next
-    el.prev = el2
-    el2.next = el
-  
-  insertbefore = (el, el2, paper) ->
-    tear(el, paper)
-    paper.bottom = el if el2 == paper.bottom
-    el2.prev.next = el if el2.prev
-    el.prev = el2.prev
-    el2.prev = el
-    el.next = el2
   
   removed = (methodname) ->
     ->
