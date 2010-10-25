@@ -486,42 +486,42 @@ if RaphaelNew.type == "SVG"
               value = -@attrs.x - (@attrs.width || 0)
               rotxy[1] += value - @attrs['x'] if rotxy
               @node.setAttribute('x', value)
-              updatePosition(this) if @pattern
+              @updatePosition() if @pattern
           when "x"
             if @attrs.fx
               value = -@attrs.x - (@attrs.width || 0)
             rotxy[1] += value - @attrs[att] if rotxy
             @node.setAttribute(att, value)
-            updatePosition(this) if @pattern
+            @updatePosition() if @pattern
           when "rx"
             if @type != "rect"
               @node.setAttribute(att, value)
-              updatePosition(this) if @pattern
+              @updatePosition() if @pattern
           when "cx"
             rotxy[1] += value - @attrs[att] if rotxy
             @node.setAttribute(att, value)
-            updatePosition(this) if @pattern
+            @updatePosition() if @pattern
           when "height"
             @node.setAttribute(att, value)
             if @attrs.fy
               value = -@attrs.y - (@attrs.height || 0)
               rotxy[2] += value - @attrs['y'] if rotxy
               @node.setAttribute('y', value)
-              updatePosition(this) if @pattern
+              @updatePosition() if @pattern
           when "y"
             if @attrs.fy
               value = -@attrs.y - (@attrs.height || 0)
             rotxy[2] += value - @attrs[att] if rotxy
             @node.setAttribute(att, value)
-            updatePosition(this) if @pattern
+            @updatePosition() if @pattern
           when "ry"
             if @type != "rect"
               @node.setAttribute(att, value)
-              updatePosition(this) if @pattern
+              @updatePosition() if @pattern
           when "cy"
             rotxy[2] += value - @attrs[att] if rotxy
             @node.setAttribute(att, value)
-            updatePosition(this) if @pattern
+            @updatePosition() if @pattern
           when "r"
             if @type == "rect"
                 $(@node, { rx: value, ry: value })
@@ -573,7 +573,7 @@ if RaphaelNew.type == "SVG"
               @node.style.fill = "url(#" + el.id + ")"
               $(@node, { fill: "url(#" + el.id + ")" })
               @pattern = el
-              updatePosition(o) if @pattern
+              @updatePosition() if @pattern
             else
               clr = new Colour(value).toRGB()
               if !clr.error
@@ -729,6 +729,10 @@ if RaphaelNew.type == "SVG"
       s.opacity = 1
       s.fillOpacity = 1
       1
+
+    updatePosition: ->
+      bbox = @getBBox()
+      $(@pattern, { patternTransform: @format("translate({0},{1})", bbox.x, bbox.y) })
 
   class Circle extends Element
     constructor: (svg, x, y, r) ->
@@ -1845,11 +1849,6 @@ Raphael = (->
   if R.type == "SVG"
     R::toString = ->
       "Your browser supports SVG.\nYou are running Rapha\xebl " + this.version
-
-    updatePosition = (o) ->
-      bbox = o.getBBox()
-      $(o.pattern, { patternTransform: R.format("translate({0},{1})", bbox.x, bbox.y) })
-
     setSize = (width, height) ->
       @width = width || @width
       @height = height || @height
