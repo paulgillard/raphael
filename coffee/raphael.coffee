@@ -587,7 +587,7 @@ if RaphaelNew.type == "SVG"
                 if clr.hasOwnProperty("opacity")
                   $(@node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
                 @node.setAttribute(att, clr.hex())
-              else if (({ circle: 1, ellipse: 1 }).hasOwnProperty(@type) || String(value).charAt() != "r") && addGradientFill(@node, value, @paper)
+              else if (({ circle: 1, ellipse: 1 }).hasOwnProperty(@type) || String(value).charAt() != "r") && @node.addGradientFill(value, @paper)
                 @attrs.gradient = value
                 @attrs.fill = "none"
               else
@@ -601,7 +601,7 @@ if RaphaelNew.type == "SVG"
               $(@node, { "fill-opacity": if clr.opacity > 1 then clr.opacity / 100 else clr.opacity })
           when "gradient"
             if ({ circle: 1, ellipse: 1 }).hasOwnProperty(@type) || String(value).charAt() != "r"
-              addGradientFill(@node, value, @paper)
+              @node.addGradientFill(value, @paper)
           when "opacity"
             if @attrs.gradient and @attrs.hasOwnProperty("stroke-opacity")
               $(@node, { "stroke-opacity": if value > 1 then value / 100 else value })
@@ -675,6 +675,60 @@ if RaphaelNew.type == "SVG"
       bb = @getBBox()
       dif = @attrs.y - (bb.y + bb.height / 2)
       $(@node, { y: @attrs.y + dif }) if dif and @is(dif, "finite")
+
+    addGradientFill: (gradient, SVG) ->
+      type = "linear"
+      fx = fy = 0.5
+      s = @style
+      gradient = String(gradient).replace(radial_gradient, (all, _fx, _fy) ->
+        type = "radial"
+        if _fx and _fy
+          fx = parseFloat(_fx)
+          fy = parseFloat(_fy)
+          dir = (fy > .5) * 2 - 1
+          if Math.pow(fx - 0.5, 2) + Math.pow(fy - 0.5, 2) > 0.25
+            fy = Math.sqrt(0.25 - Math.pow(fx - 0.5, 2)) * dir + 0.5
+            if fy != .5
+              fy = fy.toFixed(5) - 1e-5 * dir
+        ""
+      )
+      gradient = gradient.split /\s*\-\s*/
+      if type == "linear"
+        angle = gradient.shift()
+        angle = -parseFloat(angle)
+        if isNaN(angle)
+          return null
+        vector = [0, 0, Math.cos(angle * Math.PI / 180), Math.sin(angle * Math.PI / 180)]
+        max = 1 / (Math.max(Math.abs(vector[2]), Math.abs(vector[3])) || 1)
+        vector[2] *= max
+        vector[3] *= max
+        if vector[2] < 0
+          vector[0] = -vector[2]
+          vector[2] = 0
+        if vector[3] < 0
+          vector[1] = -vector[3]
+          vector[3] = 0
+      dots = parseDots(gradient)
+      if !dots
+        return null
+      id = @getAttribute("fill")
+      id = id.match /^url\(#(.*)\)$/
+      SVG.defs.removeChild(document.getElementById(id[1])) if id
+      el = $(type + "Gradient")
+      el.id = createUUID()
+      $(el, if type == "radial" then { fx: fx, fy: fy } else { x1: vector[0], y1: vector[1], x2: vector[2], y2: vector[3] })
+      SVG.defs.appendChild(el)
+      for i of dots
+        stop = $("stop")
+        $(stop, { offset: (if dots[i].offset then dots[i].offset else if i == "0" then "0%" else "100%")
+        "stop-color": dots[i].color || "##fff" }
+        )
+        el.appendChild(stop)
+      $(this, { fill: "url(#" + el.id + ")", opacity: 1, "fill-opacity": 1 })
+      s.fill = ""
+      s.opacity = 1
+      s.fillOpacity = 1
+      1
 
   class Circle extends Element
     constructor: (svg, x, y, r) ->
@@ -933,7 +987,7 @@ else
           @node.string = params.text
         @setFillAndStroke(params)
         if params.gradient && (({ circle: 1, ellipse: 1 }).hasOwnProperty(this.type) || String(params.gradient).charAt() != "r")
-          addGradientFill(this, params.gradient)
+          @addGradientFill(params.gradient)
         this.setBox(@attrs) if !pathlike.hasOwnProperty(@type) or @_.rt.deg
       this
 
@@ -1064,7 +1118,7 @@ else
             fill.color = new Colour(params.fill).toRGB().hex()
             fill.src = ""
             fill.type = "solid"
-            if new Colour(params.fill).toRGB().error and (res.type in { circle: 1, ellipse: 1 } or String(params.fill).charAt() != "r") and addGradientFill(res, params.fill)
+            if new Colour(params.fill).toRGB().error and (res.type in { circle: 1, ellipse: 1 } or String(params.fill).charAt() != "r") and red.addGradientFill(params.fill)
               @attrs.fill = "none"
         @node.appendChild(fill) if newfill
         stroke = @node.getElementsByTagName("stroke") and @node.getElementsByTagName("stroke")[0]
@@ -1120,6 +1174,57 @@ else
             res.bbx = -Math.round(res.W / 2)
           else
             res.node.style["v-text-align"] = "center"
+
+    addGradientFill: (gradient) ->
+      @attrs ?= {}
+      attrs = @attrs
+      type = "linear"
+      fxfy = ".5 .5"
+      @attrs.gradient = gradient
+      gradient = String(gradient).replace(radial_gradient, (all, fx, fy) ->
+        type = "radial"
+        if fx and fy
+          fx = parseFloat(fx)
+          fy = parseFloat(fy)
+          if Math.pow(fx - 0.5, 2) + Math.pow(fy - 0.5, 2) > .25
+            fy = Math.sqrt(0.25 - Math.pow(fx - 0.5, 2)) * ((fy > 0.5) * 2 - 1) + 0.5
+          fxfy = fx + ' ' + fy
+        ""
+      )
+      gradient = gradient.split(/\s*\-\s*/)
+      if type == "linear"
+        angle = gradient.shift()
+        angle = -parseFloat(angle)
+        if isNaN(angle)
+          return null
+      dots = parseDots(gradient)
+      if !dots
+        return null
+      o = @shape or @node
+      fill = o.getElementsByTagName("fill")[0] || createNode("fill")
+      o.appendChild(fill) if !fill.parentNode
+      if dots.length
+        fill.on = true
+        fill.method = "none"
+        fill.color = dots[0].color
+        fill.color2 = dots[dots.length - 1].color
+        clrs = []
+        for i of dots
+          clrs.push(dots[i].offset + ' ' + dots[i].color) if dots[i].offset
+        if fill.colors
+          if clrs.length
+            fill.colors.value = clrs.join()
+          else
+            fill.colors.value =  "0% " + fill.color
+        if type == "radial"
+          fill.type = "gradientradial"
+          fill.focus = "100%"
+          fill.focussize = fxfy
+          fill.focusposition = fxfy
+        else
+          fill.type = "gradient"
+          fill.angle = (270 - angle) % 360
+      1
 
   class Circle extends Element
     constructor: (vml, x, y, r) ->
@@ -1741,60 +1846,6 @@ Raphael = (->
     R::toString = ->
       "Your browser supports SVG.\nYou are running Rapha\xebl " + this.version
 
-    addGradientFill = (o, gradient, SVG) ->
-      type = "linear"
-      fx = fy = 0.5
-      s = o.style
-      gradient = String(gradient).replace(radial_gradient, (all, _fx, _fy) ->
-        type = "radial"
-        if _fx and _fy
-          fx = parseFloat(_fx)
-          fy = parseFloat(_fy)
-          dir = (fy > .5) * 2 - 1
-          if Math.pow(fx - 0.5, 2) + Math.pow(fy - 0.5, 2) > 0.25
-            fy = Math.sqrt(0.25 - Math.pow(fx - 0.5, 2)) * dir + 0.5
-            if fy != .5
-              fy = fy.toFixed(5) - 1e-5 * dir
-        ""
-      )
-      gradient = gradient.split /\s*\-\s*/
-      if type == "linear"
-        angle = gradient.shift()
-        angle = -parseFloat(angle)
-        if isNaN(angle)
-          return null
-        vector = [0, 0, Math.cos(angle * Math.PI / 180), Math.sin(angle * Math.PI / 180)]
-        max = 1 / (Math.max(Math.abs(vector[2]), Math.abs(vector[3])) || 1)
-        vector[2] *= max
-        vector[3] *= max
-        if vector[2] < 0
-          vector[0] = -vector[2]
-          vector[2] = 0
-        if vector[3] < 0
-          vector[1] = -vector[3]
-          vector[3] = 0
-      dots = parseDots(gradient)
-      if !dots
-        return null
-      id = o.getAttribute("fill")
-      id = id.match /^url\(#(.*)\)$/
-      SVG.defs.removeChild(document.getElementById(id[1])) if id
-      el = $(type + "Gradient")
-      el.id = createUUID()
-      $(el, if type == "radial" then { fx: fx, fy: fy } else { x1: vector[0], y1: vector[1], x2: vector[2], y2: vector[3] })
-      SVG.defs.appendChild(el)
-      for i of dots
-        stop = $("stop")
-        $(stop, { offset: (if dots[i].offset then dots[i].offset else if i == "0" then "0%" else "100%")
-        "stop-color": dots[i].color || "##fff" }
-        )
-        el.appendChild(stop)
-      $(o, { fill: "url(#" + el.id + ")", opacity: 1, "fill-opacity": 1 })
-      s.fill = ""
-      s.opacity = 1
-      s.fillOpacity = 1
-      1
-
     updatePosition = (o) ->
       bbox = o.getBBox()
       $(o.pattern, { patternTransform: R.format("translate({0},{1})", bbox.x, bbox.y) })
@@ -1890,57 +1941,6 @@ Raphael = (->
 
     R::toString = ->
       "Your browser doesn\u2019t support SVG. Falling down to VML.\nYou are running Rapha\xebl " + @version
-
-    addGradientFill = (o, gradient) ->
-        o.attrs ?= {}
-        attrs = o.attrs
-        type = "linear"
-        fxfy = ".5 .5"
-        o.attrs.gradient = gradient
-        gradient = String(gradient).replace(radial_gradient, (all, fx, fy) ->
-          type = "radial"
-          if fx and fy
-            fx = parseFloat(fx)
-            fy = parseFloat(fy)
-            if Math.pow(fx - 0.5, 2) + Math.pow(fy - 0.5, 2) > .25
-              fy = Math.sqrt(0.25 - Math.pow(fx - 0.5, 2)) * ((fy > 0.5) * 2 - 1) + 0.5
-            fxfy = fx + ' ' + fy
-          ""
-        )
-        gradient = gradient.split(/\s*\-\s*/)
-        if type == "linear"
-          angle = gradient.shift()
-          angle = -parseFloat(angle)
-          if isNaN(angle)
-            return null
-        dots = parseDots(gradient)
-        if !dots
-          return null
-        o = o.shape or o.node
-        fill = o.getElementsByTagName("fill")[0] || createNode("fill")
-        o.appendChild(fill) if !fill.parentNode
-        if dots.length
-          fill.on = true
-          fill.method = "none"
-          fill.color = dots[0].color
-          fill.color2 = dots[dots.length - 1].color
-          clrs = []
-          for i of dots
-            clrs.push(dots[i].offset + ' ' + dots[i].color) if dots[i].offset
-          if fill.colors
-            if clrs.length
-              fill.colors.value = clrs.join()
-            else
-              fill.colors.value =  "0% " + fill.color
-          if type == "radial"
-            fill.type = "gradientradial"
-            fill.focus = "100%"
-            fill.focussize = fxfy
-            fill.focusposition = fxfy
-          else
-            fill.type = "gradient"
-            fill.angle = (270 - angle) % 360
-        1
 
     R::rectPath = (x, y, w, h, r) ->
       if r
