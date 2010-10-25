@@ -212,6 +212,7 @@ class RaphaelNew
     data.toString = @_path2string
     data
 
+class Element extends RaphaelNew
 if RaphaelNew.type == "SVG"
   $ = (el, attr) ->
     if attr
@@ -222,7 +223,7 @@ if RaphaelNew.type == "SVG"
       el.style.webkitTapHighlightColor = "rgba(0,0,0,0)"
       el
 
-  class Element extends RaphaelNew
+  class SVGElement extends Element
     constructor: (node, svg) ->
       X = 0
       Y = 0
@@ -734,7 +735,7 @@ if RaphaelNew.type == "SVG"
       bbox = @getBBox()
       $(@pattern, { patternTransform: @format("translate({0},{1})", bbox.x, bbox.y) })
 
-  class Circle extends Element
+  class Circle extends SVGElement
     constructor: (svg, x, y, r) ->
       @type = "circle"
       el = $(@type)
@@ -744,7 +745,7 @@ if RaphaelNew.type == "SVG"
       $(el, @attrs)
       this
 
-  class Rectangle extends Element
+  class Rectangle extends SVGElement
     constructor: (svg, x, y, w, h, r) ->
       @type = "rect"
       el = $(@type)
@@ -754,7 +755,7 @@ if RaphaelNew.type == "SVG"
       $(el, @attrs)
       this
 
-  class Ellipse extends Element
+  class Ellipse extends SVGElement
     constructor: (svg, x, y, rx, ry) ->
       @type = "ellipse"
       el = $(@type)
@@ -764,7 +765,7 @@ if RaphaelNew.type == "SVG"
       $(el, @attrs)
       this
 
-  class Image extends Element
+  class Image extends SVGElement
     constructor: (svg, src, x, y, w, h) ->
       @type = "image"
       el = $(@type)
@@ -775,7 +776,7 @@ if RaphaelNew.type == "SVG"
       @attrs = { x: x || 0, y: y || 0, width: w || 0, height: h || 0, src: src || "about:blank" }
       this
 
-  class Text extends Element
+  class Text extends SVGElement
     constructor: (svg, text, x, y) ->
       @type = "text"
       el = $(@type)
@@ -786,7 +787,7 @@ if RaphaelNew.type == "SVG"
       @setFillAndStroke(@attrs)
       this
 
-  class Path extends Element
+  class Path extends SVGElement
     constructor: (svg, pathString) ->
       @type = "path"
       el = $(@type)
@@ -796,7 +797,7 @@ if RaphaelNew.type == "SVG"
       this
 
 else
-  class Element extends RaphaelNew
+  class VMLElement extends Element
     constructor: (node, group, vml) ->
       Rotation = 0
       RotX = 0
@@ -1230,7 +1231,7 @@ else
           fill.angle = (270 - angle) % 360
       1
 
-  class Circle extends Element
+  class Circle extends VMLElement
     constructor: (vml, x, y, r) ->
       g = createNode("group")
       o = createNode("oval")
@@ -1249,7 +1250,7 @@ else
       vml.canvas.appendChild(g)
       this
 
-  class Rectangle extends Element
+  class Rectangle extends VMLElement
     constructor: (vml, x, y, w, h, r) ->
       path = rectPath(x, y, w, h, r)
       res = vml.path(path)
@@ -1263,7 +1264,7 @@ else
       res.type = "rect"
       res
 
-  class Ellipse extends Element
+  class Ellipse extends VMLElement
     constructor: (vml, x, y, rx, ry) ->
       g = createNode("group")
       o = createNode("oval")
@@ -1283,7 +1284,7 @@ else
       vml.canvas.appendChild(g)
       res
 
-  class Image extends Element
+  class Image extends VMLElement
     constructor: (vml, src, x, y, w, h) ->
       g = createNode("group")
       o = createNode("image")
@@ -1303,7 +1304,7 @@ else
       vml.canvas.appendChild(g)
       res
 
-  class Text extends Element
+  class Text extends VMLElement
     constructor: (vml, text, x, y) ->
       g = createNode("group")
       el = createNode("shape")
@@ -1337,7 +1338,7 @@ else
       vml.canvas.appendChild(g)
       res
 
-  class Path extends Element
+  class Path extends VMLElement
     constructor: (vml, pathString) ->
       g = createNode("group")
       g.style.cssText = "position:absolute;left:0;top:0;width:" + vml.width + "px;height:" + vml.height + "px"
