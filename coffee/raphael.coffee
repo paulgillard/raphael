@@ -308,6 +308,143 @@ for event in RaphaelNew.events
       this
   )(event)
 
+RaphaelNew.animationElements = []
+RaphaelNew.animation = ->
+  Now = +new Date
+  for l in [0..RaphaelNew.animationElements.length - 1]
+    e = RaphaelNew.animationElements[l]
+    if e.stop or e.el.removed
+      continue
+    time = Now - e.start
+    ms = e.ms
+    easing = e.easing
+    from = e.from
+    diff = e.diff
+    to = e.to
+    t = e.t
+    that = e.el
+    set = {}
+    if time < ms
+      pos = easing(time / ms)
+      for attr of from
+        switch availableAnimAttrs[attr]
+          when "along"
+            now = pos * ms * diff[attr]
+            now = to.len - now if to.back
+            point = getPointAtLength(to[attr], now)
+            that.translate(diff.sx - diff.x or 0, diff.sy - diff.y or 0)
+            diff.x = point.x
+            diff.y = point.y
+            that.translate(point.x - diff.sx, point.y - diff.sy)
+            that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
+          when "number"
+            now = +from[attr] + pos * ms * diff[attr]
+          when "colour"
+            now = "rgb(" + [
+                upto255(Math.round(from[attr].red + pos * ms * diff[attr].red)),
+                upto255(Math.round(from[attr].green + pos * ms * diff[attr].green)),
+                upto255(Math.round(from[attr].blue + pos * ms * diff[attr].blue))
+            ].join(",") + ")"
+          when "path"
+            now = []
+            for i of from[attr]
+              now[i] = [from[attr][i][0]]
+              for j of from[attr][i]
+                if j >= 1
+                  now[i][j] = +from[attr][i][j] + pos * ms * diff[attr][i][j]
+              now[i] = now[i].join(" ")
+            now = now.join(" ")
+          when "csv"
+            switch attr
+              when "translation"
+                x = pos * ms * diff[attr][0] - t.x
+                y = pos * ms * diff[attr][1] - t.y
+                t.x += x
+                t.y += y
+                now = x + ' ' + y
+              when "rotation"
+                now = +from[attr][0] + pos * ms * diff[attr][0]
+                now += "," + from[attr][1] + "," + from[attr][2] if from[attr][1]
+              when "scale"
+                now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if to[attr][2]? then to[attr][2] else ""), (if to[attr][3]? then to[attr][3] else "")].join(" ")
+              when "clip-rect"
+                now = []
+                i = 4
+                while i--
+                  now[i] = +from[attr][i] + pos * ms * diff[attr][i]
+          else
+            from2 = [].concat(from[attr])
+            now = []
+            i = that.paper.customAttributes[attr].length
+            while i--
+              now[i] = +from2[i] + pos * ms * diff[attr][i]
+        set[attr] = now
+      that.attr(set)
+      that._run.call(that) if that._run
+    else
+      if to.along
+        point = getPointAtLength(to.along, to.len * !to.back)
+        that.translate(diff.sx - (diff.x || 0) + point.x - diff.sx, diff.sy - (diff.y || 0) + point.y - diff.sy)
+        that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
+      (t.x or t.y) and that.translate(-t.x, -t.y)
+      to.scale += "" if to.scale
+      that.attr(to)
+      RaphaelNew.animationElements.splice(l--, 1)
+  that.paper.safari() if R.svg and that and that.paper
+  setTimeout(RaphaelNew.animation) if RaphaelNew.animationElements.length
+
+  # animation easing formulas
+  RaphaelNew.easing_formulas =
+    linear: (n) ->
+      n
+
+    "<": (n) ->
+      Math.pow(n, 3)
+
+    ">": (n) ->
+      Math.pow(n - 1, 3) + 1
+
+    "<>": (n) ->
+      n = n * 2
+      if n < 1
+        return Math.pow(n, 3) / 2
+      n -= 2
+      (Math.pow(n, 3) + 2) / 2
+
+    backIn: (n) ->
+      s = 1.70158
+      n * n * ((s + 1) * n - s)
+
+    backOut: (n) ->
+      n = n - 1
+      s = 1.70158
+      n * n * ((s + 1) * n + s) + 1
+
+    elastic: (n) ->
+      if n == 0 or n == 1
+        return n
+      p = .3
+      s = p / 4
+      Math.pow(2, -10 * n) * Math.sin((n - s) * (2 * Math.PI) / p) + 1
+
+    bounce: (n) ->
+      s = 7.5625
+      p = 2.75
+      if n < (1 / p)
+        l = s * n * n
+      else
+        if n < (2 / p)
+          n -= (1.5 / p)
+          l = s * n * n + .75
+        else
+          if n < (2.5 / p)
+            n -= (2.25 / p)
+            l = s * n * n + .9375
+          else
+            n -= (2.625 / p)
+            l = s * n * n + .984375
+      l
+
 class Element extends RaphaelNew
   tear: (paper) ->
     paper.top = @prev if this == paper.top
@@ -511,6 +648,209 @@ class Element extends RaphaelNew
     while i--
       drag[i].el == this and (drag[i].move == onmove and drag[i].end == onend) and drag.splice(i, 1)
     RaphaelNew.unmousemove(dragMove).unmouseup(dragUp) if !drag.length
+
+  animateWith: (element, params, ms, easing, callback) ->
+    params.start = RaphaelNew.animationElements[element.id].start if RaphaelNew.animationElements[element.id]
+    @animate(params, ms, easing, callback)
+
+  animateAlong: (path, ms, rotate, callback) ->
+    params = { back: false }
+    if R.is(rotate, "function") then (callback = rotate) else (params.rot = rotate)
+    path = path.attrs.path if path and path.constructor == Element
+    params.along = path if path
+    this.animate(params, ms, callback)
+
+  animateAlongBack: (path, ms, rotate, callback) ->
+    params = { back: true }
+    if R.is(rotate, "function") then (callback = rotate) else (params.rot = rotate)
+    path = path.attrs.path if path and path.constructor == Element
+    params.along = path if path
+    this.animate(params, ms, callback)
+
+  onAnimation: (f) ->
+    @_run = f or 0
+    this
+
+  cubicBezierAtTime: (t, p1x, p1y, p2x, p2y, duration) ->
+    cx = 3 * p1x
+    bx = 3 * (p2x - p1x) - cx
+    ax = 1 - cx - bx
+    cy = 3 * p1y
+    _by = 3 * (p2y - p1y) - cy # by is reserved in CoffeeScript
+    ay = 1 - cy - _by
+    sampleCurveX = (t) ->
+      ((ax * t + bx) * t + cx) * t
+    solve = (x, epsilon) ->
+      t = solveCurveX(x, epsilon)
+      ((ay * t + _by) * t + cy) * t
+    solveCurveX = (x, epsilon) ->
+      t2 = x
+      for i in [0..7]
+        x2 = sampleCurveX(t2) - x
+        if abs(x2) < epsilon
+          return t2
+        d2 = (3 * ax * t2 + 2 * bx) * t2 + cx
+        if abs(d2) < 1e-6
+          break
+        t2 = t2 - x2 / d2
+      t0 = 0
+      t1 = 1
+      t2 = x
+      if t2 < t0
+        return t0
+      if t2 > t1
+        return t1
+      while t0 < t1
+          x2 = sampleCurveX(t2)
+          if abs(x2 - x) < epsilon
+            return t2
+          if x > x2
+            t0 = t2
+          else
+            t1 = t2
+          t2 = (t1 - t0) / 2 + t0
+      t2
+    solve(t, 1 / (200 * duration))
+
+  animate: (params, ms, easing, callback) ->
+    element = this
+    element.timeouts = element.timeouts or []
+    if R.is(easing, "function") or !easing
+      callback = easing or null
+    if element.removed
+      callback.call(element) if callback
+      return element
+    from = {}
+    to = {}
+    diff = {}
+    animateable = false
+    for attr, name of params
+      if availableAnimAttrs.hasOwnProperty(attr) or element.paper.customAttributes.hasOwnProperty(attr)
+        animateable = true
+        from[attr] = element.attr(attr)
+        from[attr] = availableAttrs[attr] if !from[attr]?
+        to[attr] = params[attr]
+        switch availableAnimAttrs[attr]
+          when "along"
+            len = getTotalLength(params[attr])
+            point = getPointAtLength(params[attr], len * !!params.back)
+            bb = element.getBBox()
+            diff[attr] = len / ms
+            diff.tx = bb.x
+            diff.ty = bb.y
+            diff.sx = point.x
+            diff.sy = point.y
+            to.rot = params.rot
+            to.back = params.back
+            to.len = len
+            diff.r = parseFloat(element.rotate()) or 0 if params.rot
+          when "number"
+            diff[attr] = (to[attr] - from[attr]) / ms
+          when "colour"
+            from[attr] = new Colour(from[attr]).toRGB()
+            toColour = new Colour(to[attr]).toRGB()
+            diff[attr] = new RGB((toColour.red - from[attr].red) / ms, (toColour.green - from[attr].green) / ms, (toColour.blue - from[attr].blue) / ms)
+          when "path"
+            pathes = pathToCurve(from[attr], to[attr])
+            from[attr] = pathes[0]
+            toPath = pathes[1]
+            diff[attr] = []
+            for i of from[attr]
+              diff[attr][i] = [0]
+              for j of from[attr][i]
+                if j >= 1
+                  diff[attr][i][j] = (toPath[i][j] - from[attr][i][j]) / ms
+          when "csv"
+            values = String(params[attr]).split(RaphaelNew.separator)
+            from2 = String(from[attr]).split(RaphaelNew.separator)
+            switch attr
+              when "translation"
+                from[attr] = [0, 0]
+                diff[attr] = [values[0] / ms, values[1] / ms]
+              when "rotation"
+                from[attr] = if (from2[1] == values[1] and from2[2] == values[2]) then from2 else [0, values[1], values[2]]
+                diff[attr] = [(values[0] - from[attr][0]) / ms, 0, 0]
+              when "scale"
+                params[attr] = values
+                from[attr] = String(from[attr]).split(RaphaelNew.separator)
+                diff[attr] = [(values[0] - from[attr][0]) / ms, (values[1] - from[attr][1]) / ms, 0, 0]
+              when "clip-rect"
+                from[attr] = String(from[attr]).split(RaphaelNew.separator)
+                diff[attr] = []
+                i = 4
+                while i--
+                  diff[attr][i] = (values[i] - from[attr][i]) / ms
+            to[attr] = values
+          else
+            values = [].concat(params[attr])
+            from2 = [].concat(from[attr])
+            diff[attr] = []
+            i = element.paper.customAttributes[attr].length
+            while i--
+              diff[attr][i] = ((values[i] || 0) - (from2[i] || 0)) / ms
+    if !animateable
+      attrs = []
+      for key of params
+        if animKeyFrames.test(key)
+          attr = { value: params[key] }
+          key = 0 if key == "from"
+          key = 100 if key == "to"
+          attr.key = parseInt(key, 10)
+          attrs.push(attr)
+      attrs.sort(sortByKey)
+      if attrs[0].key
+        attrs.unshift({ key: 0, value: element.attrs })
+        keyframesRun = (attr, element, time, prev, prevcallback) ->
+          dif = time - prev
+          element.timeouts.push(setTimeout(->
+            R.is(prevcallback, "function") and prevcallback.call(element)
+            element.animate(attr, dif, attr.easing)
+          , prev))
+      for i in [0..attrs.length - 1]
+        keyframesRun(attrs[i].value, element, ms / 100 * attrs[i].key, ms / 100 * (attrs[i - 1] and attrs[i - 1].key or 0), attrs[i - 1] and attrs[i - 1].value.callback)
+      lastcall = attrs[attrs.length - 1].value.callback
+      if lastcall
+        element.timeouts.push(setTimeout(->
+          lastcall.call(element)
+        , ms))
+    else
+      easyeasy = R.easing_formulas[easing]
+      if !easyeasy
+        easyeasy = String(easing).match(bezierrg)
+        if easyeasy and easyeasy.length == 5
+          curve = easyeasy
+          easyeasy = (t) ->
+            @cubicBezierAtTime(t, +curve[1], +curve[2], +curve[3], +curve[4], ms)
+        else
+          easyeasy = (t) ->
+            t
+      RaphaelNew.animationElements.push(
+        start: params.start or +new Date
+        ms: ms
+        easing: easyeasy
+        from: from
+        diff: diff
+        to: to
+        el: element
+        t: { x: 0, y: 0 }
+      )
+      if R.is(callback, "function")
+        element._ac = setTimeout(->
+          callback.call(element)
+        , ms)
+      setTimeout(RaphaelNew.animation) if RaphaelNew.animationElements.length == 1
+    this
+
+  stop: ->
+    for index, animationElement of RaphaelNew.animationElements
+      RaphaelNew.animationElements.splice(index, 1) if animationElement.el.id == this.id
+    if this.timeouts
+      for i in [0..this.timeouts.length - 1]
+        clearTimeout(this.timeouts[i])
+    this.timeouts = []
+    clearTimeout(this._ac)
+    delete this._ac
+    this
 
 if RaphaelNew.type == "SVG"
   $ = (el, attr) ->
@@ -2395,150 +2735,6 @@ Raphael = (->
     a = getSubpathsAtLength(@attrs.path, to, 1)
     if from then getSubpathsAtLength(a, from).end else a
 
-  # animation easing formulas
-  R.easing_formulas =
-    linear: (n) ->
-      n
-
-    "<": (n) ->
-      Math.pow(n, 3)
-
-    ">": (n) ->
-      Math.pow(n - 1, 3) + 1
-
-    "<>": (n) ->
-      n = n * 2
-      if n < 1
-        return Math.pow(n, 3) / 2
-      n -= 2
-      (Math.pow(n, 3) + 2) / 2
-
-    backIn: (n) ->
-      s = 1.70158
-      n * n * ((s + 1) * n - s)
-
-    backOut: (n) ->
-      n = n - 1
-      s = 1.70158
-      n * n * ((s + 1) * n + s) + 1
-
-    elastic: (n) ->
-      if n == 0 or n == 1
-        return n
-      p = .3
-      s = p / 4
-      Math.pow(2, -10 * n) * Math.sin((n - s) * (2 * Math.PI) / p) + 1
-
-    bounce: (n) ->
-      s = 7.5625
-      p = 2.75
-      if n < (1 / p)
-        l = s * n * n
-      else
-        if n < (2 / p)
-          n -= (1.5 / p)
-          l = s * n * n + .75
-        else
-          if n < (2.5 / p)
-            n -= (2.25 / p)
-            l = s * n * n + .9375
-          else
-            n -= (2.625 / p)
-            l = s * n * n + .984375
-      l
-
-  animationElements = []
-  animation = ->
-    Now = +new Date
-    for l in [0..animationElements.length - 1]
-      e = animationElements[l]
-      if e.stop or e.el.removed
-        continue
-      time = Now - e.start
-      ms = e.ms
-      easing = e.easing
-      from = e.from
-      diff = e.diff
-      to = e.to
-      t = e.t
-      that = e.el
-      set = {}
-      if time < ms
-        pos = easing(time / ms)
-        for attr of from
-          switch availableAnimAttrs[attr]
-            when "along"
-              now = pos * ms * diff[attr]
-              now = to.len - now if to.back
-              point = getPointAtLength(to[attr], now)
-              that.translate(diff.sx - diff.x or 0, diff.sy - diff.y or 0)
-              diff.x = point.x
-              diff.y = point.y
-              that.translate(point.x - diff.sx, point.y - diff.sy)
-              that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
-            when "number"
-              now = +from[attr] + pos * ms * diff[attr]
-            when "colour"
-              now = "rgb(" + [
-                  upto255(Math.round(from[attr].red + pos * ms * diff[attr].red)),
-                  upto255(Math.round(from[attr].green + pos * ms * diff[attr].green)),
-                  upto255(Math.round(from[attr].blue + pos * ms * diff[attr].blue))
-              ].join(",") + ")"
-            when "path"
-              now = []
-              for i of from[attr]
-                now[i] = [from[attr][i][0]]
-                for j of from[attr][i]
-                  if j >= 1
-                    now[i][j] = +from[attr][i][j] + pos * ms * diff[attr][i][j]
-                now[i] = now[i].join(" ")
-              now = now.join(" ")
-            when "csv"
-              switch attr
-                when "translation"
-                  x = pos * ms * diff[attr][0] - t.x
-                  y = pos * ms * diff[attr][1] - t.y
-                  t.x += x
-                  t.y += y
-                  now = x + ' ' + y
-                when "rotation"
-                  now = +from[attr][0] + pos * ms * diff[attr][0]
-                  now += "," + from[attr][1] + "," + from[attr][2] if from[attr][1]
-                when "scale"
-                  now = [+from[attr][0] + pos * ms * diff[attr][0], +from[attr][1] + pos * ms * diff[attr][1], (if to[attr][2]? then to[attr][2] else ""), (if to[attr][3]? then to[attr][3] else "")].join(" ")
-                when "clip-rect"
-                  now = []
-                  i = 4
-                  while i--
-                    now[i] = +from[attr][i] + pos * ms * diff[attr][i]
-            else
-              from2 = [].concat(from[attr])
-              now = []
-              i = that.paper.customAttributes[attr].length
-              while i--
-                now[i] = +from2[i] + pos * ms * diff[attr][i]
-          set[attr] = now
-        that.attr(set)
-        that._run.call(that) if that._run
-      else
-        if to.along
-          point = getPointAtLength(to.along, to.len * !to.back)
-          that.translate(diff.sx - (diff.x || 0) + point.x - diff.sx, diff.sy - (diff.y || 0) + point.y - diff.sy)
-          that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
-        (t.x or t.y) and that.translate(-t.x, -t.y)
-        to.scale += "" if to.scale
-        that.attr(to)
-        animationElements.splice(l--, 1)
-    that.paper.safari() if R.svg and that and that.paper
-    setTimeout(animation) if animationElements.length
-
-  keyframesRun = (attr, element, time, prev, prevcallback) ->
-    dif = time - prev
-    element.timeouts.push(setTimeout(->
-      R.is(prevcallback, "function") and prevcallback.call(element)
-      element.animate(attr, dif, attr.easing)
-    , prev))
-
   upto255 = (color) ->
     Math.max(Math.min(color, 255), 0)
 
@@ -2558,202 +2754,6 @@ Raphael = (->
         path[0][2] += +y
         this.attr({ path: path })
     this
-
-  Element::animateWith = (element, params, ms, easing, callback) ->
-    params.start = animationElements[element.id].start if animationElements[element.id]
-    @animate(params, ms, easing, callback)
-
-  along = (isBack) ->
-    return (path, ms, rotate, callback) ->
-      params = { back: isBack }
-      if R.is(rotate, "function") then (callback = rotate) else (params.rot = rotate)
-      path = path.attrs.path if path and path.constructor == Element
-      params.along = path if path
-      this.animate(params, ms, callback)
-
-  Element::animateAlong = along()
-  Element::animateAlongBack = along(1)
-
-  CubicBezierAtTime = (t, p1x, p1y, p2x, p2y, duration) ->
-    cx = 3 * p1x
-    bx = 3 * (p2x - p1x) - cx
-    ax = 1 - cx - bx
-    cy = 3 * p1y
-    _by = 3 * (p2y - p1y) - cy # by is reserved in CoffeeScript
-    ay = 1 - cy - _by
-    sampleCurveX = (t) ->
-      ((ax * t + bx) * t + cx) * t
-    solve = (x, epsilon) ->
-      t = solveCurveX(x, epsilon)
-      ((ay * t + _by) * t + cy) * t
-    solveCurveX = (x, epsilon) ->
-      t2 = x
-      for i in [0..7]
-        x2 = sampleCurveX(t2) - x
-        if abs(x2) < epsilon
-          return t2
-        d2 = (3 * ax * t2 + 2 * bx) * t2 + cx
-        if abs(d2) < 1e-6
-          break
-        t2 = t2 - x2 / d2
-      t0 = 0
-      t1 = 1
-      t2 = x
-      if t2 < t0
-        return t0
-      if t2 > t1
-        return t1
-      while t0 < t1
-          x2 = sampleCurveX(t2)
-          if abs(x2 - x) < epsilon
-            return t2
-          if x > x2
-            t0 = t2
-          else
-            t1 = t2
-          t2 = (t1 - t0) / 2 + t0
-      t2
-    solve(t, 1 / (200 * duration))
-
-  Element::onAnimation = (f) ->
-    @_run = f or 0
-    this
-
-  Element::animate = (params, ms, easing, callback) ->
-    element = this
-    element.timeouts = element.timeouts or []
-    if R.is(easing, "function") or !easing
-      callback = easing or null
-    if element.removed
-      callback.call(element) if callback
-      return element
-    from = {}
-    to = {}
-    diff = {}
-    animateable = false
-    for attr, name of params
-      if availableAnimAttrs.hasOwnProperty(attr) or element.paper.customAttributes.hasOwnProperty(attr)
-        animateable = true
-        from[attr] = element.attr(attr)
-        from[attr] = availableAttrs[attr] if !from[attr]?
-        to[attr] = params[attr]
-        switch availableAnimAttrs[attr]
-          when "along"
-            len = getTotalLength(params[attr])
-            point = getPointAtLength(params[attr], len * !!params.back)
-            bb = element.getBBox()
-            diff[attr] = len / ms
-            diff.tx = bb.x
-            diff.ty = bb.y
-            diff.sx = point.x
-            diff.sy = point.y
-            to.rot = params.rot
-            to.back = params.back
-            to.len = len
-            diff.r = parseFloat(element.rotate()) or 0 if params.rot
-          when "number"
-            diff[attr] = (to[attr] - from[attr]) / ms
-          when "colour"
-            from[attr] = new Colour(from[attr]).toRGB()
-            toColour = new Colour(to[attr]).toRGB()
-            diff[attr] = new RGB((toColour.red - from[attr].red) / ms, (toColour.green - from[attr].green) / ms, (toColour.blue - from[attr].blue) / ms)
-          when "path"
-            pathes = pathToCurve(from[attr], to[attr])
-            from[attr] = pathes[0]
-            toPath = pathes[1]
-            diff[attr] = []
-            for i of from[attr]
-              diff[attr][i] = [0]
-              for j of from[attr][i]
-                if j >= 1
-                  diff[attr][i][j] = (toPath[i][j] - from[attr][i][j]) / ms
-          when "csv"
-            values = String(params[attr]).split(RaphaelNew.separator)
-            from2 = String(from[attr]).split(RaphaelNew.separator)
-            switch attr
-              when "translation"
-                from[attr] = [0, 0]
-                diff[attr] = [values[0] / ms, values[1] / ms]
-              when "rotation"
-                from[attr] = if (from2[1] == values[1] and from2[2] == values[2]) then from2 else [0, values[1], values[2]]
-                diff[attr] = [(values[0] - from[attr][0]) / ms, 0, 0]
-              when "scale"
-                params[attr] = values
-                from[attr] = String(from[attr]).split(RaphaelNew.separator)
-                diff[attr] = [(values[0] - from[attr][0]) / ms, (values[1] - from[attr][1]) / ms, 0, 0]
-              when "clip-rect"
-                from[attr] = String(from[attr]).split(RaphaelNew.separator)
-                diff[attr] = []
-                i = 4
-                while i--
-                  diff[attr][i] = (values[i] - from[attr][i]) / ms
-            to[attr] = values
-          else
-            values = [].concat(params[attr])
-            from2 = [].concat(from[attr])
-            diff[attr] = []
-            i = element.paper.customAttributes[attr].length
-            while i--
-              diff[attr][i] = ((values[i] || 0) - (from2[i] || 0)) / ms
-    if !animateable
-      attrs = []
-      for key of params
-        if animKeyFrames.test(key)
-          attr = { value: params[key] }
-          key = 0 if key == "from"
-          key = 100 if key == "to"
-          attr.key = parseInt(key, 10)
-          attrs.push(attr)
-      attrs.sort(sortByKey)
-      if attrs[0].key
-        attrs.unshift({ key: 0, value: element.attrs })
-      for i in [0..attrs.length - 1]
-        keyframesRun(attrs[i].value, element, ms / 100 * attrs[i].key, ms / 100 * (attrs[i - 1] and attrs[i - 1].key or 0), attrs[i - 1] and attrs[i - 1].value.callback)
-      lastcall = attrs[attrs.length - 1].value.callback
-      if lastcall
-        element.timeouts.push(setTimeout(->
-          lastcall.call(element)
-        , ms))
-    else
-      easyeasy = R.easing_formulas[easing]
-      if !easyeasy
-        easyeasy = String(easing).match(bezierrg)
-        if easyeasy and easyeasy.length == 5
-          curve = easyeasy
-          easyeasy = (t) ->
-            CubicBezierAtTime(t, +curve[1], +curve[2], +curve[3], +curve[4], ms)
-        else
-          easyeasy = (t) ->
-            t
-      animationElements.push(
-        start: params.start or +new Date
-        ms: ms
-        easing: easyeasy
-        from: from
-        diff: diff
-        to: to
-        el: element
-        t: { x: 0, y: 0 }
-      )
-      if R.is(callback, "function")
-        element._ac = setTimeout(->
-          callback.call(element)
-        , ms)
-      setTimeout(animation) if animationElements.length == 1
-    this
-
-  Element::stop = ->
-    for index, animationElement of animationElements
-      animationElements.splice(index, 1) if animationElement.el.id == this.id
-    if this.timeouts
-      for i in [0..this.timeouts.length - 1]
-        clearTimeout(this.timeouts[i])
-    this.timeouts = []
-    clearTimeout(this._ac)
-    delete this._ac
-    this
-
-  R.ae = animationElements
 
   class Set
     constructor: (items) ->
