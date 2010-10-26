@@ -212,6 +212,102 @@ class RaphaelNew
     data.toString = @_path2string
     data
 
+  preventDefault: ->
+    this.returnValue = false
+
+  preventTouch: ->
+    this.originalEvent.preventDefault()
+
+  stopPropagation: ->
+    this.cancelBubble = true
+
+  stopTouch: ->
+    this.originalEvent.stopPropagation()
+
+  @drag: []
+
+  dragMove: (e) ->
+    x = e.clientX
+    y = e.clientY
+    scrollY = document.documentElement.scrollTop or document.body.scrollTop
+    scrollX = document.documentElement.scrollLeft or document.body.scrollLeft
+    j = @drag.length
+    while j--
+      dragi = @drag[j]
+      if @supportsTouch
+        i = e.touches.length
+        while i--
+          touch = e.touches[i]
+          if touch.identifier == dragi.el._drag.id
+            x = touch.clientX
+            y = touch.clientY
+            (if e.originalEvent then e.originalEvent else e).preventDefault()
+            break
+      else
+        e.preventDefault()
+      x += scrollX
+      y += scrollY
+      dragi.move and dragi.move.call(dragi.move_scope or dragi.el, x - dragi.el._drag.x, y - dragi.el._drag.y, x, y, e)
+
+  dragUp: (e) ->
+    RaphaelNew.unmousemove(dragMove).unmouseup(dragUp)
+    i = @drag.length
+    while i--
+      dragi = @drag[i]
+      dragi.el._drag = {}
+      dragi.end and dragi.end.call(dragi.end_scope or dragi.start_scope or dragi.move_scope or dragi.el, e)
+    @drag = []
+
+if document.addEventListener
+  RaphaelNew::addEvent = (obj, type, fn, element) ->
+    realName = if @supportsTouch and @touchMap[type] then @touchMap[type] else type
+    f = (e) ->
+      if @supportsTouch and @touchMap.hasOwnProperty(type)
+        for i in [0..(e.targetTouches and e.targetTouches.length - 1)]
+          if e.targetTouches[i].target == obj
+            olde = e
+            e = e.targetTouches[i]
+            e.originalEvent = olde
+            e.preventDefault = @preventTouch
+            e.stopPropagation = @stopTouch
+            break
+      fn.call(element, e)
+    obj.addEventListener(realName, f, false)
+    ->
+      obj.removeEventListener(realName, f, false)
+      true
+else if document.attachEvent
+  RaphaelNew::addEvent = (obj, type, fn, element) ->
+    f = (e) ->
+      e = e || window.event
+      e.preventDefault = e.preventDefault || @preventDefault
+      e.stopPropagation = e.stopPropagation || @stopPropagation
+      fn.call(element, e)
+    obj.attachEvent("on" + type, f)
+    detacher = ->
+      obj.detachEvent("on" + type, f)
+      true
+    detacher
+
+for event in RaphaelNew.events
+  ((eventName) ->
+    RaphaelNew[eventName] = Element.prototype[eventName] = (fn, scope) ->
+      if RaphaelNew.is(fn, "function")
+        this.events = this.events || []
+        this.events.push({ name: eventName, f: fn, unbind: addEvent(this.shape || this.node || document, eventName, fn, scope || this) })
+      this
+    RaphaelNew["un" + eventName] = Element.prototype["un" + eventName] = (fn) ->
+      events = this.events
+      l = events.length
+      while l--
+        if events[l].name == eventName and events[l].f == fn
+          events[l].unbind()
+          events.splice(l, 1)
+          delete this.events if !events.length
+          this
+      this
+  )(event)
+
 class Element extends RaphaelNew
   tear: (paper) ->
     paper.top = @prev if this == paper.top
@@ -388,6 +484,33 @@ class Element extends RaphaelNew
 
   toString: ->
     "Rapha\xebl\u2019s object"
+
+  hover: (f_in, f_out, scope_in, scope_out) ->
+    @mouseover(f_in, scope_in).mouseout(f_out, scope_out || scope_in)
+
+  unhover: (f_in, f_out) ->
+    @unmouseover(f_in).unmouseout(f_out)
+
+  drag: (onmove, onstart, onend, move_scope, start_scope, end_scope) ->
+    @_drag = {}
+    @mousedown((e) ->
+      (e.originalEvent || e).preventDefault()
+      scrollY = document.documentElement.scrollTop or document.body.scrollTop
+      scrollX = document.documentElement.scrollLeft or document.body.scrollLeft
+      @_drag.x = e.clientX + scrollX
+      @_drag.y = e.clientY + scrollY
+      @_drag.id = e.identifier
+      onstart.call(start_scope or move_scope or this, e.clientX + scrollX, e.clientY + scrollY, e) if onstart
+      RaphaelNew.mousemove(dragMove).mouseup(dragUp) if !drag.length
+      drag.push({ el: this, move: onmove, end: onend, move_scope: move_scope, start_scope: start_scope, end_scope: end_scope })
+    )
+    this
+
+  undrag: (onmove, onstart, onend) ->
+    i = drag.length
+    while i--
+      drag[i].el == this and (drag[i].move == onmove and drag[i].end == onend) and drag.splice(i, 1)
+    RaphaelNew.unmousemove(dragMove).unmouseup(dragUp) if !drag.length
 
 if RaphaelNew.type == "SVG"
   $ = (el, attr) ->
@@ -2163,130 +2286,6 @@ Raphael = (->
       )
   else
     Paper::safari = ->
-
-  preventDefault = ->
-    this.returnValue = false
-
-  preventTouch = ->
-    this.originalEvent.preventDefault()
-
-  stopPropagation = ->
-    this.cancelBubble = true
-
-  stopTouch = ->
-    this.originalEvent.stopPropagation()
-
-  addEvent = (->
-    if document.addEventListener
-      (obj, type, fn, element) ->
-        realName = if supportsTouch and touchMap[type] then touchMap[type] else type
-        f = (e) ->
-          if supportsTouch and touchMap.hasOwnProperty(type)
-            for i in [0..(e.targetTouches and e.targetTouches.length - 1)]
-              if e.targetTouches[i].target == obj
-                olde = e
-                e = e.targetTouches[i]
-                e.originalEvent = olde
-                e.preventDefault = preventTouch
-                e.stopPropagation = stopTouch
-                break
-          fn.call(element, e)
-        obj.addEventListener(realName, f, false)
-        ->
-          obj.removeEventListener(realName, f, false)
-          true
-    else if document.attachEvent
-      (obj, type, fn, element) ->
-        f = (e) ->
-          e = e || window.event
-          e.preventDefault = e.preventDefault || preventDefault
-          e.stopPropagation = e.stopPropagation || stopPropagation
-          fn.call(element, e)
-        obj.attachEvent("on" + type, f)
-        detacher = ->
-          obj.detachEvent("on" + type, f)
-          true
-        detacher
-  )()
-
-  drag = []
-  dragMove = (e) ->
-    x = e.clientX
-    y = e.clientY
-    scrollY = document.documentElement.scrollTop or document.body.scrollTop
-    scrollX = document.documentElement.scrollLeft or document.body.scrollLeft
-    j = drag.length
-    while j--
-      dragi = drag[j]
-      if supportsTouch
-        i = e.touches.length
-        while i--
-          touch = e.touches[i]
-          if touch.identifier == dragi.el._drag.id
-            x = touch.clientX
-            y = touch.clientY
-            (if e.originalEvent then e.originalEvent else e).preventDefault()
-            break
-      else
-        e.preventDefault()
-      x += scrollX
-      y += scrollY
-      dragi.move and dragi.move.call(dragi.move_scope or dragi.el, x - dragi.el._drag.x, y - dragi.el._drag.y, x, y, e)
-
-  dragUp = (e) ->
-    R.unmousemove(dragMove).unmouseup(dragUp)
-    i = drag.length
-    while i--
-      dragi = drag[i]
-      dragi.el._drag = {}
-      dragi.end and dragi.end.call(dragi.end_scope or dragi.start_scope or dragi.move_scope or dragi.el, e)
-    drag = []
-
-  for event in events
-    ((eventName) ->
-      R[eventName] = Element.prototype[eventName] = (fn, scope) ->
-        if R.is(fn, "function")
-          this.events = this.events || []
-          this.events.push({ name: eventName, f: fn, unbind: addEvent(this.shape || this.node || document, eventName, fn, scope || this) })
-        this
-      R["un" + eventName] = Element.prototype["un" + eventName] = (fn) ->
-        events = this.events
-        l = events.length
-        while l--
-          if events[l].name == eventName and events[l].f == fn
-            events[l].unbind()
-            events.splice(l, 1)
-            delete this.events if !events.length
-            this
-        this
-    )(event)
-
-  Element::hover = (f_in, f_out, scope_in, scope_out) ->
-    @mouseover(f_in, scope_in).mouseout(f_out, scope_out || scope_in)
-
-  Element::unhover = (f_in, f_out) ->
-    @unmouseover(f_in).unmouseout(f_out)
-
-  Element::drag = (onmove, onstart, onend, move_scope, start_scope, end_scope) ->
-    @_drag = {}
-    @mousedown((e) ->
-      (e.originalEvent || e).preventDefault()
-      scrollY = document.documentElement.scrollTop or document.body.scrollTop
-      scrollX = document.documentElement.scrollLeft or document.body.scrollLeft
-      @_drag.x = e.clientX + scrollX
-      @_drag.y = e.clientY + scrollY
-      @_drag.id = e.identifier
-      onstart.call(start_scope or move_scope or this, e.clientX + scrollX, e.clientY + scrollY, e) if onstart
-      R.mousemove(dragMove).mouseup(dragUp) if !drag.length
-      drag.push({ el: this, move: onmove, end: onend, move_scope: move_scope, start_scope: start_scope, end_scope: end_scope })
-    )
-    this
-
-  Element::undrag = (onmove, onstart, onend) ->
-    i = drag.length
-    while i--
-      drag[i].el == this and (drag[i].move == onmove and drag[i].end == onend) and drag.splice(i, 1)
-    R.unmousemove(dragMove).unmouseup(dragUp) if !drag.length
 
   Paper::circle = (x, y, r) ->
     new Circle(this, x, y, r)
