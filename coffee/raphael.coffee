@@ -45,13 +45,10 @@ class RaphaelNew
   @commaSpaces: /\s*,\s*/
   @hsrg: { hs: 1, rg:  1}
   @p2s: /,?([achlmqrstvxz]),?/gi
-  @pathCommand: /([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig
-  @pathValues: /(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig
   @radial_gradient: /^r(?:\(([^,]+?)\s*,\s*([^\)]+?)\))?/
   @supportsTouch: "createTouch" in document
   @touchMap: { mousedown: "touchstart", mousemove: "touchmove", mouseup: "touchend" }
-
-  is: (object, type) ->
+  @is: (object, type) ->
     type: String.prototype.toLowerCase.call(type)
     if type == "finite"
       return !RaphaelNew.isnan.hasOwnProperty(+object)
@@ -61,6 +58,9 @@ class RaphaelNew
     (type == "array" and Array.isArray and Array.isArray(object)) ||
     Object.prototype.toString.call(object).slice(8, -1).toLowerCase() == type
 
+  is: (object, type) ->
+    Raphael.is(object, type)
+
   format: (token, params) ->
     formatrg = /\{(\d+)\}/g
     args = if @is(params, "array") then [0].concat(params) else arguments
@@ -69,148 +69,6 @@ class RaphaelNew
         if !args[++i]? then '' else args[i]
     )
     token or ""
-
-  pathToRelative: (pathArray) ->
-    if (!@is(pathArray, "array") || !@is(pathArray && pathArray[0], "array")) # rough assumption
-      pathArray = @parsePathString(pathArray)
-    res = []
-    x = y = mx = my = start = 0
-    if pathArray[0][0] == "M"
-      mx = x = pathArray[0][1]
-      my = y = pathArray[0][2]
-      start++
-      res.push ["M", x, y]
-    for i of pathArray
-      if i >= start
-        r = res[i] = []
-        path = pathArray[i]
-        if path[0] != String.prototype.toLowerCase.call(path[0])
-          r[0] = String.prototype.toLowerCase.call(path[0])
-          switch r[0]
-            when "a"
-              r[1] = path[1]
-              r[2] = path[2]
-              r[3] = path[3]
-              r[4] = path[4]
-              r[5] = path[5]
-              r[6] = +(path[6] - x).toFixed(3)
-              r[7] = +(path[7] - y).toFixed(3)
-            when "v"
-              r[1] = +(path[1] - y).toFixed(3)
-            else
-              if r[0] =="m"
-                mx = path[1]
-                my = path[2]
-              for j of path
-                if j >= 1
-                  r[j] = +(path[j] - (if j % 2 then x else y)).toFixed(3)
-        else
-          if path[0] == "m"
-            mx = path[1] + x
-            my = path[2] + y
-          for k of path
-            res[i][k] = path[k]
-        len = res[i].length
-        switch res[i][0]
-          when "z"
-            x = mx
-            y = my
-          when "h"
-            x += +res[i][len - 1]
-          when "v"
-            y += +res[i][len - 1]
-          else
-            x += +res[i][len - 2]
-            y += +res[i][len - 1]
-    res.toString = RaphaelNew._path2string
-    res
-
-  pathToAbsolute: (pathArray) ->
-    if (!@is(pathArray, "array") || !@is(pathArray && pathArray[0], "array")) # rough assumption
-      pathArray = @parsePathString(pathArray)
-    res = []
-    x = y = mx = my = start = 0
-    if pathArray[0][0] == "M"
-      mx = x = +pathArray[0][1]
-      my = y = +pathArray[0][2]
-      start++
-      res[0] = ["M", x, y]
-    for i of pathArray
-      if i >= start
-        r = res[i] = []
-        path = pathArray[i]
-        if path[0] != String.prototype.toUpperCase.call(path[0])
-          r[0] = String.prototype.toUpperCase.call(path[0])
-          switch r[0]
-            when "A"
-              r[1] = path[1]
-              r[2] = path[2]
-              r[3] = path[3]
-              r[4] = path[4]
-              r[5] = path[5]
-              r[6] = +(path[6] + x)
-              r[7] = +(path[7] + y)
-            when "V"
-              r[1] = +(path[1] + y)
-            when "H"
-              r[1] = +(path[1] + x)
-            else
-              if r[0] == "M"
-                mx = +path[1] + x
-                my = +path[2] + y
-              for j of path
-                if j >= 1
-                  r[j] = +path[j] + (if j % 2 then x else y)
-        else
-          for k of path
-            res[i][k] = path[k]
-        len = res[i].length
-        switch r[0]
-          when "Z"
-            x = mx
-            y = my
-          when "H"
-            x = r[1]
-          when "V"
-            y = r[1]
-          when "M"
-            x = mx = res[i][len - 2]
-            y = my = res[i][len - 1]
-          else
-            x = res[i][len - 2]
-            y = res[i][len - 1]
-    res.toString = @_path2string
-    res
-
-  _path2string: ->
-    this.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
-
-  # TODO: Looks like this should be a Path class
-  parsePathString: (pathString) ->
-    if !pathString?
-      return null
-    paramCounts = { a: 7, c: 6, h: 1, l: 2, m: 2, q: 4, s: 4, t: 2, v: 1, z: 0 }
-    data = []
-    if @is(pathString, "array") and @is(pathString[0], "array")
-      data = this.pathClone(pathString)
-    if !data.length
-      String(pathString).replace(RaphaelNew.pathCommand, ((a, b, c) ->
-        params = []
-        name = String.prototype.toLowerCase.call(b)
-        c.replace(RaphaelNew.pathValues, ((a, b) ->
-          b and params.push(+b)
-        ))
-        if name == "m" and params.length > 2
-          data.push([b].concat(params.splice(0, 2)))
-          name = "1"
-          b = if b == "m" then "l" else "L"
-        while params.length >= paramCounts[name]
-          data.push([b].concat(params.splice(0, paramCounts[name])))
-          if !paramCounts[name]
-            break
-      ))
-    data.toString = @_path2string
-    data
 
   preventDefault: ->
     this.returnValue = false
@@ -547,20 +405,20 @@ class Element extends RaphaelNew
             y: ncy
           )
         when "path"
-          path = pathToRelative(a.path)
+          @toRelative()
           skip = true
           fx = if posx then dkx else kx
           fy = if posy then dky else ky
-          for value, i in path
-            p = path[i]
+          for value, i in @attrs.path
+            p = @attrs.path[i]
             P0 = String.prototype.toUpperCase.call(p[0])
             if P0 == "M" and skip
               continue
             else
               skip = false
             if P0 == "A"
-              p[path[i].length - 2] *= fx
-              p[path[i].length - 1] *= fy
+              p[@attrs.path[i].length - 2] *= fx
+              p[@attrs.path[i].length - 1] *= fy
               p[1] *= kx
               p[2] *= ky
               p[5] = +(if dirx + diry then !!+p[5] else !+p[5])
@@ -579,9 +437,9 @@ class Element extends RaphaelNew
           dim2 = pathDimensions(path)
           dx = ncx - dim2.x - dim2.width / 2
           dy = ncy - dim2.y - dim2.height / 2
-          path[0][1] += dx
-          path[0][2] += dy
-          @attr { path: path }
+          @attrs.path[0][1] += dx
+          @attrs.path[0][2] += dy
+          @attr { path: @attrs.path }
       # TODO: Array find would be good
       if (@type == "text" or @type == "image") and (dirx != 1 or diry != 1)
           if @transformations
@@ -1119,7 +977,7 @@ if RaphaelNew.type == "SVG"
               delete @clip
           when "path"
             if (@type == "path")
-              $(@node, { d: if value then @attrs.path = @pathToAbsolute(value) else "M0,0" })
+              @node.setAttribute(att, String(value))
           when "width"
             @node.setAttribute(att, value)
             if @attrs.fx
@@ -1432,7 +1290,8 @@ if RaphaelNew.type == "SVG"
       el = $(@type)
       svg.canvas.appendChild(el) if svg.canvas
       super(el, svg)
-      @setFillAndStroke({ fill: "none", stroke: "#000000", path: pathString })
+      @attrs = { path: Path.parse(pathString), fill: "none", stroke: "#000000" }
+      @setFillAndStroke(@attrs)
       this
 
 else
@@ -1992,14 +1851,149 @@ else
       el.coordorigin = vml.coordorigin
       g.appendChild(el)
       p = new Element(el, g, vml)
-      attr = { fill: "none", stroke: "#000" }
-      attr.path = pathString if pathString
+      attr = { path: Path.parse(pathString), fill: "none", stroke: "#000" }
       p.type = "path"
       p.path = []
       p.Path = ""
       @setFillAndStroke(attr)
       vml.canvas.appendChild(g)
       p
+
+Path.parse = (rawData) ->
+  if !rawData?
+    [['m', 0, 0]]
+  else if RaphaelNew.is(rawData, "array") && RaphaelNew.is(rawData[0], "array") # rough assumption
+    rawData
+  else
+    paramCounts = { a: 7, c: 6, h: 1, l: 2, m: 2, q: 4, s: 4, t: 2, v: 1, z: 0 }
+    data = []
+    String(rawData).replace(/([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig, ((a, b, c) ->
+      params = []
+      name = String.prototype.toLowerCase.call(b)
+      c.replace(/(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig, ((a, b) ->
+        b and params.push(+b)
+      ))
+      if name == "m" and params.length > 2
+        data.push([b].concat(params.splice(0, 2)))
+        name = "1"
+        b = if b == "m" then "l" else "L"
+      while params.length >= paramCounts[name]
+        data.push([b].concat(params.splice(0, paramCounts[name])))
+        if !paramCounts[name]
+          break
+    ))
+    data
+
+Path::toString = ->
+  @attrs.path.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
+
+Path::toRelative = ->
+  res = []
+  x = y = mx = my = start = 0
+  if @attrs.path[0][0] == "M"
+    mx = x = @attrs.path[0][1]
+    my = y = @attrs.path[0][2]
+    start++
+    res.push ["M", x, y]
+  for i of @attrs.path
+    if i >= start
+      r = res[i] = []
+      command = @attrs.path[i]
+      if command[0] != String.prototype.toLowerCase.call(command[0])
+        r[0] = String.prototype.toLowerCase.call(command[0])
+        switch r[0]
+          when "a"
+            r[1] = command[1]
+            r[2] = command[2]
+            r[3] = command[3]
+            r[4] = command[4]
+            r[5] = command[5]
+            r[6] = +(command[6] - x).toFixed(3)
+            r[7] = +(command[7] - y).toFixed(3)
+          when "v"
+            r[1] = +(command[1] - y).toFixed(3)
+          else
+            if r[0] =="m"
+              mx = command[1]
+              my = command[2]
+            for j of command
+              if j >= 1
+                r[j] = +(command[j] - (if j % 2 then x else y)).toFixed(3)
+      else
+        if command[0] == "m"
+          mx = command[1] + x
+          my = command[2] + y
+        for k of command
+          res[i][k] = command[k]
+      len = res[i].length
+      switch res[i][0]
+        when "z"
+          x = mx
+          y = my
+        when "h"
+          x += +res[i][len - 1]
+        when "v"
+          y += +res[i][len - 1]
+        else
+          x += +res[i][len - 2]
+          y += +res[i][len - 1]
+  @attrs.path = res
+  this
+
+Path::toAbsolute = ->
+  res = []
+  x = y = mx = my = start = 0
+  if @attrs.path[0][0] == "M"
+    mx = x = +@attrs.path[0][1]
+    my = y = +@attrs.path[0][2]
+    start++
+    res[0] = ["M", x, y]
+  for i of @attrs.path
+    if i >= start
+      r = res[i] = []
+      command = @attrs.path[i]
+      if command[0] != String.prototype.toUpperCase.call(command[0])
+        r[0] = String.prototype.toUpperCase.call(command[0])
+        switch r[0]
+          when "A"
+            r[1] = command[1]
+            r[2] = command[2]
+            r[3] = command[3]
+            r[4] = command[4]
+            r[5] = command[5]
+            r[6] = +(command[6] + x)
+            r[7] = +(command[7] + y)
+          when "V"
+            r[1] = +(command[1] + y)
+          when "H"
+            r[1] = +(command[1] + x)
+          else
+            if r[0] == "M"
+              mx = +command[1] + x
+              my = +command[2] + y
+            for j of command
+              if j >= 1
+                r[j] = +command[j] + (if j % 2 then x else y)
+      else
+        for k of command
+          res[i][k] = command[k]
+      len = res[i].length
+      switch r[0]
+        when "Z"
+          x = mx
+          y = my
+        when "H"
+          x = r[1]
+        when "V"
+          y = r[1]
+        when "M"
+          x = mx = res[i][len - 2]
+          y = my = res[i][len - 1]
+        else
+          x = res[i][len - 2]
+          y = res[i][len - 1]
+  @attrs.path = res
+  this
 
 Raphael = (->
   elements = { circle: 1, rect: 1, path: 1, ellipse: 1, text: 1, image: 1 }
@@ -2015,8 +2009,6 @@ Raphael = (->
   commaSpaces = /\s*,\s*/
   hsrg = { hs: 1, rg:  1}
   p2s = /,?([achlmqrstvxz]),?/gi
-  pathCommand = /([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig
-  pathValues = /(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig
   radial_gradient = /^r(?:\(([^,]+?)\s*,\s*([^\)]+?)\))?/
   supportsTouch = "createTouch" in document
   touchMap =
@@ -2112,9 +2104,6 @@ Raphael = (->
   R.setWindow = (newwin) ->
     win = newwin
     doc = win.document
- 
-  pathCommand = /([achlmqstvz])[\s,]*((-?\d*\.?\d*(?:e[-+]?\d+)?\s*,?\s*)+)/ig
-  pathValues = /(-?\d*\.?\d*(?:e[-+]?\d+)?)\s*,?\s*/ig
   
   R.findDotsAtSegment = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
     t1 = 1 - t
@@ -2306,8 +2295,8 @@ Raphael = (->
   
   # TODO: pathToCurve was originally cached
   pathToCurve = (path, path2) ->
-    p = pathToAbsolute(path)
-    p2 = pathToAbsolute(path2) if path2?
+    p = path.toAbsolute().attrs.path
+    p2 = path2.toAbsolute().attrs.path if path2?
     attrs = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
     attrs2 = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
     processPath = (path, d) ->
@@ -2508,10 +2497,10 @@ Raphael = (->
   if R.type == "VML"
     path2vml = (path) ->
       total = /[ahqstv]/ig
-      command = pathToAbsolute
+      command = "ToAbsolute"
       command = pathToCurve if String(path).match(total)
       total = /[clmz]/g
-      if command == pathToAbsolute and !String(path).match(total)
+      if command == "ToAbsolute" and !String(path).match(total)
         res = String(path).replace(bites, (all, command, args) ->
           vals = []
           isMove = String.prototype.toLowerCase.call(command) == "m"
@@ -2525,7 +2514,7 @@ Raphael = (->
           return res + vals
         )
         res
-      pa = command(path)
+      pa = if command == "ToAbsolute" then path.ToAbsolute().attrs.path else command(path)
       res = []
       for i of pa
         p = pa[i]
@@ -2749,10 +2738,10 @@ Raphael = (->
       when "rect", "image", "text"
         this.attr({x: +x + this.attrs.x, y: +y + this.attrs.y})
       when "path"
-        path = pathToRelative(this.attrs.path)
-        path[0][1] += +x
-        path[0][2] += +y
-        this.attr({ path: path })
+        @toRelative()
+        @attrs.path[0][1] += +x
+        @attrs.path[0][2] += +y
+        @attr { path: @attrs.path }
     this
 
   class Set
