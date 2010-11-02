@@ -1884,6 +1884,100 @@ Path.parse = (rawData) ->
     ))
     data
 
+Path.lineToCurve = (x1, y1, x2, y2) ->
+  [x1, y1, x2, y2, x2, y2]
+
+Path.quadraticToCurve = (x1, y1, ax, ay, x2, y2) ->
+  [ 1 / 3 * x1 + 2 / 3 * ax,
+    1 / 3 * y1 + 2 / 3 * ay,
+    1 / 3 * x2 + 2 / 3 * ax,
+    1 / 3 * y2 + 2 / 3 * ay,
+    x2,
+    y2 ]
+
+Path.arcToCurve = (x1, y1, rx, ry, angle, large_arc_flag, sweep_flag, x2, y2, recursive) ->
+  # for more information of where this math came from visit:
+  # http://www.w3.org/TR/SVG11/implnote.html#ArcImplementationNotes
+  PI = Math.PI
+  _120 = PI * 120 / 180
+  rad = PI / 180 * (+angle || 0)
+  res = []
+  # TODO: rotate was originally cached
+  rotate = (x, y, rad) ->
+    X = x * Math.cos(rad) - y * Math.sin(rad)
+    Y = x * Math.sin(rad) + y * Math.cos(rad)
+    { x: X, y: Y }
+  if !recursive
+    xy = rotate(x1, y1, -rad)
+    x1 = xy.x
+    y1 = xy.y
+    xy = rotate(x2, y2, -rad)
+    x2 = xy.x
+    y2 = xy.y
+    cos = Math.cos(PI / 180 * angle)
+    sin = Math.sin(PI / 180 * angle)
+    x = (x1 - x2) / 2
+    y = (y1 - y2) / 2
+    h = (x * x) / (rx * rx) + (y * y) / (ry * ry)
+    if h > 1
+      h = Math.sqrt(h)
+      rx = h * rx
+      ry = h * ry
+    rx2 = rx * rx
+    ry2 = ry * ry
+    k = (if large_arc_flag == sweep_flag then -1 else 1) *
+            Math.sqrt(Math.abs((rx2 * ry2 - rx2 * y * y - ry2 * x * x) / (rx2 * y * y + ry2 * x * x)))
+    cx = k * rx * y / ry + (x1 + x2) / 2
+    cy = k * -ry * x / rx + (y1 + y2) / 2
+    f1 = Math.asin(((y1 - cy) / ry).toFixed(9))
+    f2 = Math.asin(((y2 - cy) / ry).toFixed(9))
+    f1 = if x1 < cx then PI - f1 else f1
+    f2 = if x2 < cx then PI - f2 else f2
+    if f1 < 0
+      f1 = PI * 2 + f1
+    if f2 < 0
+      f2 = PI * 2 + f2
+    if sweep_flag and f1 > f2
+      f1 = f1 - PI * 2
+    if !sweep_flag and f2 > f1
+      f2 = f2 - PI * 2
+  else
+    f1 = recursive[0]
+    f2 = recursive[1]
+    cx = recursive[2]
+    cy = recursive[3]
+  df = f2 - f1
+  if Math.abs(df) > _120
+    f2old = f2
+    x2old = x2
+    y2old = y2
+    f2 = f1 + _120 * (if sweep_flag && f2 > f1 then 1 else -1)
+    x2 = cx + rx * Math.cos(f2)
+    y2 = cy + ry * Math.sin(f2)
+    res = Path.arcToCurve(x2, y2, rx, ry, angle, 0, sweep_flag, x2old, y2old, [f2, f2old, cx, cy])
+  df = f2 - f1
+  c1 = Math.cos(f1)
+  s1 = Math.sin(f1)
+  c2 = Math.cos(f2)
+  s2 = Math.sin(f2)
+  t = Math.tan(df / 4)
+  hx = 4 / 3 * rx * t
+  hy = 4 / 3 * ry * t
+  m1 = [x1, y1]
+  m2 = [x1 + hx * s1, y1 - hy * c1]
+  m3 = [x2 + hx * s2, y2 - hy * c2]
+  m4 = [x2, y2]
+  m2[0] = 2 * m1[0] - m2[0]
+  m2[1] = 2 * m1[1] - m2[1]
+  if recursive
+    [m2, m3, m4].concat(res)
+  else
+    res = [m2, m3, m4].concat(res).join().split(",")
+    newres = []
+    for i in [0..res.length - 1]
+      newres[i] = if i % 2 then rotate(res[i - 1], res[i], rad).y else rotate(res[i], res[i + 1], rad).x
+    newres
+
 Path::toString = ->
   @attrs.path.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
 
@@ -2156,100 +2250,6 @@ Raphael = (->
     res.toString = R._path2string
     res
   
-  lineToCurve = (x1, y1, x2, y2) ->
-    [x1, y1, x2, y2, x2, y2]
-  
-  quadraticToCurve = (x1, y1, ax, ay, x2, y2) ->
-    [ 1 / 3 * x1 + 2 / 3 * ax,
-      1 / 3 * y1 + 2 / 3 * ay,
-      1 / 3 * x2 + 2 / 3 * ax,
-      1 / 3 * y2 + 2 / 3 * ay,
-      x2,
-      y2 ]
-  
-  arcToCurve = (x1, y1, rx, ry, angle, large_arc_flag, sweep_flag, x2, y2, recursive) ->
-    # for more information of where this math came from visit:
-    # http://www.w3.org/TR/SVG11/implnote.html#ArcImplementationNotes
-    PI = Math.PI
-    _120 = PI * 120 / 180
-    rad = PI / 180 * (+angle || 0)
-    res = []
-    # TODO: rotate was originally cached
-    rotate = (x, y, rad) ->
-      X = x * Math.cos(rad) - y * Math.sin(rad)
-      Y = x * Math.sin(rad) + y * Math.cos(rad)
-      { x: X, y: Y }
-    if !recursive
-      xy = rotate(x1, y1, -rad)
-      x1 = xy.x
-      y1 = xy.y
-      xy = rotate(x2, y2, -rad)
-      x2 = xy.x
-      y2 = xy.y
-      cos = Math.cos(PI / 180 * angle)
-      sin = Math.sin(PI / 180 * angle)
-      x = (x1 - x2) / 2
-      y = (y1 - y2) / 2
-      h = (x * x) / (rx * rx) + (y * y) / (ry * ry)
-      if h > 1
-        h = Math.sqrt(h)
-        rx = h * rx
-        ry = h * ry
-      rx2 = rx * rx
-      ry2 = ry * ry
-      k = (if large_arc_flag == sweep_flag then -1 else 1) *
-              Math.sqrt(Math.abs((rx2 * ry2 - rx2 * y * y - ry2 * x * x) / (rx2 * y * y + ry2 * x * x)))
-      cx = k * rx * y / ry + (x1 + x2) / 2
-      cy = k * -ry * x / rx + (y1 + y2) / 2
-      f1 = Math.asin(((y1 - cy) / ry).toFixed(9))
-      f2 = Math.asin(((y2 - cy) / ry).toFixed(9))
-      f1 = if x1 < cx then PI - f1 else f1
-      f2 = if x2 < cx then PI - f2 else f2
-      if f1 < 0
-        f1 = PI * 2 + f1
-      if f2 < 0
-        f2 = PI * 2 + f2
-      if sweep_flag and f1 > f2
-        f1 = f1 - PI * 2
-      if !sweep_flag and f2 > f1
-        f2 = f2 - PI * 2
-    else
-      f1 = recursive[0]
-      f2 = recursive[1]
-      cx = recursive[2]
-      cy = recursive[3]
-    df = f2 - f1
-    if Math.abs(df) > _120
-      f2old = f2
-      x2old = x2
-      y2old = y2
-      f2 = f1 + _120 * (if sweep_flag && f2 > f1 then 1 else -1)
-      x2 = cx + rx * Math.cos(f2)
-      y2 = cy + ry * Math.sin(f2)
-      res = arcToCurve(x2, y2, rx, ry, angle, 0, sweep_flag, x2old, y2old, [f2, f2old, cx, cy])
-    df = f2 - f1
-    c1 = Math.cos(f1)
-    s1 = Math.sin(f1)
-    c2 = Math.cos(f2)
-    s2 = Math.sin(f2)
-    t = Math.tan(df / 4)
-    hx = 4 / 3 * rx * t
-    hy = 4 / 3 * ry * t
-    m1 = [x1, y1]
-    m2 = [x1 + hx * s1, y1 - hy * c1]
-    m3 = [x2 + hx * s2, y2 - hy * c2]
-    m4 = [x2, y2]
-    m2[0] = 2 * m1[0] - m2[0]
-    m2[1] = 2 * m1[1] - m2[1]
-    if recursive
-      [m2, m3, m4].concat(res)
-    else
-      res = [m2, m3, m4].concat(res).join().split(",")
-      newres = []
-      for i in [0..res.length - 1]
-        newres[i] = if i % 2 then rotate(res[i - 1], res[i], rad).y else rotate(res[i], res[i + 1], rad).x
-      newres
-  
   findDotAtSegment = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
     t1 = 1 - t
     X = Math.pow(t1, 3) * p1x + Math.pow(t1, 2) * 3 * t * c1x + t1 * 3 * t * t * c2x + Math.pow(t, 3) * p2x
@@ -2308,7 +2308,7 @@ Raphael = (->
           d.Y = path[2]
           path
         when "A"
-          ["C"].concat(arcToCurve.apply(0, [d.x, d.y].concat(path.slice(1))))
+          ["C"].concat(Path.arcToCurve.apply(0, [d.x, d.y].concat(path.slice(1))))
         when "S"
           nx = d.x + (d.x - (d.bx || d.x))
           ny = d.y + (d.y - (d.by || d.y))
@@ -2316,19 +2316,19 @@ Raphael = (->
         when "T"
           d.qx = d.x + (d.x - (d.qx || d.x))
           d.qy = d.y + (d.y - (d.qy || d.y))
-          ["C"].concat(quadraticToCurve(d.x, d.y, d.qx, d.qy, path[1], path[2]))
+          ["C"].concat(Path.quadraticToCurve(d.x, d.y, d.qx, d.qy, path[1], path[2]))
         when "Q"
           d.qx = path[1]
           d.qy = path[2]
-          ["C"].concat(quadraticToCurve(d.x, d.y, path[1], path[2], path[3], path[4]))
+          ["C"].concat(Path.quadraticToCurve(d.x, d.y, path[1], path[2], path[3], path[4]))
         when "L"
-          ["C"].concat(lineToCurve(d.x, d.y, path[1], path[2]))
+          ["C"].concat(Path.lineToCurve(d.x, d.y, path[1], path[2]))
         when "H"
-          ["C"].concat(lineToCurve(d.x, d.y, path[1], d.y))
+          ["C"].concat(Path.lineToCurve(d.x, d.y, path[1], d.y))
         when "V"
-          ["C"].concat(lineToCurve(d.x, d.y, d.x, path[1]))
+          ["C"].concat(Path.lineToCurve(d.x, d.y, d.x, path[1]))
         when "Z"
-          ["C"].concat(lineToCurve(d.x, d.y, d.X, d.Y))
+          ["C"].concat(Path.lineToCurve(d.x, d.y, d.X, d.Y))
         else
           path
     fixArc = (pp, i, ii) ->
