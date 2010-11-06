@@ -609,7 +609,7 @@ class Element extends RaphaelNew
             toColour = new Colour(to[attr]).toRGB()
             diff[attr] = new RGB((toColour.red - from[attr].red) / ms, (toColour.green - from[attr].green) / ms, (toColour.blue - from[attr].blue) / ms)
           when "path"
-            pathes = pathToCurve(from[attr], to[attr])
+            pathes = Path.toCurve(from[attr], to[attr])
             from[attr] = pathes[0]
             toPath = pathes[1]
             diff[attr] = []
@@ -1978,6 +1978,127 @@ Path.arcToCurve = (x1, y1, rx, ry, angle, large_arc_flag, sweep_flag, x2, y2, re
       newres[i] = if i % 2 then rotate(res[i - 1], res[i], rad).y else rotate(res[i], res[i + 1], rad).x
     newres
 
+# TODO: toCurve was originally cached
+Path.toCurve = (path, path2) ->
+  p = path.toAbsolute().attrs.path
+  p2 = path2.toAbsolute().attrs.path if path2?
+  attrs = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
+  attrs2 = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
+  processPath = (path, d) ->
+    return ["C", d.x, d.y, d.x, d.y, d.x, d.y] if !path
+    d.qx = d.qy = null if path[0] != 'T' and path[0] != 'Q'
+    switch path[0]
+      when "M"
+        d.X = path[1]
+        d.Y = path[2]
+        path
+      when "A"
+        ["C"].concat(Path.arcToCurve.apply(0, [d.x, d.y].concat(path.slice(1))))
+      when "S"
+        nx = d.x + (d.x - (d.bx || d.x))
+        ny = d.y + (d.y - (d.by || d.y))
+        ["C", nx, ny].concat(path.slice(1))
+      when "T"
+        d.qx = d.x + (d.x - (d.qx || d.x))
+        d.qy = d.y + (d.y - (d.qy || d.y))
+        ["C"].concat(Path.quadraticToCurve(d.x, d.y, d.qx, d.qy, path[1], path[2]))
+      when "Q"
+        d.qx = path[1]
+        d.qy = path[2]
+        ["C"].concat(Path.quadraticToCurve(d.x, d.y, path[1], path[2], path[3], path[4]))
+      when "L"
+        ["C"].concat(Path.lineToCurve(d.x, d.y, path[1], path[2]))
+      when "H"
+        ["C"].concat(Path.lineToCurve(d.x, d.y, path[1], d.y))
+      when "V"
+        ["C"].concat(Path.lineToCurve(d.x, d.y, d.x, path[1]))
+      when "Z"
+        ["C"].concat(Path.lineToCurve(d.x, d.y, d.X, d.Y))
+      else
+        path
+  fixArc = (pp, i, ii) ->
+    if pp[i].length > 7
+      pp[i].shift()
+      pi = pp[i]
+      while pi.length
+        pp.splice(i++, 0, ["C"].concat(pi.splice(0, 6)))
+      pp.splice(i, 1)
+      ii = Math.max(p.length, if p2? then p2.length else 0) - 1
+    ii
+  fixM = (path1, path2, a1, a2, i, ii) ->
+    if path1? and path2? and path1[i][0] == "M" and path2[i][0] != "M"
+      path2.splice(i, 0, ["M", a2.x, a2.y])
+      a1.bx = 0
+      a1.by = 0
+      a1.x = path1[i][1]
+      a1.y = path1[i][2]
+      ii = Math.max(p.length, if p2? then p2.length else 0) - 1
+    ii
+  ii = Math.max(p.length, if p2? then p2.length else 0) - 1
+  for i in [0..ii]
+    p[i] = processPath(p[i], attrs)
+    ii = fixArc(p, i, ii)
+    p2[i] = processPath(p2[i], attrs2) if p2?
+    ii = fixArc(p2, i, ii) if p2?
+    ii = fixM(p, p2, attrs, attrs2, i, ii)
+    ii = fixM(p2, p, attrs2, attrs, i, ii)
+    seg = p[i]
+    seg2 = p2[i] if p2?
+    seglen = seg.length
+    seg2len = seg2.length if p2?
+    attrs.x = seg[seglen - 2]
+    attrs.y = seg[seglen - 1]
+    attrs.bx = parseFloat(seg[seglen - 4]) || attrs.x
+    attrs.by = parseFloat(seg[seglen - 3]) || attrs.y
+    attrs2.bx = parseFloat(seg2[seg2len - 4]) || attrs2.x if p2?
+    attrs2.by = parseFloat(seg2[seg2len - 3]) || attrs2.y if p2?
+    attrs2.x = seg2[seg2len - 2] if p2?
+    attrs2.y = seg2[seg2len - 1] if p2?
+  if p2? then [p, p2] else p
+
+Path.findDotAtSegment = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
+  t1 = 1 - t
+  X = Math.pow(t1, 3) * p1x + Math.pow(t1, 2) * 3 * t * c1x + t1 * 3 * t * t * c2x + Math.pow(t, 3) * p2x
+  Y = Math.pow(t1, 3) * p1y + Math.pow(t1, 2) * 3 * t * c1y + t1 * 3 * t * t * c2y + Math.pow(t, 3) * p2y
+  { x: X, y: Y }
+
+# TODO: curveDimensions was originally cached
+Path.curveDimensions = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y) ->
+  a = (c2x - 2 * c1x + p1x) - (p2x - 2 * c2x + c1x)
+  b = 2 * (c1x - p1x) - 2 * (c2x - c1x)
+  c = p1x - c1x
+  t1 = (-b + Math.sqrt(b * b - 4 * a * c)) / 2 / a
+  t2 = (-b - Math.sqrt(b * b - 4 * a * c)) / 2 / a
+  y = [p1y, p2y]
+  x = [p1x, p2x]
+  t1 = 0.5 if Math.abs(t1) > "1e12"
+  t2 = 0.5 if Math.abs(t2) > "1e12"
+  if t1 > 0 and t1 < 1
+    dot = Path.findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1)
+    x.push(dot.x)
+    y.push(dot.y)
+  if t2 > 0 and t2 < 1
+    dot = Path.findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t2)
+    x.push(dot.x)
+    y.push(dot.y)
+  a = (c2y - 2 * c1y + p1y) - (p2y - 2 * c2y + c1y)
+  b = 2 * (c1y - p1y) - 2 * (c2y - c1y)
+  c = p1y - c1y
+  t1 = (-b + Math.sqrt(b * b - 4 * a * c)) / 2 / a
+  t2 = (-b - Math.sqrt(b * b - 4 * a * c)) / 2 / a
+  t1 = 0.5 if Math.abs(t1) > "1e12"
+  t2 = 0.5 if Math.abs(t2) > "1e12"
+  if t1 > 0 and t1 < 1
+    dot = Path.findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1)
+    x.push(dot.x)
+    y.push(dot.y)
+  if t2 > 0 and t2 < 1
+    dot = Path.findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t2)
+    x.push(dot.x)
+    y.push(dot.y)
+  min: { x: Math.min.apply(0, x), y: Math.min.apply(0, y) }
+  max: { x: Math.max.apply(0, x), y: Math.max.apply(0, y) }
+
 Path::toString = ->
   @attrs.path.join(",").replace(/,?([achlmqrstvxz]),?/gi, "$1")
 
@@ -2088,6 +2209,29 @@ Path::toAbsolute = ->
           y = res[i][len - 1]
   @attrs.path = res
   this
+
+Path::dimensions = ->
+  #if !path?
+  #  return { x: 0, y: 0, width: 0, height: 0 }
+  path = Path.toCurve(path)
+  x = y = 0
+  X = []
+  Y = []
+  for p in path
+    if p[0] == "M"
+      x = p[1]
+      y = p[2]
+      X.push x
+      Y.push y
+    else
+      dim = Path.curveDimensions(x, y, p[1], p[2], p[3], p[4], p[5], p[6])
+      X = X.concat(dim.min.x, dim.max.x)
+      Y = Y.concat(dim.min.y, dim.max.y)
+      x = p[5]
+      y = p[6]
+  xmin = Math.min.apply(0, X)
+  ymin = Math.min.apply(0, Y)
+  { x: xmin, y: ymin, width: Math.max.apply(0, X) - xmin, height: Math.max.apply(0, Y) - ymin }
 
 Raphael = (->
   elements = { circle: 1, rect: 1, path: 1, ellipse: 1, text: 1, image: 1 }
@@ -2214,29 +2358,6 @@ Raphael = (->
     alpha = (90 - Math.atan((mx - nx) / (my - ny)) * 180 / Math.PI)
     { x: x, y: y, m: { x: mx, y: my }, n: { x: nx, y: ny }, start: { x: ax, y: ay }, end: { x: cx, y: cy }, alpha: alpha }
   
-  pathDimensions = (path) ->
-    if !path?
-      return { x: 0, y: 0, width: 0, height: 0 }
-    path = pathToCurve(path)
-    x = y = 0
-    X = []
-    Y = []
-    for p in path
-      if p[0] == "M"
-        x = p[1]
-        y = p[2]
-        X.push x
-        Y.push y
-      else
-        dim = curveDimensions(x, y, p[1], p[2], p[3], p[4], p[5], p[6])
-        X = X.concat(dim.min.x, dim.max.x)
-        Y = Y.concat(dim.min.y, dim.max.y)
-        x = p[5]
-        y = p[6]
-    xmin = Math.min.apply(0, X)
-    ymin = Math.min.apply(0, Y)
-    { x: xmin, y: ymin, width: Math.max.apply(0, X) - xmin, height: Math.max.apply(0, Y) - ymin }
-  
   pathClone = (pathArray) ->
     res = []
     if (!R.is(pathArray, "array") || !R.is(pathArray && pathArray[0], "array")) # rough assumption
@@ -2249,127 +2370,6 @@ Raphael = (->
         res[i][++j] = pathItem
     res.toString = R._path2string
     res
-  
-  findDotAtSegment = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) ->
-    t1 = 1 - t
-    X = Math.pow(t1, 3) * p1x + Math.pow(t1, 2) * 3 * t * c1x + t1 * 3 * t * t * c2x + Math.pow(t, 3) * p2x
-    Y = Math.pow(t1, 3) * p1y + Math.pow(t1, 2) * 3 * t * c1y + t1 * 3 * t * t * c2y + Math.pow(t, 3) * p2y
-    { x: X, y: Y }
-  
-  # TODO: curveDimensions was originally cached
-  curveDimensions = (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y) ->
-    a = (c2x - 2 * c1x + p1x) - (p2x - 2 * c2x + c1x)
-    b = 2 * (c1x - p1x) - 2 * (c2x - c1x)
-    c = p1x - c1x
-    t1 = (-b + Math.sqrt(b * b - 4 * a * c)) / 2 / a
-    t2 = (-b - Math.sqrt(b * b - 4 * a * c)) / 2 / a
-    y = [p1y, p2y]
-    x = [p1x, p2x]
-    t1 = 0.5 if Math.abs(t1) > "1e12"
-    t2 = 0.5 if Math.abs(t2) > "1e12"
-    if t1 > 0 and t1 < 1
-      dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1)
-      x.push(dot.x)
-      y.push(dot.y)
-    if t2 > 0 and t2 < 1
-      dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t2)
-      x.push(dot.x)
-      y.push(dot.y)
-    a = (c2y - 2 * c1y + p1y) - (p2y - 2 * c2y + c1y)
-    b = 2 * (c1y - p1y) - 2 * (c2y - c1y)
-    c = p1y - c1y
-    t1 = (-b + Math.sqrt(b * b - 4 * a * c)) / 2 / a
-    t2 = (-b - Math.sqrt(b * b - 4 * a * c)) / 2 / a
-    t1 = 0.5 if Math.abs(t1) > "1e12"
-    t2 = 0.5 if Math.abs(t2) > "1e12"
-    if t1 > 0 and t1 < 1
-      dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t1)
-      x.push(dot.x)
-      y.push(dot.y)
-    if t2 > 0 and t2 < 1
-      dot = findDotAtSegment(p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t2)
-      x.push(dot.x)
-      y.push(dot.y)
-    min: { x: Math.min.apply(0, x), y: Math.min.apply(0, y) }
-    max: { x: Math.max.apply(0, x), y: Math.max.apply(0, y) }
-  
-  # TODO: pathToCurve was originally cached
-  pathToCurve = (path, path2) ->
-    p = path.toAbsolute().attrs.path
-    p2 = path2.toAbsolute().attrs.path if path2?
-    attrs = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
-    attrs2 = { x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null }
-    processPath = (path, d) ->
-      return ["C", d.x, d.y, d.x, d.y, d.x, d.y] if !path
-      d.qx = d.qy = null if path[0] != 'T' and path[0] != 'Q'
-      switch path[0]
-        when "M"
-          d.X = path[1]
-          d.Y = path[2]
-          path
-        when "A"
-          ["C"].concat(Path.arcToCurve.apply(0, [d.x, d.y].concat(path.slice(1))))
-        when "S"
-          nx = d.x + (d.x - (d.bx || d.x))
-          ny = d.y + (d.y - (d.by || d.y))
-          ["C", nx, ny].concat(path.slice(1))
-        when "T"
-          d.qx = d.x + (d.x - (d.qx || d.x))
-          d.qy = d.y + (d.y - (d.qy || d.y))
-          ["C"].concat(Path.quadraticToCurve(d.x, d.y, d.qx, d.qy, path[1], path[2]))
-        when "Q"
-          d.qx = path[1]
-          d.qy = path[2]
-          ["C"].concat(Path.quadraticToCurve(d.x, d.y, path[1], path[2], path[3], path[4]))
-        when "L"
-          ["C"].concat(Path.lineToCurve(d.x, d.y, path[1], path[2]))
-        when "H"
-          ["C"].concat(Path.lineToCurve(d.x, d.y, path[1], d.y))
-        when "V"
-          ["C"].concat(Path.lineToCurve(d.x, d.y, d.x, path[1]))
-        when "Z"
-          ["C"].concat(Path.lineToCurve(d.x, d.y, d.X, d.Y))
-        else
-          path
-    fixArc = (pp, i, ii) ->
-      if pp[i].length > 7
-        pp[i].shift()
-        pi = pp[i]
-        while pi.length
-          pp.splice(i++, 0, ["C"].concat(pi.splice(0, 6)))
-        pp.splice(i, 1)
-        ii = Math.max(p.length, if p2? then p2.length else 0) - 1
-      ii
-    fixM = (path1, path2, a1, a2, i, ii) ->
-      if path1? and path2? and path1[i][0] == "M" and path2[i][0] != "M"
-        path2.splice(i, 0, ["M", a2.x, a2.y])
-        a1.bx = 0
-        a1.by = 0
-        a1.x = path1[i][1]
-        a1.y = path1[i][2]
-        ii = Math.max(p.length, if p2? then p2.length else 0) - 1
-      ii
-    ii = Math.max(p.length, if p2? then p2.length else 0) - 1
-    for i in [0..ii]
-      p[i] = processPath(p[i], attrs)
-      ii = fixArc(p, i, ii)
-      p2[i] = processPath(p2[i], attrs2) if p2?
-      ii = fixArc(p2, i, ii) if p2?
-      ii = fixM(p, p2, attrs, attrs2, i, ii)
-      ii = fixM(p2, p, attrs2, attrs, i, ii)
-      seg = p[i]
-      seg2 = p2[i] if p2?
-      seglen = seg.length
-      seg2len = seg2.length if p2?
-      attrs.x = seg[seglen - 2]
-      attrs.y = seg[seglen - 1]
-      attrs.bx = parseFloat(seg[seglen - 4]) || attrs.x
-      attrs.by = parseFloat(seg[seglen - 3]) || attrs.y
-      attrs2.bx = parseFloat(seg2[seg2len - 4]) || attrs2.x if p2?
-      attrs2.by = parseFloat(seg2[seg2len - 3]) || attrs2.y if p2?
-      attrs2.x = seg2[seg2len - 2] if p2?
-      attrs2.y = seg2[seg2len - 1] if p2?
-    if p2? then [p, p2] else p
   
   # TODO: parseDots was originally cached
   parseDots = (gradient) ->
@@ -2497,10 +2497,10 @@ Raphael = (->
   if R.type == "VML"
     path2vml = (path) ->
       total = /[ahqstv]/ig
-      command = "ToAbsolute"
-      command = pathToCurve if String(path).match(total)
+      command = "toAbsolute"
+      command = Path.toCurve if String(path).match(total)
       total = /[clmz]/g
-      if command == "ToAbsolute" and !String(path).match(total)
+      if command == "toAbsolute" and !String(path).match(total)
         res = String(path).replace(bites, (all, command, args) ->
           vals = []
           isMove = String.prototype.toLowerCase.call(command) == "m"
@@ -2514,7 +2514,7 @@ Raphael = (->
           return res + vals
         )
         res
-      pa = if command == "ToAbsolute" then path.ToAbsolute().attrs.path else command(path)
+      pa = if command == "toAbsolute" then path.toAbsolute().attrs.path else command(path)
       res = []
       for i of pa
         p = pa[i]
@@ -2672,7 +2672,7 @@ Raphael = (->
 
   getLengthFactory = (istotal, subpath) ->
     (path, length, onlystart) ->
-      path = pathToCurve(path)
+      path = Path.toCurve(path)
       sp = ""
       subpaths = {}
       len = 0
