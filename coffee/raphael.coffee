@@ -189,7 +189,7 @@ RaphaelNew.animation = ->
           when "along"
             now = pos * ms * diff[attr]
             now = to.len - now if to.back
-            point = getPointAtLength(to[attr], now)
+            point = to[attr].pointAtLength(now)
             that.translate(diff.sx - diff.x or 0, diff.sy - diff.y or 0)
             diff.x = point.x
             diff.y = point.y
@@ -241,7 +241,7 @@ RaphaelNew.animation = ->
       that._run.call(that) if that._run
     else
       if to.along
-        point = getPointAtLength(to.along, to.len * !to.back)
+        point = to.along.pointAtLength(to.len * !to.back)
         that.translate(diff.sx - (diff.x || 0) + point.x - diff.sx, diff.sy - (diff.y || 0) + point.y - diff.sy)
         that.rotate(diff.r + point.alpha, point.x, point.y) if to.rot
       (t.x or t.y) and that.translate(-t.x, -t.y)
@@ -590,8 +590,8 @@ class Element extends RaphaelNew
         to[attr] = params[attr]
         switch availableAnimAttrs[attr]
           when "along"
-            len = getTotalLength(params[attr])
-            point = getPointAtLength(params[attr], len * !!params.back)
+            len = params[attr].totalLength()
+            point = params[attr].pointAtLength(len * !!params.back)
             bb = element.getBBox()
             diff[attr] = len / ms
             diff.tx = bb.x
@@ -1293,6 +1293,11 @@ if RaphaelNew.type == "SVG"
       @attrs = { path: Path.parse(pathString), fill: "none", stroke: "#000000" }
       @setFillAndStroke(@attrs)
       this
+
+  class Line extends Path
+  class Quadratic extends Path
+  class Curve extends Path
+  class Arc extends Path
 
 else
   class VMLElement extends Element
@@ -2233,6 +2238,73 @@ Path::dimensions = ->
   ymin = Math.min.apply(0, Y)
   { x: xmin, y: ymin, width: Math.max.apply(0, X) - xmin, height: Math.max.apply(0, Y) - ymin }
 
+Path::totalLength = ->
+  this = Path.toCurve(this)
+  len = 0
+  for p in @attrs.path
+    if p[0] == "M"
+      x = +p[1]
+      y = +p[2]
+    else
+      len += getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6])
+      x = +p[5]
+      y = +p[6]
+  len
+
+Path::pointAtLength = (length) ->
+  this = Path.toCurve(this)
+  len = 0
+  for p in @attrs.path
+    if p[0] == "M"
+      x = +p[1]
+      y = +p[2]
+    else
+      l = getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6])
+      if len + l > length
+        point = getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6], length - len)
+        return { x: point.x, y: point.y, alpha: point.alpha }
+      len += l
+      x = +p[5]
+      y = +p[6]
+  point = R.findDotsAtSegment(x, y, p[1], p[2], p[3], p[4], p[5], p[6], 1)
+  point = { x: point.x, y: point.y, alpha: point.alpha }
+  point
+
+Path::subpathsAtLength = (length, onlystart) ->
+  this = Path.toCurve(this)
+  sp = ""
+  subpaths = {}
+  len = 0
+  for p in @attrs.path
+    if p[0] == "M"
+      x = +p[1]
+      y = +p[2]
+    else
+      l = getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6])
+      if len + l > length
+        if !subpaths.start
+          point = getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6], length - len)
+          sp += ["C", point.start.x, point.start.y, point.m.x, point.m.y, point.x, point.y]
+          return sp if onlystart
+          subpaths.start = sp
+          sp = ["M", point.x, point.y + "C", point.n.x, point.n.y, point.end.x, point.end.y, p[5], p[6]].join()
+          len += l
+          x = +p[5]
+          y = +p[6]
+          continue
+      len += l
+      x = +p[5]
+      y = +p[6]
+    sp += p
+  subpaths.end = sp
+  subpaths
+
+Path::getSubpath = (from, to) ->
+  if Math.abs(@totalLength() - to) < "1e-6"
+    return @subpathsAtLength(from).end
+  a = @subpathsAtLength(to, 1)
+  if from then subpathsAtLength(a, from).end else a
+
 Raphael = (->
   elements = { circle: 1, rect: 1, path: 1, ellipse: 1, text: 1, image: 1 }
   events = ["click", "dblclick", "mousedown", "mousemove", "mouseout", "mouseover", "mouseup", "touchstart", "touchmove", "touchend", "orientationchange", "touchcancel", "gesturestart", "gesturechange", "gestureend"]
@@ -2669,60 +2741,6 @@ Raphael = (->
       old = dot
     if !length?
       return len
-
-  getLengthFactory = (istotal, subpath) ->
-    (path, length, onlystart) ->
-      path = Path.toCurve(path)
-      sp = ""
-      subpaths = {}
-      len = 0
-      for p in path
-        if p[0] == "M"
-          x = +p[1]
-          y = +p[2]
-        else
-          l = getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6])
-          if len + l > length
-              if subpath and !subpaths.start
-                point = getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6], length - len)
-                sp += ["C", point.start.x, point.start.y, point.m.x, point.m.y, point.x, point.y]
-                return sp if onlystart
-                subpaths.start = sp
-                sp = ["M", point.x, point.y + "C", point.n.x, point.n.y, point.end.x, point.end.y, p[5], p[6]].join()
-                len += l
-                x = +p[5]
-                y = +p[6]
-                continue
-              if !istotal and !subpath
-                point = getPointAtSegmentLength(x, y, p[1], p[2], p[3], p[4], p[5], p[6], length - len)
-                return { x: point.x, y: point.y, alpha: point.alpha }
-          len += l
-          x = +p[5]
-          y = +p[6]
-        sp += p
-      subpaths.end = sp
-      point = if istotal then len else if subpath then subpaths else R.findDotsAtSegment(x, y, p[1], p[2], p[3], p[4], p[5], p[6], 1)
-      point = { x: point.x, y: point.y, alpha: point.alpha } if point.alpha
-      point
-
-  getTotalLength = getLengthFactory(1)
-  getPointAtLength = getLengthFactory()
-  getSubpathsAtLength = getLengthFactory(0, 1)
-  Element::getTotalLength = ->
-    return if @type != "path"
-    return this.node.getTotalLength() if @node.getTotalLength
-    getTotalLength(this.attrs.path)
-
-  Element::getPointAtLength = (length) ->
-    return if @type != "path"
-    getPointAtLength(@attrs.path, length)
-
-  Element::getSubpath = (from, to) ->
-    return if @type != "path"
-    if Math.abs(@getTotalLength() - to) < "1e-6"
-      return getSubpathsAtLength(@attrs.path, from).end
-    a = getSubpathsAtLength(@attrs.path, to, 1)
-    if from then getSubpathsAtLength(a, from).end else a
 
   upto255 = (color) ->
     Math.max(Math.min(color, 255), 0)
